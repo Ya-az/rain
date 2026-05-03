@@ -914,7 +914,7 @@ function BracketMatchTile({ match, onSelect, lang, accent = 'orange' }) {
   );
 }
 
-function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange' }) {
+function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', categoryLabel = '' }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const resolved = useMemo(() => resolveBracket(matches, scores), [matches, scores]);
   const byDivision = useMemo(() => groupBracketByDivision(resolved), [resolved]);
@@ -946,7 +946,7 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange' }
         return (
           <CollapsibleCard
             key={div}
-            title={`${tx('Sumo/SoccerBot Bracket', 'جدول الإقصائيات')} — ${div}`}
+            title={`${categoryLabel ? `${categoryLabel} ` : ''}${tx('Bracket', 'جدول الإقصائيات')} — ${div}`}
             badge={champion ? `🏆 ${champion}` : `${playedCount}/${playableCount}`}
             badgeColor={champion ? 'bg-saudi-600' : accentHeaderBadge}
           >
@@ -1144,7 +1144,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
     return (
       <div className="space-y-4">
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
-        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="orange" />
+        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="orange" categoryLabel={category.name} />
       </div>
     );
   }
@@ -1279,7 +1279,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
     return (
       <div className="space-y-4">
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
-        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="teal" />
+        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="teal" categoryLabel={category.name} />
       </div>
     );
   }
