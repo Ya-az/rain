@@ -37,7 +37,8 @@ export const MOCK_USERS = [
   // All referees also have access to AI Innovation (c3_ai)
   { id: 'w_web_1',     username: '0569508267', password: '0000', role: 'ref', name: 'WebDesign Ref',      categories: ['c3_webdesign', 'c3_ai'], region: 'Western' },
   { id: 'w_fastbot_1', username: '0554147948', password: '0000', role: 'ref', name: 'Fastbot Ref',        categories: ['c1_fastbot', 'c3_ai'],   region: 'Western' },
-  { id: 'w_soccer_1',  username: '0569450620', password: '0000', role: 'ref', name: 'SoccerBot Ref',      categories: ['c2_soccer', 'c3_ai'],    region: 'Western' },
+  { id: 'w_soccer_1',  username: '0569450620', password: '0000', role: 'ref', name: 'SoccerBot Ref 1',    categories: ['c2_soccer', 'c3_ai'],    region: 'Western' },
+  { id: 'w_soccer_2',  username: '0561511180', password: '0000', role: 'ref', name: 'SoccerBot Ref 2',    categories: ['c2_soccer', 'c3_ai'],    region: 'Western' },
   { id: 'w_sumo_1',    username: '0536009227', password: '0000', role: 'ref', name: 'Sumo Ref 1',         categories: ['c2_sumo', 'c3_ai'],      region: 'Western' },
   { id: 'w_sumo_2',    username: '0581123422', password: '0000', role: 'ref', name: 'Sumo Ref 2',         categories: ['c2_sumo', 'c3_ai'],      region: 'Western' },
   { id: 'w_maze_1',    username: '0569650707', password: '0000', role: 'ref', name: 'a-Maze-ing Ref',     categories: ['c1_amazeing', 'c3_ai'],  region: 'Western' },
