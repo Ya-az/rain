@@ -516,7 +516,10 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
 
   if (isFastBot) {
     const esMsRows = visibleFastBotRows.filter(row => ['ES', 'MS'].includes(row.division));
-    const hsUsRows = visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division));
+    // Western HS / US run as two standalone tables; other regions stay merged.
+    const hsUsNonWesternRows = visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division) && row.region !== 'Western');
+    const hsWesternRows = visibleFastBotRows.filter(row => row.division === 'HS' && row.region === 'Western');
+    const usWesternRows = visibleFastBotRows.filter(row => row.division === 'US' && row.region === 'Western');
 
     return (
       <div className="space-y-5">
@@ -553,9 +556,21 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
             <CollapsibleCard title={t(lang, 'fastbotEsMsTable')} badge={esMsRows.length} badgeColor="bg-brand-500">
               <FastBotScheduleTable title={t(lang, 'fastbotEsMsTable')} rows={esMsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={esMsSlotKeys} />
             </CollapsibleCard>
-            <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsRows.length} badgeColor="bg-brand-500">
-              <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
-            </CollapsibleCard>
+            {hsUsNonWesternRows.length > 0 && (
+              <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsNonWesternRows.length} badgeColor="bg-brand-500">
+                <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsNonWesternRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
+              </CollapsibleCard>
+            )}
+            {hsWesternRows.length > 0 && (
+              <CollapsibleCard title={`FastBot Schedule — HS (Western)`} badge={hsWesternRows.length} badgeColor="bg-brand-500">
+                <FastBotScheduleTable title="" rows={hsWesternRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
+              </CollapsibleCard>
+            )}
+            {usWesternRows.length > 0 && (
+              <CollapsibleCard title={`FastBot Schedule — US (Western)`} badge={usWesternRows.length} badgeColor="bg-brand-500">
+                <FastBotScheduleTable title="" rows={usWesternRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
+              </CollapsibleCard>
+            )}
           </div>
         )}
       </div>
