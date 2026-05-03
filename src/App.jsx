@@ -391,7 +391,7 @@ export default function App() {
 
   // ─── Main app shell ───────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-ink-50 pb-20 sm:pb-0" dir={dir}>
+    <div className="min-h-screen flex flex-col bg-ink-50 pb-20 sm:pb-0" dir={dir}>
       <Header
         currentUser={currentUser}
         onLogout={handleLogout}
@@ -409,7 +409,7 @@ export default function App() {
         pendingCount={scores.filter(s => s.status === 'PENDING').length}
       />
 
-      <main className="max-w-7xl mx-auto w-full px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6">
         {currentView === 'dashboard' && allowedViews.includes('dashboard') && (
           <Dashboard
             teams={authorizedTeams}

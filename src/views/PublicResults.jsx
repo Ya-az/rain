@@ -188,7 +188,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
   }, []);
 
   return (
-    <div ref={rootRef} dir={dir} className={`min-h-screen text-white ${projectorMode ? 'projector-mode' : ''}`}
+    <div ref={rootRef} dir={dir} className={`min-h-screen flex flex-col text-white ${projectorMode ? 'projector-mode' : ''}`}
       style={{
         background: 'linear-gradient(135deg, #0A2A3A 0%, #08303d 35%, #0B7A43 100%)',
         backgroundAttachment: 'fixed',
@@ -255,7 +255,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
         </div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* Featured spotlight */}
         {featured ? (
           <FeaturedCategory
