@@ -255,27 +255,23 @@ export default function App() {
   // and writes the skeleton matches into Firestore `group2Matches`. Later rounds
   // are filled by resolveBracket() at render time as winners are saved.
   const generateMatches = () => {
-    // Sumo & SoccerBot are restricted to two divisions only: ES and MS.
-    const ALLOWED_DIVS = ['ES', 'MS'];
     const buildForCategory = (catId, label) => {
       const partsInCat = participations.filter(p => p.categoryId === catId);
-      const byDiv = { ES: [], MS: [] };
+      const byDiv = {};
       partsInCat.forEach(p => {
         const team = teams.find(tm => tm.id === p.teamId);
         if (!team) return;
         const status = getTeamStatus(team);
         if (status === 'No-Show') return;
-        const div = team.division;
-        if (!ALLOWED_DIVS.includes(div)) return;
-        byDiv[div].push({
+        const div = team.division || 'NA';
+        (byDiv[div] = byDiv[div] || []).push({
           teamId: team.id,
           teamName: team.name,
           region: team.region,
         });
       });
       const out = [];
-      ALLOWED_DIVS.forEach(division => {
-        const entries = byDiv[division];
+      Object.entries(byDiv).forEach(([division, entries]) => {
         if (entries.length < 2) return;
         out.push(...buildBracketForDivision({ entries, categoryId: catId, division, label }));
       });

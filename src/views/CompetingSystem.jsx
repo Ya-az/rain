@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { CheckCircle2, Search } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import { t } from '../constants/translations';
@@ -826,35 +826,101 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange' }
     );
   }
 
+  const accentChip = accent === 'teal'
+    ? 'bg-teal-50 border-teal-200 text-teal-700'
+    : 'bg-orange-50 border-orange-200 text-orange-700';
+  const accentHeaderBadge = accent === 'teal' ? 'bg-teal-600' : 'bg-orange-500';
+
   return (
     <div className="space-y-4">
       {divisions.map(div => {
-        const rounds = groupByRound(byDivision[div]);
+        const divMatches = byDivision[div];
+        const rounds = groupByRound(divMatches);
         const final = rounds[rounds.length - 1]?.matches?.[0];
         const champion = final?._winnerTeamName || '';
+        const playableCount = divMatches.filter(m => !m.isBye).length;
+        const playedCount = divMatches.filter(m => !m.isBye && m._winnerSide).length;
         return (
           <CollapsibleCard
             key={div}
-            title={`${tx('Division', 'الفئة')}: ${div}`}
-            badge={champion ? `🏆 ${champion}` : `${rounds.length} ${tx('rounds', 'جولات')}`}
-            badgeColor={champion ? 'bg-saudi-600' : (accent === 'teal' ? 'bg-teal-600' : 'bg-orange-500')}
+            title={`${tx('Sumo/SoccerBot Bracket', 'جدول الإقصائيات')} — ${div}`}
+            badge={champion ? `🏆 ${champion}` : `${playedCount}/${playableCount}`}
+            badgeColor={champion ? 'bg-saudi-600' : accentHeaderBadge}
           >
-            <div className="p-3 sm:p-4 bg-ink-50/40 overflow-x-auto">
-              <div className="flex gap-3 min-w-max">
-                {rounds.map(({ roundIndex, round, matches: rMatches }) => (
-                  <div key={roundIndex} className="flex flex-col gap-2 min-w-[180px] sm:min-w-[210px]">
-                    <div className="text-center text-[10px] font-black uppercase tracking-widest text-ink-500 pb-1 border-b border-ink-200">
-                      {round}
-                    </div>
-                    <div className="flex flex-col justify-around gap-2 flex-1">
-                      {rMatches.map(m => (
-                        <BracketMatchTile key={m.id} match={m} onSelect={onSelectMatch} lang={lang} accent={accent} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
+              <table className="min-w-[720px] sm:min-w-[920px] w-full text-xs sm:text-sm">
+                <thead className="bg-[#061a27] text-white">
+                  <tr className="text-left">
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold w-12 text-center">#</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Round', 'الجولة')}</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Team A', 'الفريق أ')}</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center w-10">{tx('vs', 'ضد')}</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Team B', 'الفريق ب')}</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center">{tx('Score', 'النتيجة')}</th>
+                    <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Winner', 'الفائز')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink-100 bg-white">
+                  {rounds.map(({ roundIndex, round, matches: rMatches }) => (
+                    <Fragment key={roundIndex}>
+                      <tr className="bg-ink-50/80">
+                        <td colSpan={7} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
+                          {round}
+                        </td>
+                      </tr>
+                      {rMatches.map((m, i) => {
+                        const ready = m.teamA && m.teamB && !m.isBye;
+                        const winnerName = m._winnerTeamName || '';
+                        const isWinnerA = m._winnerSide === 'A';
+                        const isWinnerB = m._winnerSide === 'B';
+                        return (
+                          <tr
+                            key={m.id}
+                            tabIndex={ready ? 0 : -1}
+                            onClick={() => ready && onSelectMatch?.(m.id)}
+                            onKeyDown={(e) => {
+                              if (ready && (e.key === 'Enter' || e.key === ' ')) {
+                                e.preventDefault();
+                                onSelectMatch?.(m.id);
+                              }
+                            }}
+                            className={`transition-colors ${
+                              ready ? 'cursor-pointer hover:bg-brand-50/60 focus:bg-brand-50 focus:outline-none' : 'opacity-70 cursor-not-allowed'
+                            }`}
+                          >
+                            <td className="px-3 py-2.5 text-center font-mono text-[11px] text-ink-500">{i + 1}</td>
+                            <td className="px-3 py-2.5">
+                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${accentChip}`}>{round}</span>
+                            </td>
+                            <td className={`px-3 py-2.5 font-bold ${isWinnerA ? 'text-saudi-700' : 'text-ink-700'} ${!m.teamA ? 'text-ink-300 italic font-medium' : ''}`}>
+                              {m.teamA || tx('TBD', 'لم يُحدد')}
+                              {isWinnerA && <span className="ml-1 text-saudi-600">✓</span>}
+                            </td>
+                            <td className="px-2 py-2.5 text-center text-[10px] font-black text-ink-400">vs</td>
+                            <td className={`px-3 py-2.5 font-bold ${isWinnerB ? 'text-saudi-700' : 'text-ink-700'} ${!m.teamB ? 'text-ink-300 italic font-medium' : ''} ${m.isBye ? 'italic text-ink-400' : ''}`}>
+                              {m.teamB || tx('TBD', 'لم يُحدد')}
+                              {isWinnerB && <span className="ml-1 text-saudi-600">✓</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-center font-black text-ink-700">
+                              {m._scoreObj?.score || (m.isBye ? tx('BYE', 'تأهل') : '--')}
+                            </td>
+                            <td className="px-3 py-2.5 font-bold text-saudi-700 truncate max-w-[140px]">
+                              {winnerName || (m.isBye ? (m.teamA || '--') : '--')}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
             </div>
+            {champion && (
+              <div className="px-4 py-3 bg-saudi-50 border-t border-saudi-200 text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-saudi-600">{tx('Champion', 'البطل')}</p>
+                <p className="text-base font-black text-saudi-700 mt-0.5">🏆 {champion}</p>
+              </div>
+            )}
           </CollapsibleCard>
         );
       })}
@@ -868,15 +934,12 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
   const [mode, setMode] = useState('bracket'); // 'bracket' | 'roundrobin'
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
-  // Sumo is contested in ES and MS divisions only.
-  const ALLOWED_DIVS = ['ES', 'MS'];
   const teamEntries = useMemo(() =>
     participations
       .filter(p => p.categoryId === category.id)
       .map(p => {
         const team = teams.find(t => t.id === p.teamId);
         if (!team) return null;
-        if (!ALLOWED_DIVS.includes(team.division)) return null;
         return { participationId: p.id, teamId: team.id, teamName: team.name, division: team.division, region: team.region };
       })
       .filter(Boolean),
@@ -1029,15 +1092,12 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
   const [mode, setMode] = useState('bracket');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
-  // SoccerBot is contested in ES and MS divisions only.
-  const ALLOWED_DIVS = ['ES', 'MS'];
   const teamEntries = useMemo(() =>
     participations
       .filter(p => p.categoryId === category.id)
       .map(p => {
         const team = teams.find(t => t.id === p.teamId);
         if (!team) return null;
-        if (!ALLOWED_DIVS.includes(team.division)) return null;
         return { participationId: p.id, teamId: team.id, teamName: team.name, division: team.division, region: team.region };
       })
       .filter(Boolean),
