@@ -868,12 +868,15 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
   const [mode, setMode] = useState('bracket'); // 'bracket' | 'roundrobin'
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
+  // Sumo is contested in ES and MS divisions only.
+  const ALLOWED_DIVS = ['ES', 'MS'];
   const teamEntries = useMemo(() =>
     participations
       .filter(p => p.categoryId === category.id)
       .map(p => {
         const team = teams.find(t => t.id === p.teamId);
         if (!team) return null;
+        if (!ALLOWED_DIVS.includes(team.division)) return null;
         return { participationId: p.id, teamId: team.id, teamName: team.name, division: team.division, region: team.region };
       })
       .filter(Boolean),
@@ -1026,12 +1029,15 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
   const [mode, setMode] = useState('bracket');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
+  // SoccerBot is contested in ES and MS divisions only.
+  const ALLOWED_DIVS = ['ES', 'MS'];
   const teamEntries = useMemo(() =>
     participations
       .filter(p => p.categoryId === category.id)
       .map(p => {
         const team = teams.find(t => t.id === p.teamId);
         if (!team) return null;
+        if (!ALLOWED_DIVS.includes(team.division)) return null;
         return { participationId: p.id, teamId: team.id, teamName: team.name, division: team.division, region: team.region };
       })
       .filter(Boolean),
