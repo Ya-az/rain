@@ -129,3 +129,31 @@
 @supports (min-height: 100dvh) {
   .min-h-screen { min-height: 100dvh; }
 }
+
+/* ─── Public Results: projector / TV mode ─── */
+.projector-mode { font-size: 18px; }
+.projector-mode h1 { font-size: 2.25rem; }
+.projector-mode h2 { font-size: 1.75rem; }
+.projector-mode h3 { font-size: 1.25rem; }
+.projector-mode .tabular-nums { letter-spacing: 0.02em; }
+@media (min-width: 1280px) {
+  .projector-mode { font-size: 20px; }
+  .projector-mode h1 { font-size: 3rem; }
+  .projector-mode h2 { font-size: 2.25rem; }
+}
+
+/* ─── Flash overlay animations ─── */
+@keyframes fadein-out {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes pop {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+  40% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  60% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
+}
+.animate-fadein-out { animation: fadein-out 1.4s ease-out forwards; }
+.animate-pop { animation: pop 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards; }

@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
-import { Trophy, Activity, Users, MapPin, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { Trophy, Activity, Users, MapPin, Zap, ChevronLeft, ChevronRight, Maximize2, Minimize2, Filter, Tv, Medal } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 
 const REGION_COLORS = {
@@ -57,14 +57,26 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
 
   const populatedCats = leaderboard.filter(l => l.top5.length > 0);
 
-  // ─── Auto-rotating featured category (8s cycle) ─────────────────────────
+  // ─── Auto-rotating featured category (8s/12s in projector) ───────────────
   const [featuredIdx, setFeaturedIdx] = useState(0);
   const [autoRotate, setAutoRotate] = useState(true);
+  const [rotateProgress, setRotateProgress] = useState(0);
   useEffect(() => {
     if (!autoRotate || populatedCats.length === 0) return;
     const id = setInterval(() => setFeaturedIdx(i => (i + 1) % populatedCats.length), 8000);
     return () => clearInterval(id);
   }, [autoRotate, populatedCats.length]);
+  // Reset & animate progress bar each rotation cycle
+  useEffect(() => {
+    if (!autoRotate || populatedCats.length === 0) { setRotateProgress(0); return; }
+    setRotateProgress(0);
+    const start = Date.now();
+    const tick = setInterval(() => {
+      const pct = Math.min(100, ((Date.now() - start) / 8000) * 100);
+      setRotateProgress(pct);
+    }, 100);
+    return () => clearInterval(tick);
+  }, [featuredIdx, autoRotate, populatedCats.length]);
   useEffect(() => {
     if (featuredIdx >= populatedCats.length) setFeaturedIdx(0);
   }, [populatedCats.length, featuredIdx]);
@@ -102,8 +114,83 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
     return tally;
   }, [populatedCats]);
 
+  // ─── Top teams aggregate medal table (gold/silver/bronze across categories) ──────
+  const topTeams = useMemo(() => {
+    const tally = new Map();
+    populatedCats.forEach(({ rows }) => {
+      rows.slice(0, 3).forEach((row, i) => {
+        const key = row.teamName;
+        const cur = tally.get(key) || { team: row.teamName, region: row.region, division: row.division, gold: 0, silver: 0, bronze: 0 };
+        if (i === 0) cur.gold++;
+        else if (i === 1) cur.silver++;
+        else if (i === 2) cur.bronze++;
+        tally.set(key, cur);
+      });
+    });
+    return [...tally.values()]
+      .map(t => ({ ...t, weight: t.gold * 100 + t.silver * 10 + t.bronze }))
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 10);
+  }, [populatedCats]);
+
+  // ─── Filters for grid ──────────────────────────────────────
+  const [filterRegion, setFilterRegion] = useState('All');
+  const [filterDivision, setFilterDivision] = useState('All');
+  const allDivisions = useMemo(() => {
+    const set = new Set();
+    teams.forEach(t => t.division && set.add(t.division));
+    return [...set];
+  }, [teams]);
+  const filteredGrid = useMemo(() => {
+    if (filterRegion === 'All' && filterDivision === 'All') return populatedCats;
+    return populatedCats
+      .map(({ cat, isFastBot, rows }) => {
+        const filtered = rows.filter(r =>
+          (filterRegion === 'All' || r.region === filterRegion) &&
+          (filterDivision === 'All' || r.division === filterDivision)
+        );
+        return { cat, isFastBot, rows: filtered, top5: filtered.slice(0, 5) };
+      })
+      .filter(c => c.top5.length > 0);
+  }, [populatedCats, filterRegion, filterDivision]);
+
+  // ─── Flash animation on new score arrival ────────────────────────────
+  const [flashKey, setFlashKey] = useState(0);
+  const prevValidCount = useRef(stats.valid);
+  useEffect(() => {
+    if (stats.valid > prevValidCount.current) {
+      setFlashKey(k => k + 1);
+    }
+    prevValidCount.current = stats.valid;
+  }, [stats.valid]);
+
+  // ─── Projector / TV mode (fullscreen + bigger fonts + faster rotation) ─────────
+  const [projectorMode, setProjectorMode] = useState(false);
+  const rootRef = useRef(null);
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await rootRef.current?.requestFullscreen?.();
+        setProjectorMode(true);
+      } else {
+        await document.exitFullscreen?.();
+        setProjectorMode(false);
+      }
+    } catch (e) {
+      setProjectorMode(p => !p);
+    }
+  };
+  useEffect(() => {
+    const onFs = () => { if (!document.fullscreenElement) setProjectorMode(false); };
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
+
   return (
-    <div dir={dir} className="min-h-screen bg-gradient-to-br from-[#03101b] via-[#061a27] to-[#082233] text-white">
+    <div ref={rootRef} dir={dir} className={`min-h-screen bg-gradient-to-br from-[#03101b] via-[#061a27] to-[#082233] text-white ${projectorMode ? 'projector-mode' : ''}`}>
+      {/* Flash overlay on new score */}
+      <FlashOverlay key={flashKey} active={flashKey > 0} tx={tx} />
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full bg-brand-500/10 blur-3xl" />
@@ -127,6 +214,14 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
               <div className="font-mono text-base sm:text-lg font-black tracking-wider px-3 py-2 rounded-xl bg-white/5 border border-white/10">
                 {clockStr}
               </div>
+              <button
+                onClick={toggleFullscreen}
+                title={tx('Projector mode', 'وضع العرض')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-500/20 hover:bg-brand-500/30 border border-brand-400/40 text-brand-200 text-xs font-black transition"
+              >
+                {projectorMode ? <Minimize2 size={14} /> : <Tv size={14} />}
+                <span className="hidden md:inline">{projectorMode ? tx('Exit', 'خروج') : tx('Projector', 'عرض')}</span>
+              </button>
             </div>
           </div>
 
@@ -150,6 +245,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
             setFeaturedIdx={setFeaturedIdx}
             autoRotate={autoRotate}
             setAutoRotate={setAutoRotate}
+            rotateProgress={rotateProgress}
             tx={tx}
             lang={lang}
           />
@@ -157,15 +253,33 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
           <EmptyState tx={tx} />
         )}
 
-        {/* All-categories grid */}
+        {/* Top Teams overall medal table */}
+        {topTeams.length > 0 && (
+          <TopTeams topTeams={topTeams} tx={tx} />
+        )}
+
+        {/* All-categories grid with filters */}
         {populatedCats.length > 0 && (
           <section>
-            <SectionHeader title={tx('All Category Standings', 'الترتيب لجميع التصنيفات')} subtitle={tx('Top performers across every event', 'أفضل المتنافسين في كل تصنيف')} />
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {populatedCats.map(({ cat, isFastBot, top5 }) => (
-                <CategoryCard key={cat.id} cat={cat} top5={top5} isFastBot={isFastBot} tx={tx} />
-              ))}
+            <div className="flex items-end justify-between gap-3 mb-4 flex-wrap">
+              <SectionHeader inline title={tx('All Category Standings', 'الترتيب لجميع التصنيفات')} subtitle={tx('Top performers across every event', 'أفضل المتنافسين في كل تصنيف')} />
+              <Filters
+                filterRegion={filterRegion} setFilterRegion={setFilterRegion}
+                filterDivision={filterDivision} setFilterDivision={setFilterDivision}
+                divisions={allDivisions} tx={tx}
+              />
             </div>
+            {filteredGrid.length === 0 ? (
+              <p className="text-white/40 text-sm py-8 text-center bg-white/[0.03] rounded-2xl border border-white/10">
+                {tx('No results match the selected filters.', 'لا توجد نتائج بالفلاتر المحدد.')}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {filteredGrid.map(({ cat, isFastBot, top5 }) => (
+                  <CategoryCard key={cat.id} cat={cat} top5={top5} isFastBot={isFastBot} tx={tx} />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -200,7 +314,7 @@ function HeroStat({ label, value, icon, accent }) {
 }
 
 // ─── Featured spotlight (auto-rotating) ────────────────────────────────────
-function FeaturedCategory({ featured, populatedCats, featuredIdx, setFeaturedIdx, autoRotate, setAutoRotate, tx, lang }) {
+function FeaturedCategory({ featured, populatedCats, featuredIdx, setFeaturedIdx, autoRotate, setAutoRotate, rotateProgress, tx, lang }) {
   const { cat, top5, isFastBot } = featured;
   const style = CATEGORY_STYLES[cat.id] || { from: '#334155', to: '#0f172a', icon: '🤖' };
   const winner = top5[0];
@@ -307,6 +421,13 @@ function FeaturedCategory({ featured, populatedCats, featuredIdx, setFeaturedIdx
             />
           ))}
         </div>
+
+        {/* Rotation progress bar */}
+        {autoRotate && populatedCats.length > 1 && (
+          <div className="mt-3 h-0.5 w-full bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-white/70 transition-[width] duration-100 ease-linear" style={{ width: `${rotateProgress}%` }} />
+          </div>
+        )}
       </div>
     </section>
   );
@@ -458,5 +579,114 @@ function EmptyState({ tx }) {
         {tx('Results will appear here in real time as referees verify scores. Stay tuned!', 'ستظهر النتائج هنا فور اعتمادها من الحكام. ترقّبوا!')}
       </p>
     </section>
+  );
+}
+
+// ─── Filters bar ───────────────────────────────────────────────────────────
+function Filters({ filterRegion, setFilterRegion, filterDivision, setFilterDivision, divisions, tx }) {
+  const REGIONS = [
+    { val: 'All', label: tx('All Regions', 'كل المناطق') },
+    { val: 'Eastern', label: tx('Eastern', 'الشرقية') },
+    { val: 'Western', label: tx('Western', 'الغربية') },
+    { val: 'Central', label: tx('Central', 'الوسطى') },
+  ];
+  const baseBtn = 'px-3 py-1.5 rounded-lg text-[11px] font-black border transition whitespace-nowrap';
+  const active = 'bg-white text-[#03101b] border-white';
+  const idle = 'bg-white/5 text-white/70 border-white/15 hover:bg-white/10';
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Filter size={14} className="text-white/40" />
+      <div className="flex items-center gap-1 flex-wrap">
+        {REGIONS.map(r => (
+          <button key={r.val} onClick={() => setFilterRegion(r.val)} className={`${baseBtn} ${filterRegion === r.val ? active : idle}`}>{r.label}</button>
+        ))}
+      </div>
+      {divisions.length > 1 && (
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="w-px h-5 bg-white/15 mx-1" />
+          <button onClick={() => setFilterDivision('All')} className={`${baseBtn} ${filterDivision === 'All' ? active : idle}`}>{tx('All Divisions', 'كل الفئات')}</button>
+          {divisions.map(d => (
+            <button key={d} onClick={() => setFilterDivision(d)} className={`${baseBtn} ${filterDivision === d ? active : idle}`}>{d}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Top teams overall medal table ─────────────────────────────────────────
+function TopTeams({ topTeams, tx }) {
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5 sm:p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-300 to-amber-600 flex items-center justify-center shadow">
+          <Medal size={20} className="text-white" />
+        </div>
+        <div>
+          <h2 className="text-lg sm:text-xl font-black">{tx('Top Teams Overall', 'أفضل الفرق إجمالاً')}</h2>
+          <p className="text-xs sm:text-sm font-medium text-white/50">{tx('Ranked by total medals across all categories', 'حسب مجموع الميداليات في كل التصنيفات')}</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto -mx-2">
+        <table className="w-full min-w-[520px] text-sm">
+          <thead>
+            <tr className="text-[10px] font-black uppercase tracking-widest text-white/40">
+              <th className="text-start px-3 py-2 w-10">#</th>
+              <th className="text-start px-3 py-2">{tx('Team', 'الفريق')}</th>
+              <th className="text-center px-2 py-2 w-14">🥇</th>
+              <th className="text-center px-2 py-2 w-14">🥈</th>
+              <th className="text-center px-2 py-2 w-14">🥉</th>
+              <th className="text-end px-3 py-2 w-20">{tx('Region', 'المنطقة')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {topTeams.map((row, i) => {
+              const isPodium = i < 3;
+              const rowAccent = i === 0 ? 'bg-amber-300/10 border-amber-300/30' : i === 1 ? 'bg-white/8 border-white/15' : i === 2 ? 'bg-orange-400/10 border-orange-400/20' : 'bg-white/[0.03] border-white/10';
+              return (
+                <tr key={row.team} className={`border ${rowAccent} rounded-xl`}>
+                  <td className="px-3 py-2.5 font-black text-white/60">{i + 1}</td>
+                  <td className="px-3 py-2.5">
+                    <div className={`font-black ${isPodium ? 'text-base' : 'text-sm'} truncate`}>{row.team}</div>
+                    {row.division && <div className="text-[10px] font-bold text-white/40 mt-0.5">{row.division}</div>}
+                  </td>
+                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-amber-300">{row.gold || '·'}</td>
+                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-white/80">{row.silver || '·'}</td>
+                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-orange-300">{row.bronze || '·'}</td>
+                  <td className="px-3 py-2.5 text-end">
+                    {row.region && (
+                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2 py-0.5 rounded-full border ${REGION_COLORS[row.region]?.chip || 'bg-white/10 text-white/70 border-white/20'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${REGION_COLORS[row.region]?.dot || 'bg-white/30'}`} />
+                        {row.region}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// ─── Flash overlay (briefly pulses on new score) ───────────────────────────
+function FlashOverlay({ active, tx }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    setShow(true);
+    const id = setTimeout(() => setShow(false), 1400);
+    return () => clearTimeout(id);
+  }, [active]);
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-[60] pointer-events-none">
+      <div className="absolute inset-0 bg-saudi-400/15 animate-fadein-out" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 rounded-2xl bg-saudi-500 text-white font-black text-lg sm:text-2xl shadow-2xl border-4 border-white/30 animate-pop">
+        ✨ {tx('NEW SCORE!', 'نتيجة جديدة!')}
+      </div>
+    </div>
   );
 }
