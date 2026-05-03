@@ -1073,19 +1073,31 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
 
 export default function CompetingSystem({ categories, participations, teams, getTeamStatus, scores, setScores, currentUser, group2Matches, systemConfig, lang, showToast }) {
   const isRef = currentUser?.role === 'ref';
-  const [selectedCategoryId, setSelectedCategoryId] = useState(isRef && currentUser?.category ? currentUser.category : '');
+  // Allowed categories for refs: prefer `categories` array, fall back to legacy single `category`
+  const refAllowedIds = isRef
+    ? (currentUser?.categories ?? (currentUser?.category ? [currentUser.category] : []))
+    : null;
+  const visibleCategories = isRef
+    ? categories.filter(c => refAllowedIds.includes(c.id))
+    : categories;
+  // Auto-select if ref has only one allowed category
+  const initialCatId = isRef && refAllowedIds.length === 1 ? refAllowedIds[0] : '';
+  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCatId);
   const selectedCategory = categories.find(c => c.id === selectedCategoryId);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
+  // Show selector for non-refs OR for refs with multiple allowed categories
+  const showSelector = !isRef || refAllowedIds.length > 1;
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-24 sm:pb-6" dir={dir}>
-      {/* Category selector — hidden for referees (locked to their category) */}
-      {!isRef && (
+      {/* Category selector — hidden when a referee has only one allowed category */}
+      {showSelector && (
         <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-card border border-ink-100">
           <p className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-3 sm:mb-4">{t(lang, 'selectCategory')}</p>
           {/* Mobile: horizontal scroll row */}
           <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 sm:hidden justify-start px-1">
-            {categories.map(c => {
+            {visibleCategories.map(c => {
               const style = CATEGORY_STYLES[c.id] || { from: '#334155', to: '#0f172a', icon: '🤖' };
               const isActive = selectedCategoryId === c.id;
               return (
@@ -1115,7 +1127,7 @@ export default function CompetingSystem({ categories, participations, teams, get
           </div>
           {/* Desktop: hex grid */}
           <div className="hidden sm:flex flex-wrap justify-center gap-6 py-2">
-            {categories.map(c => {
+            {visibleCategories.map(c => {
               const style = CATEGORY_STYLES[c.id] || { from: '#334155', to: '#0f172a', icon: '🤖' };
               const isActive = selectedCategoryId === c.id;
               return (
