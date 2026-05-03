@@ -251,29 +251,36 @@ export default function App() {
   };
 
   // ─── Matchmaking — Single-elimination Knockout Brackets ───────────────────
-  // Builds a bracket per (category × division) from currently checked-in teams
-  // and writes the skeleton matches into Firestore `group2Matches`. Later rounds
-  // are filled by resolveBracket() at render time as winners are saved.
+  // Builds a bracket per (category × bucket) from currently checked-in teams.
+  // Buckets follow the FastBot-style grouping: ES + MS together, and HS + US
+  // together. The skeleton matches are written into Firestore `group2Matches`;
+  // later rounds are filled by resolveBracket() at render time as winners are saved.
   const generateMatches = () => {
+    const BUCKETS = [
+      { key: 'ES / MS', divs: ['ES', 'MS'] },
+      { key: 'HS / US', divs: ['HS', 'US'] },
+    ];
     const buildForCategory = (catId, label) => {
       const partsInCat = participations.filter(p => p.categoryId === catId);
-      const byDiv = {};
+      const byBucket = Object.fromEntries(BUCKETS.map(b => [b.key, []]));
       partsInCat.forEach(p => {
         const team = teams.find(tm => tm.id === p.teamId);
         if (!team) return;
         const status = getTeamStatus(team);
         if (status === 'No-Show') return;
-        const div = team.division || 'NA';
-        (byDiv[div] = byDiv[div] || []).push({
+        const bucket = BUCKETS.find(b => b.divs.includes(team.division));
+        if (!bucket) return;
+        byBucket[bucket.key].push({
           teamId: team.id,
           teamName: team.name,
           region: team.region,
         });
       });
       const out = [];
-      Object.entries(byDiv).forEach(([division, entries]) => {
+      BUCKETS.forEach(({ key }) => {
+        const entries = byBucket[key];
         if (entries.length < 2) return;
-        out.push(...buildBracketForDivision({ entries, categoryId: catId, division, label }));
+        out.push(...buildBracketForDivision({ entries, categoryId: catId, division: key, label }));
       });
       return out;
     };
