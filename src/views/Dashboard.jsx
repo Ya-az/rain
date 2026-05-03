@@ -52,12 +52,12 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
           <Activity size={20} className="text-brand-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-black text-sm">RoboRAVE 2026 Saudi Arabia</p>
-          <p className="text-ink-400 text-xs font-medium mt-0.5">Live Competition Dashboard</p>
+          <p className="text-white font-black text-sm">{lang === 'ar' ? 'روبوريف 2026 المملكة العربية السعودية' : 'RoboRAVE 2026 Saudi Arabia'}</p>
+          <p className="text-ink-400 text-xs font-medium mt-0.5">{lang === 'ar' ? 'لوحة المنافسة المباشرة' : 'Live Competition Dashboard'}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="w-2 h-2 rounded-full bg-saudi-400 animate-pulse" />
-          <span className="text-xs font-black text-saudi-400 uppercase tracking-widest">LIVE</span>
+          <span className="text-xs font-black text-saudi-400 uppercase tracking-widest">{lang === 'ar' ? 'مباشر' : 'LIVE'}</span>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
           <h2 className="text-base font-bold text-ink-800">{t(lang, 'dynamicLeaderboard')}</h2>
           <div className="ml-auto flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-saudi-400 animate-pulse" />
-            <span className="text-xs font-bold text-ink-500">{stats.validScores} verified</span>
+            <span className="text-xs font-bold text-ink-500">{stats.validScores} {lang === 'ar' ? 'معتمدة' : 'verified'}</span>
           </div>
         </div>
 
@@ -141,7 +141,9 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
                       </div>
                       <h3 className="font-bold text-ink-700 text-sm flex-1">{cat.name}</h3>
                       <span className="text-[10px] text-ink-400 font-bold uppercase tracking-wide">
-                        {cat.id === 'c1_fastbot' ? '⏱ Lower = Better' : '⬆ Higher = Better'}
+                        {cat.id === 'c1_fastbot'
+                          ? (lang === 'ar' ? '⏱ الأقل أفضل' : '⏱ Lower = Better')
+                          : (lang === 'ar' ? '⬆ الأعلى أفضل' : '⬆ Higher = Better')}
                       </span>
                     </div>
                     {/* Top 3 rows */}
@@ -184,7 +186,7 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
             </div>
             <h2 className="text-base font-bold text-ink-800">{t(lang, 'upcomingMatches')}</h2>
             <span className="ml-auto badge bg-brand-50 text-brand-700 border border-brand-200">
-              {upcomingMatches.length} {lang === 'ar' ? 'متبقي' : 'remaining'}
+              {upcomingMatches.length} {lang === 'ar' ? 'متبقية' : 'remaining'}
             </span>
           </div>
           <div className="divide-y divide-ink-50">
@@ -202,7 +204,7 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
                     <p className="text-[10px] text-ink-400 font-mono mt-0.5">{m.id}</p>
                   </div>
                   <span className={`badge shrink-0 ${isDone ? 'bg-saudi-50 text-saudi-700 border border-saudi-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                    {isDone ? '✓ Done' : 'Pending'}
+                    {isDone ? (lang === 'ar' ? '✓ منتهية' : '✓ Done') : (lang === 'ar' ? 'قادمة' : 'Pending')}
                   </span>
                 </div>
               );

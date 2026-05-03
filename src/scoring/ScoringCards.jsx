@@ -4,7 +4,7 @@ import PrecisionTimer from '../components/ui/PrecisionTimer';
 import CategoryInspectionUI from '../components/inspection/CategoryInspectionUI';
 import { getInspectionStatus } from '../components/inspection/inspectionLogic';
 
-function FsmButton({ fsmState, onAction, showScore }) {
+function FsmButton({ fsmState, onAction, showScore, lang = 'en' }) {
   if (!showScore) return null;
   if (fsmState === 'PENDING_ADMIN') return null;
   return (
@@ -18,9 +18,9 @@ function FsmButton({ fsmState, onAction, showScore }) {
           : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20'
       }`}
     >
-      {fsmState === 'AWAITING_SUBMISSION' && <><CheckCircle2 size={16} /> Submit Score</>}
-      {fsmState === 'SUBMITTED' && <><Edit3 size={16} /> Request Edit</>}
-      {fsmState === 'EDIT_REQUESTED' && <><ShieldCheck size={16} /> Submit for Admin Approval</>}
+      {fsmState === 'AWAITING_SUBMISSION' && <><CheckCircle2 size={16} /> {lang === 'ar' ? 'إرسال النتيجة' : 'Submit Score'}</>}
+      {fsmState === 'SUBMITTED' && <><Edit3 size={16} /> {lang === 'ar' ? 'طلب تعديل' : 'Request Edit'}</>}
+      {fsmState === 'EDIT_REQUESTED' && <><ShieldCheck size={16} /> {lang === 'ar' ? 'إرسال للموافقة' : 'Submit for Admin Approval'}</>}
     </button>
   );
 }
@@ -129,9 +129,9 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                   <CheckIcon size={18} className="text-brand-600" strokeWidth={2.5} />
                 </div>
                 <div>
-                  <p className="font-bold text-ink-800 text-sm">Inspection Checklist</p>
+                  <p className="font-bold text-ink-800 text-sm">{lang === 'ar' ? 'قائمة الفحص' : 'Inspection Checklist'}</p>
                   <p className={`text-xs mt-0.5 font-semibold ${isInspectionPassed ? 'text-saudi-600' : 'text-rose-500'}`}>
-                    {isInspectionPassed ? '✓ Passed' : '✗ Not passed'}
+                    {isInspectionPassed ? (lang === 'ar' ? '✓ ناجح' : '✓ Passed') : (lang === 'ar' ? '✗ غير ناجح' : '✗ Not passed')}
                   </p>
                 </div>
               </div>
@@ -147,9 +147,9 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                   <Edit3 size={18} className="text-amber-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-ink-800 text-sm">Scoring</p>
+                  <p className="font-bold text-ink-800 text-sm">{lang === 'ar' ? 'التسجيل' : 'Scoring'}</p>
                   <p className="text-xs mt-0.5 font-black text-brand-700">
-                    Final Score: {parseFloat(initialScoreObj?.score ?? result.score).toFixed(2)}s
+                    {lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'}: {parseFloat(initialScoreObj?.score ?? result.score).toFixed(2)}s
                   </p>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
             onClick={() => { setData(initialScoreObj?.rawInput || data); setPhoto(initialScoreObj?.rawInput?.photo || null); setFsmState('SUBMITTED'); setEditMode(null); }}
             className="w-full py-3 bg-ink-100 hover:bg-ink-200 text-ink-700 font-bold rounded-xl text-sm transition-colors border border-ink-200"
           >
-            Cancel
+            {lang === 'ar' ? 'إلغاء' : 'Cancel'}
           </button>
         </div>
       )}
@@ -168,7 +168,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
       {/* Inspection step */}
       {((fsmState === 'AWAITING_SUBMISSION' && step === 'inspection') || (fsmState === 'EDIT_REQUESTED' && editMode === 'inspection')) && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} />
+          <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} lang={lang} />
           {fsmState === 'AWAITING_SUBMISSION' && isInspectionPassed && (
             <button
               onClick={() => setStep('scoring')}
@@ -183,13 +183,13 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 onClick={() => setEditMode(null)}
                 className="flex-none px-5 py-3 bg-ink-100 hover:bg-ink-200 text-ink-700 font-bold rounded-xl text-sm transition-colors border border-ink-200"
               >
-                ← Back
+                {lang === 'ar' ? '→ رجوع' : '← Back'}
               </button>
               <button
                 onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo: initialScoreObj?.rawInput?.photo || photo }); setFsmState('PENDING_ADMIN'); setEditMode(null); } }}
                 className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-xl text-sm transition-colors"
               >
-                Submit Inspection Edit
+                {lang === 'ar' ? 'إرسال تعديل الفحص' : 'Submit Inspection Edit'}
               </button>
             </div>
           )}
@@ -203,24 +203,25 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
             onClick={() => fsmState === 'EDIT_REQUESTED' ? setEditMode(null) : setStep('inspection')}
             className="w-full mb-4 py-2.5 bg-ink-50 hover:bg-ink-100 text-ink-600 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200 press-effect"
           >
-            ← {fsmState === 'EDIT_REQUESTED' ? 'Back to section selection' : isInspectionPassed ? 'Inspection ✓ — tap to review' : 'Back to Inspection'}
+            {lang === 'ar' ? '→' : '←'} {fsmState === 'EDIT_REQUESTED' ? (lang === 'ar' ? 'رجوع لاختيار القسم' : 'Back to section selection') : isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
           </button>
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
-                <SectionLabel>FastBot Scoring</SectionLabel>
-                <div className="flex justify-between bg-ink-50 p-2.5 rounded-xl font-semibold text-ink-700 text-sm"><span>Required laps:</span><span>{minLaps}</span></div>
+                <SectionLabel>{lang === 'ar' ? 'تسجيل FastBot' : 'FastBot Scoring'}</SectionLabel>
+                <div className="flex justify-between bg-ink-50 p-2.5 rounded-xl font-semibold text-ink-700 text-sm"><span>{lang === 'ar' ? 'الدورات المطلوبة:' : 'Required laps:'}</span><span>{minLaps}</span></div>
                 <PrecisionTimer
                   initialSeconds={180.00}
                   onStop={(elapsed) => { setElapsedFromTimer(elapsed); setData(d => ({ ...d, elapsedTime: elapsed })); }}
                   disabled={disabled}
                   disableControls={!disabled}
+                  lang={lang}
                 />
-                <Check label="Did robot finish required laps?" checked={data.finishedLaps} onChange={v => setData(d => ({ ...d, finishedLaps: v }))} disabled={disabled} />
-                <Check label="Was robot touched by any team member?" checked={data.touched} onChange={v => setData(d => ({ ...d, touched: v }))} disabled={disabled} danger />
-                <Check label="Did robot exceed 180 seconds?" checked={data.exceeded180} onChange={v => setData(d => ({ ...d, exceeded180: v }))} disabled={disabled} danger />
+                <Check label={lang === 'ar' ? 'هل أكمل الروبوت الدورات المطلوبة؟' : 'Did robot finish required laps?'} checked={data.finishedLaps} onChange={v => setData(d => ({ ...d, finishedLaps: v }))} disabled={disabled} />
+                <Check label={lang === 'ar' ? 'هل لمس أحد أعضاء الفريق الروبوت؟' : 'Was robot touched by any team member?'} checked={data.touched} onChange={v => setData(d => ({ ...d, touched: v }))} disabled={disabled} danger />
+                <Check label={lang === 'ar' ? 'هل تجاوز الروبوت 180 ثانية؟' : 'Did robot exceed 180 seconds?'} checked={data.exceeded180} onChange={v => setData(d => ({ ...d, exceeded180: v }))} disabled={disabled} danger />
                 <div>
-                  <label className="block text-xs text-ink-400 mb-1">Elapsed time (seconds):</label>
+                  <label className="block text-xs text-ink-400 mb-1">{lang === 'ar' ? 'الوقت المنقضي (ثانية):' : 'Elapsed time (seconds):'}</label>
                   <input type="text" inputMode="decimal" value={data.elapsedTime} onChange={e => setData(d => ({ ...d, elapsedTime: e.target.value }))} disabled={disabled} className="w-full p-2.5 border-2 rounded-xl disabled:bg-ink-100 focus:ring-2 focus:ring-brand-500 outline-none" />
                 </div>
 
@@ -228,19 +229,19 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 {!disabled && (
                   <div className={`rounded-xl border-2 p-4 transition-all ${photo ? 'border-saudi-300 bg-saudi-50/40' : 'border-rose-200 bg-rose-50/40'}`}>
                     <p className={`text-[10px] font-black uppercase tracking-widest mb-2.5 ${photo ? 'text-saudi-700' : 'text-rose-600'}`}>
-                      📷 Result Photo — Required
+                      📷 {lang === 'ar' ? 'صورة النتيجة — مطلوبة' : 'Result Photo — Required'}
                     </p>
                     {photo ? (
                       <div className="flex items-center gap-3">
                         <img src={photo} alt="result" className="w-14 h-14 object-cover rounded-xl border-2 border-saudi-200" />
                         <div className="flex-1">
-                          <p className="text-xs text-saudi-700 font-bold">Photo attached ✓</p>
-                          <button onClick={() => setPhoto(null)} className="text-xs text-rose-500 underline mt-1">Remove</button>
+                          <p className="text-xs text-saudi-700 font-bold">{lang === 'ar' ? 'الصورة مرفوعة ✓' : 'Photo attached ✓'}</p>
+                          <button onClick={() => setPhoto(null)} className="text-xs text-rose-500 underline mt-1">{lang === 'ar' ? 'حذف' : 'Remove'}</button>
                         </div>
                       </div>
                     ) : (
                       <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-rose-300 rounded-xl cursor-pointer hover:bg-rose-100/50 transition-colors">
-                        <span className="text-sm font-bold text-rose-600">📷 Take Photo</span>
+                        <span className="text-sm font-bold text-rose-600">📷 {lang === 'ar' ? 'التقط صورة' : 'Take Photo'}</span>
                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoChange} />
                       </label>
                     )}
@@ -250,14 +251,14 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 {/* Read-only submitted photo */}
                 {disabled && photo && (
                   <div className="rounded-xl border border-saudi-200 p-3 bg-saudi-50">
-                    <p className="text-[10px] font-black text-saudi-600 uppercase tracking-widest mb-2">📷 Submitted Photo</p>
+                    <p className="text-[10px] font-black text-saudi-600 uppercase tracking-widest mb-2">📷 {lang === 'ar' ? 'الصورة المرسلة' : 'Submitted Photo'}</p>
                     <img src={photo} alt="submitted result" className="w-20 h-20 object-cover rounded-xl border-2 border-saudi-200" />
                   </div>
                 )}
 
-                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} />
+                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} lang={lang} />
               </div>
-              <ScoreResult label="Final Score" value={`${result.score.toFixed(2)}s`} warning={result.reason ? `Forced to 180.00: ${result.reason}` : null} />
+              <ScoreResult label={lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'} value={`${result.score.toFixed(2)}s`} warning={result.reason ? `${lang === 'ar' ? 'التغيير لـ180.00' : 'Forced to 180.00'}: ${result.reason}` : null} />
             </>
           )}
 
@@ -268,7 +269,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
               disabled={!photo}
               className="w-full font-bold py-4 px-4 rounded-2xl transition-all text-white flex items-center justify-center gap-2.5 press-effect text-sm tracking-wide bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 shadow-lg shadow-brand-600/25 disabled:from-ink-200 disabled:to-ink-300 disabled:text-ink-400 disabled:cursor-not-allowed disabled:shadow-none"
             >
-              {!photo ? '📷 Capture result photo first' : 'Submit Score'}
+              {!photo ? (lang === 'ar' ? '📷 التقط صورة النتيجة أولاً' : '📷 Capture result photo first') : (lang === 'ar' ? 'إرسال النتيجة' : 'Submit Score')}
             </button>
           )}
 
@@ -279,14 +280,14 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 onClick={() => setEditMode(null)}
                 className="flex-none px-5 py-3.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-bold rounded-xl text-sm transition-colors border border-ink-200"
               >
-                ← Back
+                {lang === 'ar' ? '→ رجوع' : '← Back'}
               </button>
               <button
                 onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo }); setFsmState('PENDING_ADMIN'); setEditMode(null); } }}
                 disabled={!photo}
                 className="flex-1 py-3.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:bg-ink-200 disabled:text-ink-400 text-white font-bold rounded-xl text-sm transition-colors disabled:cursor-not-allowed"
               >
-                {!photo ? '📷 Add evidence photo first' : 'Submit Edit for Approval'}
+                {!photo ? (lang === 'ar' ? '📷 أضف صورة إثبات أولاً' : '📷 Add evidence photo first') : (lang === 'ar' ? 'إرسال التعديل للموافقة' : 'Submit Edit for Approval')}
               </button>
             </div>
           )}
@@ -297,7 +298,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
               onClick={() => { setEditMode(null); setFsmState('EDIT_REQUESTED'); }}
               className="w-full font-bold py-4 px-4 rounded-xl transition-colors text-white flex items-center justify-center gap-2 press-effect text-base bg-amber-600 hover:bg-amber-700"
             >
-              <Edit3 size={16} /> Edit Requested
+              <Edit3 size={16} /> {lang === 'ar' ? 'طلب تعديل' : 'Edit Requested'}
             </button>
           )}
         </div>
@@ -308,7 +309,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
 
 // ─── LineFollowingAttemptCard ────────────────────────────────────────────────
 
-export function LineFollowingAttemptCard({ title, categoryId, teamDivision, attemptNumber, initialScoreObj, onSaveScore, onEditRequest, systemConfig }) {
+export function LineFollowingAttemptCard({ title, categoryId, teamDivision, attemptNumber, initialScoreObj, onSaveScore, onEditRequest, systemConfig, lang = 'en' }) {
   const initFSM = !initialScoreObj ? 'AWAITING_SUBMISSION'
     : initialScoreObj.status === 'VALID' ? 'SUBMITTED'
     : initialScoreObj.status === 'PENDING' ? 'PENDING_ADMIN' : 'AWAITING_SUBMISSION';
@@ -378,15 +379,15 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
   return (
     <div className={`scoring-card ${isInspectionPassed ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
       <div className="p-4 sm:p-5 pb-3 sm:pb-4">
-        <CardHeader title={title} inspPassed={isInspectionPassed} />
-        {fsmState === 'PENDING_ADMIN' && <PendingBanner />}
+        <CardHeader title={title} inspPassed={isInspectionPassed} lang={lang} />
+        {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} />
+          <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} lang={lang} />
           {isInspectionPassed && (
             <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              Next: Scoring →
+              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
             </button>
           )}
         </div>
@@ -394,43 +395,43 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            ← {isInspectionPassed ? 'Inspection ✓ — tap to review' : 'Back to Inspection'}
+            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
           </button>
           {showScore && (
             <>
               <div className="space-y-2 mb-4 text-sm">
-                <SectionLabel>LineFollowing Scoring</SectionLabel>
-                <div className="flex justify-between bg-ink-50 p-2.5 rounded-xl font-semibold text-ink-700"><span>Required balls:</span><span>{maxBalls}</span></div>
-                <PrecisionTimer initialSeconds={180.00} onStop={() => {}} disabled={disabled} />
-                <SectionLabel sub>Base Run</SectionLabel>
-                <Check label="Did robot leaves home?" checked={data.leavesHome} onChange={v => setData(d => ({ ...d, leavesHome: v }))} disabled={disabled} />
-                <Check label={`Turns at 1st "T"? ${isNAt1 ? '(N/A)' : ''}`} checked={effTurns1stT} onChange={v => setData(d => ({ ...d, turns1stT: v }))} disabled={disabled || isNAt1} />
-                <Check label={`Turns at 2nd "T"? ${isNAt2 ? '(N/A)' : ''}`} checked={effTurns2ndT} onChange={v => setData(d => ({ ...d, turns2ndT: v }))} disabled={disabled || isNAt2} />
-                <Check label="Reach the tower?" checked={data.reachTower} onChange={v => setData(d => ({ ...d, reachTower: v }))} disabled={disabled} />
-                <Check label="Deliver ≥1 ball on first trip?" checked={data.deliver1Ball} onChange={v => setData(d => ({ ...d, deliver1Ball: v }))} disabled={disabled} />
-                <Check label="Return home after first delivery?" checked={data.returnHome} onChange={v => setData(d => ({ ...d, returnHome: v }))} disabled={disabled} />
-                <p className="text-xs font-bold text-ink-400">Successful base run: {res.successfulBaseRun ? '✓ Yes' : '✗ No'}</p>
-                <SectionLabel sub>Bonus Ball Runs</SectionLabel>
-                <Check label="Starts back from home?" checked={data.bonusStart} onChange={v => setData(d => ({ ...d, bonusStart: v }))} disabled={disabled} />
-                <Check label={`Turns at 1st "T"? ${isNAt1 ? '(N/A)' : ''}`} checked={effBonus1stT} onChange={v => setData(d => ({ ...d, bonus1stT: v }))} disabled={disabled || isNAt1} />
-                <Check label={`Turns at 2nd "T"? ${isNAt2 ? '(N/A)' : ''}`} checked={effBonus2ndT} onChange={v => setData(d => ({ ...d, bonus2ndT: v }))} disabled={disabled || isNAt2} />
-                <SectionLabel sub>General Rules</SectionLabel>
-                <Check label="Did any person touch or reach into the tower?" checked={data.towerViolation} onChange={v => setData(d => ({ ...d, towerViolation: v }))} disabled={disabled} danger />
+                <SectionLabel>{lang === 'ar' ? 'تسجيل LineFollowing' : 'LineFollowing Scoring'}</SectionLabel>
+                <div className="flex justify-between bg-ink-50 p-2.5 rounded-xl font-semibold text-ink-700"><span>{lang === 'ar' ? 'الكرات المطلوبة:' : 'Required balls:'}</span><span>{maxBalls}</span></div>
+                <PrecisionTimer initialSeconds={180.00} onStop={() => {}} disabled={disabled} lang={lang} />
+                <SectionLabel sub>{lang === 'ar' ? 'الجولة الأساسية' : 'Base Run'}</SectionLabel>
+                <Check label={lang === 'ar' ? 'هل غادر الروبوت البداية؟' : 'Did robot leaves home?'} checked={data.leavesHome} onChange={v => setData(d => ({ ...d, leavesHome: v }))} disabled={disabled} />
+                <Check label={`${lang === 'ar' ? 'دوران عند "T" الأولى؟' : 'Turns at 1st "T"?'} ${isNAt1 ? '(N/A)' : ''}`} checked={effTurns1stT} onChange={v => setData(d => ({ ...d, turns1stT: v }))} disabled={disabled || isNAt1} />
+                <Check label={`${lang === 'ar' ? 'دوران عند "T" الثانية؟' : 'Turns at 2nd "T"?'} ${isNAt2 ? '(N/A)' : ''}`} checked={effTurns2ndT} onChange={v => setData(d => ({ ...d, turns2ndT: v }))} disabled={disabled || isNAt2} />
+                <Check label={lang === 'ar' ? 'هل وصل إلى البرج؟' : 'Reach the tower?'} checked={data.reachTower} onChange={v => setData(d => ({ ...d, reachTower: v }))} disabled={disabled} />
+                <Check label={lang === 'ar' ? 'هل سلّم كرة أو أكثر في الرحلة الأولى؟' : 'Deliver ≥1 ball on first trip?'} checked={data.deliver1Ball} onChange={v => setData(d => ({ ...d, deliver1Ball: v }))} disabled={disabled} />
+                <Check label={lang === 'ar' ? 'هل عاد للبداية بعد التسليم؟' : 'Return home after first delivery?'} checked={data.returnHome} onChange={v => setData(d => ({ ...d, returnHome: v }))} disabled={disabled} />
+                <p className="text-xs font-bold text-ink-400">{lang === 'ar' ? 'جولة أساسية ناجحة:' : 'Successful base run:'} {res.successfulBaseRun ? (lang === 'ar' ? '✓ نعم' : '✓ Yes') : (lang === 'ar' ? '✗ لا' : '✗ No')}</p>
+                <SectionLabel sub>{lang === 'ar' ? 'جولات الكرات الإضافية' : 'Bonus Ball Runs'}</SectionLabel>
+                <Check label={lang === 'ar' ? 'بدأ من البداية مرة أخرى؟' : 'Starts back from home?'} checked={data.bonusStart} onChange={v => setData(d => ({ ...d, bonusStart: v }))} disabled={disabled} />
+                <Check label={`${lang === 'ar' ? 'دوران عند "T" الأولى؟' : 'Turns at 1st "T"?'} ${isNAt1 ? '(N/A)' : ''}`} checked={effBonus1stT} onChange={v => setData(d => ({ ...d, bonus1stT: v }))} disabled={disabled || isNAt1} />
+                <Check label={`${lang === 'ar' ? 'دوران عند "T" الثانية؟' : 'Turns at 2nd "T"?'} ${isNAt2 ? '(N/A)' : ''}`} checked={effBonus2ndT} onChange={v => setData(d => ({ ...d, bonus2ndT: v }))} disabled={disabled || isNAt2} />
+                <SectionLabel sub>{lang === 'ar' ? 'قواعد عامة' : 'General Rules'}</SectionLabel>
+                <Check label={lang === 'ar' ? 'هل لمس أحد البرج؟' : 'Did any person touch or reach into the tower?'} checked={data.towerViolation} onChange={v => setData(d => ({ ...d, towerViolation: v }))} disabled={disabled} danger />
                 <div>
-                  <label className="block text-xs text-ink-400 mb-1">Bonus balls delivered after successful base run:</label>
+                  <label className="block text-xs text-ink-400 mb-1">{lang === 'ar' ? 'الكرات الإضافية المسلّمة بعد الجولة الناجحة:' : 'Bonus balls delivered after successful base run:'}</label>
                   <input type="text" inputMode="numeric" value={data.bonusBallsDelivered} onChange={e => setData(d => ({ ...d, bonusBallsDelivered: e.target.value }))} disabled={disabled} className="w-full p-2.5 border-2 rounded-xl disabled:bg-ink-100 focus:ring-2 focus:ring-brand-500 outline-none" />
                 </div>
-                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} />
+                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} lang={lang} />
               </div>
               <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl mb-4 text-sm space-y-1">
-                <div className="text-ink-600">Base: {res.base} | Bonus Checkpoints: {res.bonusCheckpoints} | Bonus Balls: {res.bonusBalls}</div>
-                <div className="font-black text-brand-800 text-xl">Final Score: {res.final}</div>
-                {!res.successfulBaseRun && data.bonusBallsDelivered > 0 && <div className="text-amber-600 text-xs font-bold">Warning: Bonus balls ignored — base run not complete.</div>}
-                {data.towerViolation && <div className="text-rose-600 text-xs font-bold">Warning: Score capped at 400 (tower violation).</div>}
+                <div className="text-ink-600">{lang === 'ar' ? 'أساسي' : 'Base'}: {res.base} | {lang === 'ar' ? 'نقاط إضافية' : 'Bonus Checkpoints'}: {res.bonusCheckpoints} | {lang === 'ar' ? 'كرات إضافية' : 'Bonus Balls'}: {res.bonusBalls}</div>
+                <div className="font-black text-brand-800 text-xl">{lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'}: {res.final}</div>
+                {!res.successfulBaseRun && data.bonusBallsDelivered > 0 && <div className="text-amber-600 text-xs font-bold">{lang === 'ar' ? 'تحذير: الكرات الإضافية تم تجاهلها — الجولة الأساسية غير مكتملة.' : 'Warning: Bonus balls ignored — base run not complete.'}</div>}
+                {data.towerViolation && <div className="text-rose-600 text-xs font-bold">{lang === 'ar' ? 'تحذير: النتيجة محسوبة بـ400 (مخالفة البرج).' : 'Warning: Score capped at 400 (tower violation).'}</div>}
               </div>
             </>
           )}
-          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} />
+          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} lang={lang} />
         </div>
       )}
     </div>
@@ -439,7 +440,7 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
 
 // ─── AMazeIngAttemptCard ─────────────────────────────────────────────────────
 
-export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNumber, initialScoreObj, onSaveScore, onEditRequest }) {
+export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNumber, initialScoreObj, onSaveScore, onEditRequest, lang = 'en' }) {
   const initFSM = !initialScoreObj ? 'AWAITING_SUBMISSION'
     : initialScoreObj.status === 'VALID' ? 'SUBMITTED'
     : initialScoreObj.status === 'PENDING' ? 'PENDING_ADMIN' : 'AWAITING_SUBMISSION';
@@ -480,15 +481,15 @@ export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNu
   return (
     <div className={`scoring-card ${isInspectionPassed ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
       <div className="p-4 sm:p-5 pb-3 sm:pb-4">
-        <CardHeader title={title} inspPassed={isInspectionPassed} />
-        {fsmState === 'PENDING_ADMIN' && <PendingBanner />}
+        <CardHeader title={title} inspPassed={isInspectionPassed} lang={lang} />
+        {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} />
+          <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} lang={lang} />
           {isInspectionPassed && (
             <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              Next: Scoring →
+              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
             </button>
           )}
         </div>
@@ -496,31 +497,31 @@ export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNu
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            ← {isInspectionPassed ? 'Inspection ✓ — tap to review' : 'Back to Inspection'}
+            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
           </button>
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
-                <SectionLabel>A-Maze-ing Scoring</SectionLabel>
-                <PrecisionTimer initialSeconds={120.00} onStop={(_el, rem) => setRemainingFromTimer(parseFloat(rem))} disabled={disabled} />
+                <SectionLabel>{lang === 'ar' ? 'تسجيل a-Maze-ing' : 'A-Maze-ing Scoring'}</SectionLabel>
+                <PrecisionTimer initialSeconds={120.00} onStop={(_el, rem) => setRemainingFromTimer(parseFloat(rem))} disabled={disabled} lang={lang} />
                 <div>
-                  <label className="block text-xs text-ink-400 mb-1">Completed straight sections (max {maxS}):</label>
+                  <label className="block text-xs text-ink-400 mb-1">{lang === 'ar' ? `الأقسام المستقيمة المكتملة (الحد الأقصى ${maxS}):` : `Completed straight sections (max ${maxS}):`}</label>
                   <input type="text" inputMode="numeric" value={data.completedStraights} onChange={e => setData(d => ({ ...d, completedStraights: parseInt(e.target.value) || 0 }))} disabled={disabled} className="w-full p-2.5 border-2 rounded-xl disabled:bg-ink-100 focus:ring-2 focus:ring-brand-500 outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-ink-400 mb-1">Completed angled sections (max {maxA}):</label>
+                  <label className="block text-xs text-ink-400 mb-1">{lang === 'ar' ? `الأقسام المنحنية المكتملة (الحد الأقصى ${maxA}):` : `Completed angled sections (max ${maxA}):`}</label>
                   <input type="text" inputMode="numeric" value={data.completedAngles} onChange={e => setData(d => ({ ...d, completedAngles: parseInt(e.target.value) || 0 }))} disabled={disabled} className="w-full p-2.5 border-2 rounded-xl disabled:bg-ink-100 focus:ring-2 focus:ring-brand-500 outline-none" />
                 </div>
-                <p className="text-xs font-bold text-ink-400">Full Maze Completed: {isFull ? '✓ Yes' : '✗ No'}</p>
-                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} />
+                <p className="text-xs font-bold text-ink-400">{lang === 'ar' ? 'إكمال المتاهة الكاملة:' : 'Full Maze Completed:'} {isFull ? (lang === 'ar' ? '✓ نعم' : '✓ Yes') : (lang === 'ar' ? '✗ لا' : '✗ No')}</p>
+                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} lang={lang} />
               </div>
               <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl mb-4 text-sm space-y-1">
-                <div className="text-ink-600">Base: {baseScore} | Time Bonus: {timeBonus}</div>
-                <div className="font-black text-brand-800 text-xl">Final Score: {finalScore}</div>
+                <div className="text-ink-600">{lang === 'ar' ? 'أساسي' : 'Base'}: {baseScore} | {lang === 'ar' ? 'مكافأة وقتية' : 'Time Bonus'}: {timeBonus}</div>
+                <div className="font-black text-brand-800 text-xl">{lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'}: {finalScore}</div>
               </div>
             </>
           )}
-          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} />
+          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} lang={lang} />
         </div>
       )}
     </div>
@@ -529,7 +530,7 @@ export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNu
 
 // ─── SumoMatchCard ───────────────────────────────────────────────────────────
 
-export function SumoMatchCard({ title, match, categoryId, attemptNumber, initialScoreObj, onSaveScore, onEditRequest }) {
+export function SumoMatchCard({ title, match, categoryId, attemptNumber, initialScoreObj, onSaveScore, onEditRequest, lang = 'en' }) {
   const initFSM = !initialScoreObj ? 'AWAITING_SUBMISSION'
     : initialScoreObj.status === 'VALID' ? 'SUBMITTED'
     : initialScoreObj.status === 'PENDING' ? 'PENDING_ADMIN' : 'AWAITING_SUBMISSION';
@@ -565,10 +566,10 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
   const winsA = [data.r1, data.r2, data.r3].filter(v => v === 'A').length;
   const winsB = [data.r1, data.r2, data.r3].filter(v => v === 'B').length;
 
-  let matchWinner = 'Ongoing';
+  let matchWinner = lang === 'ar' ? 'قيد اللعب' : 'Ongoing';
   if (!data.showA && data.showB) matchWinner = match.teamB;
   else if (data.showA && !data.showB) matchWinner = match.teamA;
-  else if (!data.showA && !data.showB) matchWinner = 'Neither';
+  else if (!data.showA && !data.showB) matchWinner = lang === 'ar' ? 'لا أحد' : 'Neither';
   else if (winsA >= 2) matchWinner = match.teamA;
   else if (winsB >= 2) matchWinner = match.teamB;
 
@@ -586,7 +587,8 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
 
   const RoundRow = ({ val, field }) => (
     <div className="flex gap-2 mb-2">
-      {[match.teamA, match.teamB, 'Draw'].map(opt => {
+      {[match.teamA, match.teamB, lang === 'ar' ? 'تعادل' : 'Draw'].map(opt => {
+        const drawLabel = lang === 'ar' ? 'تعادل' : 'Draw';
         const key = opt === match.teamA ? 'A' : opt === match.teamB ? 'B' : 'Draw';
         return (
           <button key={opt} onClick={() => setData(d => ({ ...d, [field]: key }))} disabled={disabled}
@@ -601,31 +603,31 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
   return (
     <div className={`scoring-card ${isInspectionPassed || isForfeit ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
       <div className="p-4 sm:p-5 pb-3 sm:pb-4">
-        <CardHeader title={title} inspPassed={isInspectionPassed || isForfeit} matchReady />
-        {fsmState === 'PENDING_ADMIN' && <PendingBanner />}
+        <CardHeader title={title} inspPassed={isInspectionPassed || isForfeit} matchReady lang={lang} />
+        {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-            <TeamInspPanel label={`Team A: ${match.teamA}`} pass={passA} categoryId={categoryId} isInitial={isInitial} insp={inspA} setInsp={setInspA} disabled={disabled} />
-            <TeamInspPanel label={`Team B: ${match.teamB}`} pass={passB} categoryId={categoryId} isInitial={isInitial} insp={inspB} setInsp={setInspB} disabled={disabled} />
+            <TeamInspPanel label={`${lang === 'ar' ? 'الفريق أ' : 'Team A'}: ${match.teamA}`} pass={passA} categoryId={categoryId} isInitial={isInitial} insp={inspA} setInsp={setInspA} disabled={disabled} lang={lang} />
+            <TeamInspPanel label={`${lang === 'ar' ? 'الفريق ب' : 'Team B'}: ${match.teamB}`} pass={passB} categoryId={categoryId} isInitial={isInitial} insp={inspB} setInsp={setInspB} disabled={disabled} lang={lang} />
           </div>
 
           {/* Forfeit win — one team passed, one failed */}
           {isForfeit && fsmState === 'AWAITING_SUBMISSION' && (
             <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
-              <p className="text-xs font-black uppercase tracking-widest text-amber-600 mb-1">Inspection Forfeit</p>
+              <p className="text-xs font-black uppercase tracking-widest text-amber-600 mb-1">{lang === 'ar' ? 'فوز بالفحص' : 'Inspection Forfeit'}</p>
               <p className="font-bold text-amber-900 text-sm mb-1">
-                <span className="text-rose-600">{forfeitWinA ? match.teamB : match.teamA}</span> failed inspection.
+                <span className="text-rose-600">{forfeitWinA ? match.teamB : match.teamA}</span> {lang === 'ar' ? 'رسب في الفحص.' : 'failed inspection.'}
               </p>
               <p className="font-black text-saudi-700 text-base mb-3">
-                🏆 {forfeitWinner} wins by forfeit
+                🏆 {forfeitWinner} {lang === 'ar' ? 'فاز بالفحص' : 'wins by forfeit'}
               </p>
               <button
                 onClick={handleForfeitSubmit}
                 className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all text-sm shadow shadow-amber-500/20"
               >
-                Submit Forfeit Win — {forfeitWinner}
+                {lang === 'ar' ? 'إرسال الفوز بالفحص' : 'Submit Forfeit Win'} — {forfeitWinner}
               </button>
             </div>
           )}
@@ -633,7 +635,7 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
           {/* Both teams passed — proceed to scoring */}
           {isInspectionPassed && (
             <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              Next: Scoring →
+              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
             </button>
           )}
         </div>
@@ -641,35 +643,35 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            ← {isInspectionPassed ? 'Inspection ✓ — tap to review' : 'Back to Inspection'}
+            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
           </button>
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
-                <SectionLabel>Sumo Match Scoring</SectionLabel>
+                <SectionLabel>{lang === 'ar' ? 'تسجيل مباراة Sumo' : 'Sumo Match Scoring'}</SectionLabel>
                 <div className="flex flex-wrap gap-4">
-                  <Check label={`${match.teamA} showed up?`} checked={data.showA} onChange={v => setData(d => ({ ...d, showA: v }))} disabled={disabled} />
-                  <Check label={`${match.teamB} showed up?`} checked={data.showB} onChange={v => setData(d => ({ ...d, showB: v }))} disabled={disabled} />
+                  <Check label={`${match.teamA} ${lang === 'ar' ? 'حضر؟' : 'showed up?'}`} checked={data.showA} onChange={v => setData(d => ({ ...d, showA: v }))} disabled={disabled} />
+                  <Check label={`${match.teamB} ${lang === 'ar' ? 'حضر؟' : 'showed up?'}`} checked={data.showB} onChange={v => setData(d => ({ ...d, showB: v }))} disabled={disabled} />
                 </div>
-                <PrecisionTimer initialSeconds={300.00} onStop={() => {}} disabled={disabled} />
+                <PrecisionTimer initialSeconds={300.00} onStop={() => {}} disabled={disabled} lang={lang} />
                 <div className="bg-ink-50 p-3 rounded-xl border">
-                  <p className="font-bold text-ink-600 text-xs uppercase mb-2 tracking-wider">Round Winners</p>
+                  <p className="font-bold text-ink-600 text-xs uppercase mb-2 tracking-wider">{lang === 'ar' ? 'فائزو الجولات' : 'Round Winners'}</p>
                   <RoundRow val={data.r1} field="r1" />
                   <RoundRow val={data.r2} field="r2" />
                   <RoundRow val={data.r3} field="r3" />
                 </div>
-                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} />
+                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} lang={lang} />
               </div>
               <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl mb-4">
                 <div className="flex justify-between font-bold text-ink-600 text-sm mb-1">
-                  <span>{match.teamA}: {scoreA} pts</span>
-                  <span>{match.teamB}: {scoreB} pts</span>
+                  <span>{match.teamA}: {scoreA} {lang === 'ar' ? 'نقطة' : 'pts'}</span>
+                  <span>{match.teamB}: {scoreB} {lang === 'ar' ? 'نقطة' : 'pts'}</span>
                 </div>
-                <div className="font-black text-brand-800 text-lg">Match Winner: {matchWinner}</div>
+                <div className="font-black text-brand-800 text-lg">{lang === 'ar' ? 'الفائز بالمباراة' : 'Match Winner'}: {matchWinner}</div>
               </div>
             </>
           )}
-          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} />
+          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} lang={lang} />
         </div>
       )}
     </div>
@@ -678,7 +680,7 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
 
 // ─── SoccerBotMatchCard ──────────────────────────────────────────────────────
 
-export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, initialScoreObj, onSaveScore, onEditRequest }) {
+export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, initialScoreObj, onSaveScore, onEditRequest, lang = 'en' }) {
   const initFSM = !initialScoreObj ? 'AWAITING_SUBMISSION'
     : initialScoreObj.status === 'VALID' ? 'SUBMITTED'
     : initialScoreObj.status === 'PENDING' ? 'PENDING_ADMIN' : 'AWAITING_SUBMISSION';
@@ -707,15 +709,28 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
 
   const calculate = () => {
     let ptsA = 0, ptsB = 0, res = '';
-    if (!data.showA && !data.showB) { ptsA = 0; ptsB = 0; res = 'Neither team appeared.'; }
-    else if (!data.showA) { ptsA = 0; ptsB = 3; res = `${match.teamB} wins by forfeit.`; }
-    else if (!data.showB) { ptsA = 3; ptsB = 0; res = `${match.teamA} wins by forfeit.`; }
-    else if (data.unableA && data.unableB) { ptsA = 0; ptsB = 0; res = 'Both teams unable to continue.'; }
-    else if (data.unableA) { ptsA = 0; ptsB = 3; res = `${match.teamB} wins (opponent damage).`; }
-    else if (data.unableB) { ptsA = 3; ptsB = 0; res = `${match.teamA} wins (opponent damage).`; }
-    else if (data.goalsA > data.goalsB) { ptsA = 3; ptsB = 0; res = `${match.teamA} wins by goals.`; }
-    else if (data.goalsB > data.goalsA) { ptsA = 0; ptsB = 3; res = `${match.teamB} wins by goals.`; }
-    else { ptsA = 1; ptsB = 1; res = 'Match ended in a draw.'; }
+    const fA = match.teamA, fB = match.teamB;
+    if (lang === 'ar') {
+      if (!data.showA && !data.showB) { ptsA = 0; ptsB = 0; res = 'لم يحضر أي فريق.'; }
+      else if (!data.showA) { ptsA = 0; ptsB = 3; res = `${fB} فاز بالغياب.`; }
+      else if (!data.showB) { ptsA = 3; ptsB = 0; res = `${fA} فاز بالغياب.`; }
+      else if (data.unableA && data.unableB) { ptsA = 0; ptsB = 0; res = 'الفريقان عاجزان عن الاستمرار.'; }
+      else if (data.unableA) { ptsA = 0; ptsB = 3; res = `${fB} فاز (عطل الخصم).`; }
+      else if (data.unableB) { ptsA = 3; ptsB = 0; res = `${fA} فاز (عطل الخصم).`; }
+      else if (data.goalsA > data.goalsB) { ptsA = 3; ptsB = 0; res = `${fA} فاز بالأهداف.`; }
+      else if (data.goalsB > data.goalsA) { ptsA = 0; ptsB = 3; res = `${fB} فاز بالأهداف.`; }
+      else { ptsA = 1; ptsB = 1; res = 'انتهت المباراة بالتعادل.'; }
+    } else {
+      if (!data.showA && !data.showB) { ptsA = 0; ptsB = 0; res = 'Neither team appeared.'; }
+      else if (!data.showA) { ptsA = 0; ptsB = 3; res = `${fB} wins by forfeit.`; }
+      else if (!data.showB) { ptsA = 3; ptsB = 0; res = `${fA} wins by forfeit.`; }
+      else if (data.unableA && data.unableB) { ptsA = 0; ptsB = 0; res = 'Both teams unable to continue.'; }
+      else if (data.unableA) { ptsA = 0; ptsB = 3; res = `${fB} wins (opponent damage).`; }
+      else if (data.unableB) { ptsA = 3; ptsB = 0; res = `${fA} wins (opponent damage).`; }
+      else if (data.goalsA > data.goalsB) { ptsA = 3; ptsB = 0; res = `${fA} wins by goals.`; }
+      else if (data.goalsB > data.goalsA) { ptsA = 0; ptsB = 3; res = `${fB} wins by goals.`; }
+      else { ptsA = 1; ptsB = 1; res = 'Match ended in a draw.'; }
+    }
     return { ptsA, ptsB, res };
   };
   const result = calculate();
@@ -730,18 +745,18 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
   return (
     <div className={`scoring-card ${isInspectionPassed ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
       <div className="p-4 sm:p-5 pb-3 sm:pb-4">
-        <CardHeader title={title} inspPassed={isInspectionPassed} matchReady />
-        {fsmState === 'PENDING_ADMIN' && <PendingBanner />}
+        <CardHeader title={title} inspPassed={isInspectionPassed} matchReady lang={lang} />
+        {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-            <TeamInspPanel label={`Team A: ${match.teamA}`} pass={passA} categoryId={categoryId} isInitial={isInitial} insp={inspA} setInsp={setInspA} disabled={disabled} />
-            <TeamInspPanel label={`Team B: ${match.teamB}`} pass={passB} categoryId={categoryId} isInitial={isInitial} insp={inspB} setInsp={setInspB} disabled={disabled} />
+            <TeamInspPanel label={`${lang === 'ar' ? 'الفريق أ' : 'Team A'}: ${match.teamA}`} pass={passA} categoryId={categoryId} isInitial={isInitial} insp={inspA} setInsp={setInspA} disabled={disabled} lang={lang} />
+            <TeamInspPanel label={`${lang === 'ar' ? 'الفريق ب' : 'Team B'}: ${match.teamB}`} pass={passB} categoryId={categoryId} isInitial={isInitial} insp={inspB} setInsp={setInspB} disabled={disabled} lang={lang} />
           </div>
           {isInspectionPassed && (
             <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              Next: Scoring →
+              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
             </button>
           )}
         </div>
@@ -749,37 +764,37 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            ← {isInspectionPassed ? 'Inspection ✓ — tap to review' : 'Back to Inspection'}
+            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
           </button>
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
-                <SectionLabel>SoccerBot Match Scoring</SectionLabel>
+                <SectionLabel>{lang === 'ar' ? 'تسجيل مباراة SoccerBot' : 'SoccerBot Match Scoring'}</SectionLabel>
                 <div className="grid grid-cols-2 gap-3">
-                  <Check label={`${match.teamA} showed up?`} checked={data.showA} onChange={v => setData(d => ({ ...d, showA: v }))} disabled={disabled} />
-                  <Check label={`${match.teamB} showed up?`} checked={data.showB} onChange={v => setData(d => ({ ...d, showB: v }))} disabled={disabled} />
+                  <Check label={`${match.teamA} ${lang === 'ar' ? 'حضر؟' : 'showed up?'}`} checked={data.showA} onChange={v => setData(d => ({ ...d, showA: v }))} disabled={disabled} />
+                  <Check label={`${match.teamB} ${lang === 'ar' ? 'حضر؟' : 'showed up?'}`} checked={data.showB} onChange={v => setData(d => ({ ...d, showB: v }))} disabled={disabled} />
                 </div>
-                <PrecisionTimer initialSeconds={180.00} isSoccerBot={true} onStop={() => {}} disabled={disabled} />
+                <PrecisionTimer initialSeconds={180.00} isSoccerBot={true} onStop={() => {}} disabled={disabled} lang={lang} />
                 <div className="grid grid-cols-2 gap-3">
-                  <Check label={`${match.teamA} Unable To Continue?`} checked={data.unableA} onChange={v => setData(d => ({ ...d, unableA: v }))} disabled={disabled} danger />
-                  <Check label={`${match.teamB} Unable To Continue?`} checked={data.unableB} onChange={v => setData(d => ({ ...d, unableB: v }))} disabled={disabled} danger />
+                  <Check label={`${match.teamA} ${lang === 'ar' ? 'عاجز عن الاستمرار؟' : 'Unable To Continue?'}`} checked={data.unableA} onChange={v => setData(d => ({ ...d, unableA: v }))} disabled={disabled} danger />
+                  <Check label={`${match.teamB} ${lang === 'ar' ? 'عاجز عن الاستمرار؟' : 'Unable To Continue?'}`} checked={data.unableB} onChange={v => setData(d => ({ ...d, unableB: v }))} disabled={disabled} danger />
                 </div>
                 <div className="grid grid-cols-2 gap-4 bg-ink-50 p-4 rounded-xl border">
-                  <GoalsCounter label={`${match.teamA} Goals`} value={data.goalsA} onChange={v => setData(d => ({ ...d, goalsA: v }))} disabled={disabled} />
-                  <GoalsCounter label={`${match.teamB} Goals`} value={data.goalsB} onChange={v => setData(d => ({ ...d, goalsB: v }))} disabled={disabled} />
+                  <GoalsCounter label={`${match.teamA} ${lang === 'ar' ? 'أهداف' : 'Goals'}`} value={data.goalsA} onChange={v => setData(d => ({ ...d, goalsA: v }))} disabled={disabled} />
+                  <GoalsCounter label={`${match.teamB} ${lang === 'ar' ? 'أهداف' : 'Goals'}`} value={data.goalsB} onChange={v => setData(d => ({ ...d, goalsB: v }))} disabled={disabled} />
                 </div>
-                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} />
+                <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} lang={lang} />
               </div>
               <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl mb-4">
-                <div className="font-black text-brand-800 text-lg mb-1">Result: {result.res}</div>
+                <div className="font-black text-brand-800 text-lg mb-1">{lang === 'ar' ? 'النتيجة' : 'Result'}: {result.res}</div>
                 <div className="flex justify-between font-bold text-ink-600 text-sm">
-                  <span>{match.teamA}: {result.ptsA} pts</span>
-                  <span>{match.teamB}: {result.ptsB} pts</span>
+                  <span>{match.teamA}: {result.ptsA} {lang === 'ar' ? 'نقطة' : 'pts'}</span>
+                  <span>{match.teamB}: {result.ptsB} {lang === 'ar' ? 'نقطة' : 'pts'}</span>
                 </div>
               </div>
             </>
           )}
-          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} />
+          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={showScore} lang={lang} />
         </div>
       )}
     </div>
@@ -788,7 +803,7 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
 
 // ─── ScoringCard (Group 3 / AI) ───────────────────────────────────────────────
 
-export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest }) {
+export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest, lang = 'en' }) {
   const initFSM = !initialScoreObj ? 'AWAITING_SUBMISSION'
     : initialScoreObj.status === 'VALID' ? 'SUBMITTED'
     : initialScoreObj.status === 'PENDING' ? 'PENDING_ADMIN' : 'AWAITING_SUBMISSION';
@@ -814,11 +829,11 @@ export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest
     <div className="p-5 border-2 border-ink-200 rounded-2xl shadow-sm bg-white mb-4">
       <h4 className="font-bold text-ink-800 mb-4">{title}</h4>
       {fsmState === 'PENDING_ADMIN' ? (
-        <PendingBanner />
+        <PendingBanner lang={lang} />
       ) : (
         <>
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-ink-500 mb-1.5">Total Score Input</label>
+            <label className="block text-sm font-semibold text-ink-500 mb-1.5">{lang === 'ar' ? 'إدخال النتيجة الإجمالية' : 'Total Score Input'}</label>
             <input
               type="number"
               inputMode="numeric"
@@ -826,10 +841,10 @@ export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest
               onChange={e => setScoreVal(e.target.value)}
               disabled={fsmState === 'SUBMITTED'}
               className="w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-brand-500 disabled:bg-ink-100 outline-none"
-              placeholder="Enter numerical score..."
+              placeholder={lang === 'ar' ? 'أدخل النتيجة رقمياً...' : 'Enter numerical score...'}
             />
           </div>
-          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={true} />
+          <FsmButton fsmState={fsmState} onAction={handleAction} showScore={true} lang={lang} />
         </>
       )}
     </div>
@@ -838,10 +853,10 @@ export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
 
-function CardHeader({ title, inspPassed, matchReady }) {
+function CardHeader({ title, inspPassed, matchReady, lang = 'en' }) {
   const statusConfig = inspPassed
-    ? { label: matchReady ? 'Match Ready' : 'Inspection Pass', class: 'bg-saudi-50 text-saudi-700 border border-saudi-200', dot: 'bg-saudi-400' }
-    : { label: 'Pending Inspection', class: 'bg-ink-50 text-ink-500 border border-ink-200', dot: 'bg-ink-300' };
+    ? { label: matchReady ? (lang === 'ar' ? 'جاهز للمباراة' : 'Match Ready') : (lang === 'ar' ? 'اجتاز الفحص' : 'Inspection Pass'), class: 'bg-saudi-50 text-saudi-700 border border-saudi-200', dot: 'bg-saudi-400' }
+    : { label: lang === 'ar' ? 'فحص معلق' : 'Pending Inspection', class: 'bg-ink-50 text-ink-500 border border-ink-200', dot: 'bg-ink-300' };
   return (
     <div className="flex justify-between items-start gap-3 mb-3">
       <h4 className="font-bold text-ink-800 leading-tight flex-1">{title}</h4>
@@ -853,15 +868,15 @@ function CardHeader({ title, inspPassed, matchReady }) {
   );
 }
 
-function PendingBanner() {
+function PendingBanner({ lang = 'en' }) {
   return (
     <div className="mb-3 p-3.5 bg-amber-50 text-amber-800 rounded-xl border border-amber-200 text-xs font-bold flex items-center gap-2.5">
       <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
         <Lock size={14} className="text-amber-600" />
       </div>
       <div>
-        <p className="font-black">Pending Admin Approval</p>
-        <p className="font-medium text-amber-600 mt-0.5">UI locked until reviewed by an administrator.</p>
+        <p className="font-black">{lang === 'ar' ? 'بانتظار موافقة الإدارة' : 'Pending Admin Approval'}</p>
+        <p className="font-medium text-amber-600 mt-0.5">{lang === 'ar' ? 'الواجهة مقفلة حتى تتم المراجعة من قبل المسؤول.' : 'UI locked until reviewed by an administrator.'}</p>
       </div>
     </div>
   );
@@ -875,7 +890,7 @@ function SectionLabel({ children, sub }) {
   );
 }
 
-function Check({ label, checked, onChange, disabled, danger }) {
+function Check({ label, checked, onChange, disabled, danger, lang = 'en' }) {
   return (
     <button
       type="button"
@@ -899,22 +914,22 @@ function Check({ label, checked, onChange, disabled, danger }) {
         {checked && <CheckIcon size={11} strokeWidth={3.5} className="text-white" />}
       </span>
       <span className="flex-1 leading-snug text-sm font-medium">{label}</span>
-      {danger && checked && <span className="text-[10px] font-black text-rose-500 uppercase tracking-wide">VIOLATION</span>}
+      {danger && checked && <span className="text-[10px] font-black text-rose-500 uppercase tracking-wide">{lang === 'ar' ? 'مخالفة' : 'VIOLATION'}</span>}
     </button>
   );
 }
 
-function NotesField({ value, onChange, disabled }) {
+function NotesField({ value, onChange, disabled, lang = 'en' }) {
   return (
     <div>
-      <label className="block text-[10px] font-black text-ink-400 uppercase tracking-widest mb-1.5">Referee Notes</label>
+      <label className="block text-[10px] font-black text-ink-400 uppercase tracking-widest mb-1.5">{lang === 'ar' ? 'ملاحظات الحكم' : 'Referee Notes'}</label>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         disabled={disabled}
         rows={2}
         className="w-full p-3 border-2 border-ink-200 rounded-xl text-sm disabled:bg-ink-50 focus:ring-2 focus:ring-brand-400 focus:border-brand-400 outline-none resize-none placeholder:text-ink-300"
-        placeholder="Optional notes..."
+        placeholder={lang === 'ar' ? 'ملاحظات اختيارية...' : 'Optional notes...'}
       />
     </div>
   );
@@ -936,7 +951,7 @@ function ScoreResult({ label, value, warning }) {
   );
 }
 
-function TeamInspPanel({ label, pass, categoryId, isInitial, insp, setInsp, disabled }) {
+function TeamInspPanel({ label, pass, categoryId, isInitial, insp, setInsp, disabled, lang = 'en' }) {
   return (
     <div className={`p-4 rounded-xl border-2 transition-colors ${pass ? 'border-saudi-300 bg-saudi-50/30' : 'border-ink-200 bg-ink-50/50'}`}>
       <div className="flex justify-between items-center mb-3">
@@ -945,10 +960,10 @@ function TeamInspPanel({ label, pass, categoryId, isInitial, insp, setInsp, disa
           pass ? 'bg-saudi-100 text-saudi-700 border border-saudi-200' : 'bg-red-50 text-red-700 border border-red-200'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${pass ? 'bg-saudi-400' : 'bg-red-400'}`} />
-          {pass ? 'PASS' : 'FAIL'}
+          {pass ? (lang === 'ar' ? 'ناجح' : 'PASS') : (lang === 'ar' ? 'راسب' : 'FAIL')}
         </span>
       </div>
-      <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} />
+      <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} lang={lang} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
  * PrecisionTimer — extracted verbatim from original App.jsx
  * Logic preserved exactly. Added animate-pulse when running.
  */
-export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, disabled, disableControls }) {
+export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, disabled, disableControls, lang = 'en' }) {
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(false);
   const [switchTimer, setSwitchTimer] = useState(null);
@@ -47,7 +47,7 @@ export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, di
   };
 
   const displayText = switchTimer !== null
-    ? `SWITCH: ${switchTimer.toFixed(2)}s`
+    ? `${lang === 'ar' ? 'تبديل' : 'SWITCH'}: ${switchTimer.toFixed(2)}s`
     : `${timeLeft.toFixed(2)}s`;
 
   return (
@@ -55,7 +55,7 @@ export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, di
       {/* Label + time + buttons */}
       <div className="px-4 pt-3 pb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-[10px] font-bold text-ink-500 uppercase tracking-widest mb-1">{disableControls ? 'Manual Entry' : 'Active Timer'}</div>
+          <div className="text-[10px] font-bold text-ink-500 uppercase tracking-widest mb-1">{disableControls ? (lang === 'ar' ? 'إدخال يدوي' : 'Manual Entry') : (lang === 'ar' ? 'مؤقت نشط' : 'Active Timer')}</div>
           <div className={`text-4xl font-mono font-black tabular-nums leading-none ${
             switchTimer !== null ? 'text-amber-400' : 'text-brand-400'
           } ${isRunning ? 'animate-pulse' : ''}`}>
@@ -67,8 +67,8 @@ export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, di
         <div className="flex gap-2 shrink-0">
           {disableControls ? (
             <div className="px-3 py-2 bg-ink-800 rounded-xl text-center leading-tight">
-              <p className="text-[10px] font-bold text-ink-500">متوقف</p>
-              <p className="text-[10px] font-bold text-ink-600">أدخل الوقت يدوياً</p>
+              <p className="text-[10px] font-bold text-ink-500">{lang === 'ar' ? 'متوقف' : 'Stopped'}</p>
+              <p className="text-[10px] font-bold text-ink-600">{lang === 'ar' ? 'أدخل الوقت يدوياً' : 'Enter time manually'}</p>
             </div>
           ) : (
             <>
@@ -77,14 +77,14 @@ export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, di
                 disabled={disabled || isRunning || timeLeft <= 0 || switchTimer !== null}
                 className="px-4 py-2.5 bg-brand-600 hover:bg-brand-500 active:bg-brand-700 disabled:bg-ink-700 disabled:opacity-40 rounded-xl font-bold transition-colors text-sm press-effect"
               >
-                Start
+                {lang === 'ar' ? 'بدء' : 'Start'}
               </button>
               <button
                 onClick={handleStop}
                 disabled={disabled || (!isRunning && timeLeft === initialSeconds)}
                 className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 disabled:bg-ink-700 disabled:opacity-40 rounded-xl font-bold transition-colors text-sm press-effect"
               >
-                Stop
+                {lang === 'ar' ? 'إيقاف' : 'Stop'}
               </button>
             </>
           )}

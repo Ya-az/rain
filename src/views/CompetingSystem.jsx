@@ -636,13 +636,13 @@ function Group2Workflow({ category, matches, scores, setScores, lang, showToast 
       {selectedMatch && (
         <div key={`grp2_${selectedMatchId}`} className="space-y-4 pt-4 border-t border-ink-200">
           {existingScores.map((scoreObj, index) => {
-            const props = { key: scoreObj.id, title: `${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`, match: selectedMatch, categoryId: category.id, attemptNumber: index + 1, initialScoreObj: scoreObj, onEditRequest };
+            const props = { key: scoreObj.id, title: `${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`, match: selectedMatch, categoryId: category.id, attemptNumber: index + 1, initialScoreObj: scoreObj, onEditRequest, lang };
             if (category.id === 'c2_sumo') return <SumoMatchCard {...props} />;
             if (category.id === 'c2_soccer') return <SoccerBotMatchCard {...props} />;
             return null;
           })}
           {(() => {
-            const props = { title: `${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`, match: selectedMatch, categoryId: category.id, attemptNumber: existingScores.length + 1, onSaveScore };
+            const props = { title: `${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`, match: selectedMatch, categoryId: category.id, attemptNumber: existingScores.length + 1, onSaveScore, lang };
             if (category.id === 'c2_sumo') return <SumoMatchCard key="new" {...props} />;
             if (category.id === 'c2_soccer') return <SoccerBotMatchCard key="new" {...props} />;
             return null;
@@ -796,9 +796,9 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, lang
           )}
         </div>
         {existingScores.map((scoreObj, index) => (
-          <SumoMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} />
+          <SumoMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
         ))}
-        <SumoMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} />
+        <SumoMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} lang={lang} />
       </div>
     );
   }
@@ -930,9 +930,9 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, la
           )}
         </div>
         {existingScores.map((scoreObj, index) => (
-          <SoccerBotMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} />
+          <SoccerBotMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
         ))}
-        <SoccerBotMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} />
+        <SoccerBotMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} lang={lang} />
       </div>
     );
   }
@@ -1052,12 +1052,14 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
           {existingScores.map((scoreObj, index) => (
             <ScoringCard key={scoreObj.id} title={`${t(lang, 'presentationAttempt')} ${index + 1}: ${teamName}`}
               initialScoreObj={scoreObj}
+              lang={lang}
               onEditRequest={(id, newScore) => {
                 setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, status: 'PENDING' } : s));
                 setSelectedP('');
               }} />
           ))}
           <ScoringCard title={`${t(lang, 'presentationAttempt')} ${existingScores.length + 1}: ${teamName}`}
+            lang={lang}
             onSaveScore={s => {
               setScores(prev => [...prev, { id: Date.now(), pId: selectedP, score: s, status: 'VALID' }]);
               setSelectedP('');

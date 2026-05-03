@@ -71,7 +71,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
               {/* Language toggle */}
               <button
                 onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')}
-                title={lang === 'en' ? 'التبديل إلى العربية' : 'Switch to English'}
+                title={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
                 className="p-2 bg-gray-100 hover:bg-teal-50 border border-gray-300 rounded-lg text-navy-500 transition-colors press-effect relative"
               >
                 <Globe size={18} />
