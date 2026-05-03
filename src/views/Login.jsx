@@ -165,35 +165,7 @@ export default function Login({ handleLogin, lang, onToggleLang }) {
                 ) : t(lang, 'authenticate')}
               </button>
 
-              {/* Demo credentials collapsible */}
-              <div className="border border-ink-200 rounded-xl overflow-hidden">
-                <button
-                  onClick={() => setShowDemo(d => !d)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-xs font-bold text-ink-500 hover:bg-ink-50 transition-colors"
-                >
-                  <span>Demo Credentials</span>
-                  <ChevronDown size={14} className={`transition-transform duration-200 ${showDemo ? 'rotate-180' : ''}`} />
-                </button>
-                {showDemo && (
-                  <div className="px-4 pb-3 space-y-1.5 border-t border-ink-100 pt-3">
-                    {[
-                      { cred: 'admin / pass', role: 'Admin', color: 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100' },
-                      { cred: 'ref_fastbot / pass', role: 'Referee', color: 'bg-ink-50 text-ink-700 border-ink-200 hover:bg-ink-100' },
-                      { cred: 'vol_west / pass', role: 'Volunteer', color: 'bg-ink-50 text-ink-700 border-ink-200 hover:bg-ink-100' },
-                      { cred: 'headref_w / pass', role: 'Head Ref', color: 'bg-saudi-50 text-saudi-700 border-saudi-200 hover:bg-saudi-100' },
-                    ].map(({ cred, role, color }) => (
-                      <button
-                        key={cred}
-                        onClick={() => { const [u, p] = cred.split(' / '); fillAndSubmit(u, p); }}
-                        className={`w-full flex items-center justify-between font-mono text-xs border rounded-lg px-3 py-2 transition-colors ${color}`}
-                      >
-                        <span className="font-bold">{cred}</span>
-                        <span className="text-[10px] font-black uppercase tracking-wide opacity-70">{role}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Demo credentials removed — real referee accounts in use */}
             </div>
           </div>
           </div>{/* /max-w-sm */}

@@ -4,16 +4,28 @@
 // =============================================
 
 export const MOCK_USERS = [
-  { id: 'u1', username: 'admin', password: 'pass', role: 'admin', name: 'System Admin' },
-  { id: 'u1b', username: 'reg_west', password: 'pass', role: 'region_admin', name: 'Region Admin (Western)', region: 'Western' },
-  { id: 'u1c', username: 'reg_cent', password: 'pass', role: 'region_admin', name: 'Region Admin (Central)', region: 'Central' },
-  { id: 'u1d', username: 'reg_east', password: 'pass', role: 'region_admin', name: 'Region Admin (Eastern)', region: 'Eastern' },
-  { id: 'u2', username: 'headref_w', password: 'pass', role: 'head_ref', name: 'Head Referee (Western)', region: 'Western' },
-  { id: 'u3', username: 'ref_fastbot', password: 'pass', role: 'ref', name: 'Ref (FastBot)', category: 'c1_fastbot', region: 'Western' },
-  { id: 'u3b', username: 'ref_amaze', password: 'pass', role: 'ref', name: 'Ref (a-Maze-ing)', category: 'c1_amazeing', region: 'Central' },
-  { id: 'u3c', username: 'ref_sumo', password: 'pass', role: 'ref', name: 'Ref (Sumo Bot)', category: 'c2_sumo', region: 'Eastern' },
-  { id: 'u4', username: 'vol_west', password: 'pass', role: 'volunteer', name: 'Door Staff (Western)', region: 'Western' },
-  { id: 'u4b', username: 'vol_cent', password: 'pass', role: 'volunteer', name: 'Door Staff (Central)', region: 'Central' },
+  // System admin
+  { id: 'u_admin', username: 'admin', password: 'pass', role: 'admin', name: 'System Admin' },
+
+  // ─── Eastern Region Referees ─── (password: 0000)
+  // SoccerBot
+  { id: 'e_soccer_1', username: '0509498800', password: '0000', role: 'ref', name: 'SoccerBot Ref 1', category: 'c2_soccer', region: 'Eastern' },
+  { id: 'e_soccer_2', username: '0557949085', password: '0000', role: 'ref', name: 'SoccerBot Ref 2', category: 'c2_soccer', region: 'Eastern' },
+  // Fastbot
+  { id: 'e_fastbot_1', username: '0563566643', password: '0000', role: 'ref', name: 'Fastbot Ref 1', category: 'c1_fastbot', region: 'Eastern' },
+  { id: 'e_fastbot_2', username: '0500804360', password: '0000', role: 'ref', name: 'Fastbot Ref 2', category: 'c1_fastbot', region: 'Eastern' },
+  // Sumo
+  { id: 'e_sumo_1', username: '0554580458', password: '0000', role: 'ref', name: 'Sumo Ref 1', category: 'c2_sumo', region: 'Eastern' },
+  { id: 'e_sumo_2', username: '0561788878', password: '0000', role: 'ref', name: 'Sumo Ref 2', category: 'c2_sumo', region: 'Eastern' },
+  // LineFollowing
+  { id: 'e_line_1', username: '0530171940', password: '0000', role: 'ref', name: 'LineFollowing Ref 1', category: 'c1_linefollow', region: 'Eastern' },
+  { id: 'e_line_2', username: '0505848477', password: '0000', role: 'ref', name: 'LineFollowing Ref 2', category: 'c1_linefollow', region: 'Eastern' },
+  // a-Maze-ing
+  { id: 'e_maze_1', username: '0556926126', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 1', category: 'c1_amazeing', region: 'Eastern' },
+  { id: 'e_maze_2', username: '0562274181', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 2', category: 'c1_amazeing', region: 'Eastern' },
+  // AI Innovation
+  { id: 'e_ai_1', username: '0505921458', password: '0000', role: 'ref', name: 'AI Innovation Ref 1', category: 'c3_ai', region: 'Eastern' },
+  { id: 'e_ai_2', username: '0540697768', password: '0000', role: 'ref', name: 'AI Innovation Ref 2', category: 'c3_ai', region: 'Eastern' },
 ];
 
 export const MOCK_CATEGORIES = [
@@ -26,43 +38,11 @@ export const MOCK_CATEGORIES = [
   { id: 'c3_webdesign', name: 'WebDesign', group: 3, levels: ['ES', 'MS', 'HS', 'US'] },
 ];
 
-export const INITIAL_TEAMS = [
-  { id: 't1', name: 'Cyber Falcons',  division: 'HS', region: 'Western', members: [{id:'m1', name:'Omar', present:false}, {id:'m2', name:'Ali', present:false}],         coach: {name:'Dr. Ahmed',    present:false} },
-  { id: 't2', name: 'Desert Rovers',  division: 'MS', region: 'Central', members: [{id:'m3', name:'Sara', present:false}, {id:'m4', name:'Nour', present:false}],         coach: {name:'Eng. Fatima',  present:false} },
-  { id: 't3', name: 'Tech Titans',    division: 'ES', region: 'Eastern', members: [{id:'m5', name:'Ziad', present:false}],                                                coach: {name:'Mr. Khaled',   present:false} },
-  { id: 't4', name: 'Neural Nets',    division: 'US', region: 'Western', members: [{id:'m6', name:'Tariq', present:false}, {id:'m7', name:'Youssef', present:false}],    coach: {name:'Dr. Salem',    present:false} },
-  { id: 't5', name: 'Maze Runners',   division: 'MS', region: 'Western', members: [{id:'m8', name:'Fahad', present:false}],                                               coach: {name:'Mr. Sami',     present:false} },
-  { id: 't6', name: 'Line Masters',   division: 'MS', region: 'Central', members: [{id:'m9', name:'Layan', present:false}, {id:'m10', name:'Joud', present:false}],      coach: {name:'Ms. Reem',     present:false} },
-  { id: 't7', name: 'Robo Knights',   division: 'ES', region: 'Eastern', members: [{id:'m11', name:'Saud', present:false}, {id:'m12', name:'Bader', present:false}],     coach: {name:'Dr. Tariq',    present:false} },
-  { id: 't8', name: 'AI Pioneers',    division: 'US', region: 'Central', members: [{id:'m13', name:'Nasser', present:false}],                                             coach: {name:'Prof. Hind',   present:false} },
-];
+// No seed teams — real teams will be added via Excel import
+export const INITIAL_TEAMS = [];
 
-// One entry per team+category registration (mirrors the new Excel row structure)
-export const INITIAL_PARTICIPATIONS = [
-  // Cyber Falcons (Western)
-  { id: '26001W', teamId: 't1', categoryId: 'c2_sumo' },
-  { id: '26002W', teamId: 't1', categoryId: 'c3_ai' },
-  // Desert Rovers (Central)
-  { id: '26001C', teamId: 't2', categoryId: 'c1_fastbot' },
-  { id: '26002C', teamId: 't2', categoryId: 'c2_sumo' },
-  // Tech Titans (Eastern)
-  { id: '26001E', teamId: 't3', categoryId: 'c1_linefollow' },
-  { id: '26002E', teamId: 't3', categoryId: 'c2_soccer' },
-  // Neural Nets (Western)
-  { id: '26003W', teamId: 't4', categoryId: 'c3_ai' },
-  // Maze Runners (Western)
-  { id: '26004W', teamId: 't5', categoryId: 'c1_amazeing' },
-  { id: '26005W', teamId: 't5', categoryId: 'c2_soccer' },
-  // Line Masters (Central)
-  { id: '26003C', teamId: 't6', categoryId: 'c1_linefollow' },
-  { id: '26004C', teamId: 't6', categoryId: 'c1_fastbot' },
-  // Robo Knights (Eastern)
-  { id: '26003E', teamId: 't7', categoryId: 'c1_amazeing' },
-  { id: '26004E', teamId: 't7', categoryId: 'c2_sumo' },
-  // AI Pioneers (Central)
-  { id: '26005C', teamId: 't8', categoryId: 'c3_ai' },
-  { id: '26006C', teamId: 't8', categoryId: 'c1_fastbot' },
-];
+// No seed participations — populated when teams are imported
+export const INITIAL_PARTICIPATIONS = [];
 
 export const DEFAULT_SYSTEM_CONFIG = {
   fastbotLaps: { ES: 1, MS: 2, HS: 3, US: 4 },
