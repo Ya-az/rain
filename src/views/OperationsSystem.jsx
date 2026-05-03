@@ -503,54 +503,78 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   ))}
                 </div>
               </div>
-              {/* Official Rounds (R1→Rn) */}
-              <div className="bg-ink-50 p-4 rounded-xl border border-ink-200">
-                <h4 className="font-bold text-ink-700 mb-3 flex items-center gap-2 border-b pb-2 text-sm">
-                  <Activity size={16} className="text-ink-500" /> {t(lang, 'fastbotOfficialRounds')}
-                </h4>
-                <div className="space-y-2">
-                  {[{ key: 'es_ms', label: 'ES / MS' }, { key: 'hs_us', label: 'HS / US' }].map(({ key, label }) => {
-                    const val = systemConfig.fastbotOfficialRounds?.[key] ?? 5;
-                    return (
-                      <div key={key} className="flex justify-between items-center bg-white p-2 px-3 rounded-lg border border-ink-100">
-                        <span className="text-sm font-semibold text-ink-700">{label} — R1 → R{val}</span>
-                        <CustomSelect
-                          size="sm"
-                          className="w-20"
-                          value={val}
-                          onChange={e => setSystemConfig({ ...systemConfig, fastbotOfficialRounds: { ...systemConfig.fastbotOfficialRounds, [key]: parseInt(e.target.value) } })}
-                        >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n}</option>)}
-                        </CustomSelect>
+              {/* Per-category Round configuration (Practice + Official) */}
+              {[
+                { id: 'c1_fastbot',    label: lang === 'ar' ? 'فاست‌بوت' : 'FastBot',       practiceMax: 5,  officialMax: 10 },
+                { id: 'c1_amazeing',   label: lang === 'ar' ? 'إيه-ميز-إنغ' : 'a-Maze-ing',  practiceMax: 5,  officialMax: 10 },
+                { id: 'c1_linefollow', label: lang === 'ar' ? 'تتبع الخط' : 'LineFollowing', practiceMax: 5,  officialMax: 10 },
+              ].map(cat => {
+                const officialOpts = Array.from({ length: cat.officialMax }, (_, i) => i + 1);
+                const practiceOpts = Array.from({ length: cat.practiceMax + 1 }, (_, i) => i);
+                const offByDiv = systemConfig.officialRoundsByCategory?.[cat.id] || systemConfig.fastbotOfficialRounds || { es_ms: 5, hs_us: 5 };
+                const prByDiv  = systemConfig.practiceRoundsByCategory?.[cat.id] || systemConfig.fastbotPracticeRounds || { es_ms: 2, hs_us: 2 };
+
+                const updateOfficial = (key, val) => setSystemConfig({
+                  ...systemConfig,
+                  officialRoundsByCategory: {
+                    ...(systemConfig.officialRoundsByCategory || {}),
+                    [cat.id]: { ...offByDiv, [key]: parseInt(val) },
+                  },
+                  ...(cat.id === 'c1_fastbot' ? {
+                    fastbotOfficialRounds: { ...(systemConfig.fastbotOfficialRounds || {}), [key]: parseInt(val) },
+                  } : {}),
+                });
+                const updatePractice = (key, val) => setSystemConfig({
+                  ...systemConfig,
+                  practiceRoundsByCategory: {
+                    ...(systemConfig.practiceRoundsByCategory || {}),
+                    [cat.id]: { ...prByDiv, [key]: parseInt(val) },
+                  },
+                  ...(cat.id === 'c1_fastbot' ? {
+                    fastbotPracticeRounds: { ...(systemConfig.fastbotPracticeRounds || {}), [key]: parseInt(val) },
+                  } : {}),
+                });
+
+                return (
+                  <div key={cat.id} className="md:col-span-2 bg-ink-50 p-4 rounded-xl border border-ink-200">
+                    <h4 className="font-bold text-ink-700 mb-3 flex items-center gap-2 border-b pb-2 text-sm">
+                      <Activity size={16} className="text-ink-500" /> {cat.label} — {lang === 'ar' ? 'الجولات' : 'Rounds'}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Official */}
+                      <div className="bg-white rounded-lg border border-ink-100 p-3 space-y-2">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-ink-500">{t(lang, 'fastbotOfficialRounds')}</p>
+                        {[{ key: 'es_ms', label: 'ES / MS' }, { key: 'hs_us', label: 'HS / US' }].map(({ key, label }) => {
+                          const val = offByDiv?.[key] ?? 5;
+                          return (
+                            <div key={key} className="flex justify-between items-center bg-ink-50 p-2 px-3 rounded-lg border border-ink-100">
+                              <span className="text-sm font-semibold text-ink-700">{label} — R1 → R{val}</span>
+                              <CustomSelect size="sm" className="w-20" value={val} onChange={e => updateOfficial(key, e.target.value)}>
+                                {officialOpts.map(n => <option key={n} value={n}>{n}</option>)}
+                              </CustomSelect>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* Practice Rounds (P1→Pn) */}
-              <div className="bg-ink-50 p-4 rounded-xl border border-ink-200">
-                <h4 className="font-bold text-ink-700 mb-3 flex items-center gap-2 border-b pb-2 text-sm">
-                  <Activity size={16} className="text-ink-500" /> {t(lang, 'fastbotPracticeRounds')}
-                </h4>
-                <div className="space-y-2">
-                  {[{ key: 'es_ms', label: 'ES / MS' }, { key: 'hs_us', label: 'HS / US' }].map(({ key, label }) => {
-                    const val = systemConfig.fastbotPracticeRounds?.[key] ?? 2;
-                    return (
-                      <div key={key} className="flex justify-between items-center bg-white p-2 px-3 rounded-lg border border-ink-100">
-                        <span className="text-sm font-semibold text-ink-700">{label} — P1 → P{val}</span>
-                        <CustomSelect
-                          size="sm"
-                          className="w-20"
-                          value={val}
-                          onChange={e => setSystemConfig({ ...systemConfig, fastbotPracticeRounds: { ...systemConfig.fastbotPracticeRounds, [key]: parseInt(e.target.value) } })}
-                        >
-                          {[0, 1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
-                        </CustomSelect>
+                      {/* Practice */}
+                      <div className="bg-white rounded-lg border border-ink-100 p-3 space-y-2">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-ink-500">{t(lang, 'fastbotPracticeRounds')}</p>
+                        {[{ key: 'es_ms', label: 'ES / MS' }, { key: 'hs_us', label: 'HS / US' }].map(({ key, label }) => {
+                          const val = prByDiv?.[key] ?? 2;
+                          return (
+                            <div key={key} className="flex justify-between items-center bg-ink-50 p-2 px-3 rounded-lg border border-ink-100">
+                              <span className="text-sm font-semibold text-ink-700">{label} — P1 → P{val}</span>
+                              <CustomSelect size="sm" className="w-20" value={val} onChange={e => updatePractice(key, e.target.value)}>
+                                {practiceOpts.map(n => <option key={n} value={n}>{n}</option>)}
+                              </CustomSelect>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </CollapsibleCard>

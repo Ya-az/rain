@@ -1,16 +1,25 @@
 export const FASTBOT_SLOT_KEYS = ['P1', 'P2', 'R1', 'R2', 'R3', 'R4', 'R5'];
 export const FASTBOT_OFFICIAL_SLOT_KEYS = ['R1', 'R2', 'R3', 'R4', 'R5'];
 
-export function getActiveSlotKeys(systemConfig, divisionGroup = 'es_ms') {
-  const numPractice = systemConfig?.fastbotPracticeRounds?.[divisionGroup] ?? 2;
-  const numOfficial = systemConfig?.fastbotOfficialRounds?.[divisionGroup] ?? 5;
+function resolveRounds(systemConfig, divisionGroup, categoryId, type) {
+  const byCat = type === 'official'
+    ? systemConfig?.officialRoundsByCategory?.[categoryId]?.[divisionGroup]
+    : systemConfig?.practiceRoundsByCategory?.[categoryId]?.[divisionGroup];
+  if (Number.isFinite(byCat)) return byCat;
+  if (type === 'official') return systemConfig?.fastbotOfficialRounds?.[divisionGroup] ?? 5;
+  return systemConfig?.fastbotPracticeRounds?.[divisionGroup] ?? 2;
+}
+
+export function getActiveSlotKeys(systemConfig, divisionGroup = 'es_ms', categoryId) {
+  const numPractice = resolveRounds(systemConfig, divisionGroup, categoryId, 'practice');
+  const numOfficial = resolveRounds(systemConfig, divisionGroup, categoryId, 'official');
   const practiceKeys = Array.from({ length: numPractice }, (_, i) => `P${i + 1}`);
   const officialKeys = Array.from({ length: numOfficial }, (_, i) => `R${i + 1}`);
   return [...practiceKeys, ...officialKeys];
 }
 
-export function getActiveOfficialSlotKeys(systemConfig, divisionGroup = 'es_ms') {
-  const numOfficial = systemConfig?.fastbotOfficialRounds?.[divisionGroup] ?? 5;
+export function getActiveOfficialSlotKeys(systemConfig, divisionGroup = 'es_ms', categoryId) {
+  const numOfficial = resolveRounds(systemConfig, divisionGroup, categoryId, 'official');
   return Array.from({ length: numOfficial }, (_, i) => `R${i + 1}`);
 }
 export const FASTBOT_SLOT_DURATION_MINUTES = 5;
@@ -50,8 +59,8 @@ export function getFastBotSlotTime(slotKey, rowIndex, totalRows, startMinutes = 
   return formatFastBotTime(startMinutes + (slotOffset * FASTBOT_SLOT_DURATION_MINUTES));
 }
 
-export function getFastBotSlotOrder(slotKey, systemConfig, divisionGroup = 'es_ms') {
-  const activeKeys = getActiveSlotKeys(systemConfig, divisionGroup);
+export function getFastBotSlotOrder(slotKey, systemConfig, divisionGroup = 'es_ms', categoryId) {
+  const activeKeys = getActiveSlotKeys(systemConfig, divisionGroup, categoryId);
   const slotIndex = activeKeys.indexOf(slotKey);
   return slotIndex === -1 ? 1 : slotIndex + 1;
 }
@@ -67,8 +76,8 @@ export function getFastBotScoreValue(scoreObj) {
   return Number.isFinite(value) ? value : null;
 }
 
-export function getFastBotBestOfficialScore(slots, systemConfig, divisionGroup = 'es_ms') {
-  const officialKeys = getActiveOfficialSlotKeys(systemConfig, divisionGroup);
+export function getFastBotBestOfficialScore(slots, systemConfig, divisionGroup = 'es_ms', categoryId) {
+  const officialKeys = getActiveOfficialSlotKeys(systemConfig, divisionGroup, categoryId);
   const officialScores = officialKeys
     .map(slotKey => getFastBotScoreValue(slots?.[slotKey]?.scoreObj))
     .filter(scoreValue => Number.isFinite(scoreValue));
@@ -81,8 +90,8 @@ export function formatGroup1Score(scoreValue) {
   return Number.isFinite(scoreValue) ? String(Math.round(scoreValue)) : '--';
 }
 
-export function getGroup1BestOfficialScore(slots, systemConfig, divisionGroup = 'es_ms') {
-  const officialKeys = getActiveOfficialSlotKeys(systemConfig, divisionGroup);
+export function getGroup1BestOfficialScore(slots, systemConfig, divisionGroup = 'es_ms', categoryId) {
+  const officialKeys = getActiveOfficialSlotKeys(systemConfig, divisionGroup, categoryId);
   const officialScores = officialKeys
     .map(slotKey => getFastBotScoreValue(slots?.[slotKey]?.scoreObj))
     .filter(scoreValue => Number.isFinite(scoreValue));
@@ -97,14 +106,14 @@ export function getFastBotCellDisplay(slot) {
   };
 }
 
-export function getDefaultFastBotSlotKey(row, systemConfig) {
+export function getDefaultFastBotSlotKey(row, systemConfig, categoryId) {
   const divisionGroup = getFastBotDivisionGroup(row?.division || '');
-  const activeKeys = getActiveSlotKeys(systemConfig, divisionGroup);
+  const activeKeys = getActiveSlotKeys(systemConfig, divisionGroup, categoryId);
   const pendingSlot = activeKeys.find(slotKey => !row?.slots?.[slotKey]?.scoreObj);
   return pendingSlot || activeKeys[0];
 }
 
-export function buildFastBotScheduleRows(participations, teams, scores, systemConfig) {
+export function buildFastBotScheduleRows(participations, teams, scores, systemConfig, categoryId) {
   const teamLookup = new Map(teams.map(team => [team.id, team]));
   const scopedParticipations = participations.filter(participation => teamLookup.has(participation.teamId));
   const groupedParticipations = scopedParticipations.reduce((groups, participation) => {
@@ -120,7 +129,7 @@ export function buildFastBotScheduleRows(participations, teams, scores, systemCo
     const team = teamLookup.get(participation.teamId);
     const division = team?.division || '';
     const groupKey = getFastBotDivisionGroup(division);
-    const activeSlotKeys = getActiveSlotKeys(systemConfig, groupKey);
+    const activeSlotKeys = getActiveSlotKeys(systemConfig, groupKey, categoryId);
     const groupParticipations = groupedParticipations[groupKey] || [];
     const rowIndex = groupParticipations.findIndex(item => item.id === participation.id);
     const startMinutes = getFastBotStartMinutesForDivision(division);
@@ -143,7 +152,7 @@ export function buildFastBotScheduleRows(participations, teams, scores, systemCo
       divisionGroup: groupKey,
       region: team?.region || '',
       slots,
-      bestOfficialScore: getFastBotBestOfficialScore(slots, systemConfig, groupKey),
+      bestOfficialScore: getFastBotBestOfficialScore(slots, systemConfig, groupKey, categoryId),
     };
   });
 }

@@ -71,6 +71,16 @@ export const DEFAULT_SYSTEM_CONFIG = {
   linefollowBalls: { ES: 2, MS: 3, HS: 4, US: 5 },
   fastbotPracticeRounds: { es_ms: 2, hs_us: 2 },
   fastbotOfficialRounds: { es_ms: 5, hs_us: 5 },
+  practiceRoundsByCategory: {
+    c1_fastbot:    { es_ms: 2, hs_us: 2 },
+    c1_amazeing:   { es_ms: 2, hs_us: 2 },
+    c1_linefollow: { es_ms: 2, hs_us: 2 },
+  },
+  officialRoundsByCategory: {
+    c1_fastbot:    { es_ms: 5, hs_us: 5 },
+    c1_amazeing:   { es_ms: 5, hs_us: 5 },
+    c1_linefollow: { es_ms: 5, hs_us: 5 },
+  },
 };
 
 // Category gradient colours + robot images for category cards

@@ -143,7 +143,7 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
   );
 }
 
-function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveScore, onEditRequest, systemConfig, lang, activeSlotKeys = [] }) {
+function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveScore, onEditRequest, systemConfig, lang, activeSlotKeys = [], categoryId }) {
   const activeSlot = row?.slots?.[activeSlotKey];
 
   if (!row || !activeSlot) return null;
@@ -204,7 +204,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
         title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
         categoryId="c1_fastbot"
         teamDivision={row.division}
-        attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup)}
+        attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, categoryId)}
         initialScoreObj={activeSlot.scoreObj}
         onSaveScore={onSaveScore}
         onEditRequest={onEditRequest}
@@ -283,7 +283,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
           title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
           categoryId={category.id}
           teamDivision={row.division}
-          attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup)}
+          attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, category.id)}
           initialScoreObj={activeSlot.scoreObj}
           onSaveScore={onSaveScore}
           onEditRequest={onEditRequest}
@@ -299,7 +299,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
           title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
           categoryId={category.id}
           teamDivision={row.division}
-          attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup)}
+          attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, category.id)}
           initialScoreObj={activeSlot.scoreObj}
           onSaveScore={onSaveScore}
           onEditRequest={onEditRequest}
@@ -324,9 +324,9 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
 
-  const activeSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig), [systemConfig]);
-  const esMsSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'es_ms'), [systemConfig]);
-  const hsUsSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'hs_us'), [systemConfig]);
+  const activeSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'es_ms', category.id), [systemConfig, category.id]);
+  const esMsSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'es_ms', category.id), [systemConfig, category.id]);
+  const hsUsSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'hs_us', category.id), [systemConfig, category.id]);
 
   useEffect(() => {
     setSelectedP('');
@@ -349,11 +349,11 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
       teams.map(team => [team.id, getTeamStatus ? getTeamStatus(team) : 'No-Show'])
     );
 
-    return buildFastBotScheduleRows(activeParticipations, teams, scores, systemConfig).map(row => ({
+    return buildFastBotScheduleRows(activeParticipations, teams, scores, systemConfig, category.id).map(row => ({
       ...row,
       checkInStatus: teamStatusById.get(row.teamId) || 'No-Show',
     }));
-  }, [isFastBot, activeParticipations, teams, scores, getTeamStatus, systemConfig]);
+  }, [isFastBot, activeParticipations, teams, scores, getTeamStatus, systemConfig, category.id]);
 
   const visibleFastBotRows = useMemo(() => {
     if (!isFastBot) return [];
@@ -378,12 +378,12 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
     const teamStatusById = new Map(
       teams.map(team => [team.id, getTeamStatus ? getTeamStatus(team) : 'No-Show'])
     );
-    return buildFastBotScheduleRows(activeParticipations, teams, scores, systemConfig).map(row => ({
+    return buildFastBotScheduleRows(activeParticipations, teams, scores, systemConfig, category.id).map(row => ({
       ...row,
       checkInStatus: teamStatusById.get(row.teamId) || 'No-Show',
-      bestOfficialScore: getGroup1BestOfficialScore(row.slots, systemConfig, row.divisionGroup),
+      bestOfficialScore: getGroup1BestOfficialScore(row.slots, systemConfig, row.divisionGroup, category.id),
     }));
-  }, [isFastBot, activeParticipations, teams, scores, getTeamStatus, systemConfig]);
+  }, [isFastBot, activeParticipations, teams, scores, getTeamStatus, systemConfig, category.id]);
 
   const visibleGroup1Rows = useMemo(() => {
     if (isFastBot) return [];
@@ -413,13 +413,13 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   useEffect(() => {
     if (!isFastBot || !selectedFastBotRow) return;
     if (!activeFastBotSlot || !selectedFastBotRow.slots[activeFastBotSlot]) {
-      setActiveFastBotSlot(getDefaultFastBotSlotKey(selectedFastBotRow, systemConfig));
+      setActiveFastBotSlot(getDefaultFastBotSlotKey(selectedFastBotRow, systemConfig, category.id));
     }
   }, [isFastBot, selectedFastBotRow, activeFastBotSlot, systemConfig]);
 
   const handleOpenFastBotRow = (row) => {
     setSelectedFastBotPId(row.participationId);
-    setActiveFastBotSlot(getDefaultFastBotSlotKey(row, systemConfig));
+    setActiveFastBotSlot(getDefaultFastBotSlotKey(row, systemConfig, category.id));
   };
 
   const onSaveFastBotScore = (participationId, slotKey, scoreValue, insp, rawData) => {
@@ -464,13 +464,13 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   useEffect(() => {
     if (isFastBot || !selectedGroup1Row) return;
     if (!activeGroup1Slot || !selectedGroup1Row.slots[activeGroup1Slot]) {
-      setActiveGroup1Slot(getDefaultFastBotSlotKey(selectedGroup1Row, systemConfig));
+      setActiveGroup1Slot(getDefaultFastBotSlotKey(selectedGroup1Row, systemConfig, category.id));
     }
   }, [isFastBot, selectedGroup1Row, activeGroup1Slot, systemConfig]);
 
   const handleOpenGroup1Row = (row) => {
     setSelectedP(row.participationId);
-    setActiveGroup1Slot(getDefaultFastBotSlotKey(row, systemConfig));
+    setActiveGroup1Slot(getDefaultFastBotSlotKey(row, systemConfig, category.id));
   };
 
   const onSaveGroup1Score = (participationId, slotKey, scoreValue, insp, rawData) => {
@@ -545,6 +545,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
             systemConfig={systemConfig}
             lang={lang}
             activeSlotKeys={selectedFastBotRow.divisionGroup === 'hs_us' ? hsUsSlotKeys : esMsSlotKeys}
+            categoryId={category.id}
           />
         ) : (
           <div className="space-y-4">
