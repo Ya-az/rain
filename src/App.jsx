@@ -26,6 +26,7 @@ const getAllowedViews = (user) => {
 export default function App() {
   const [lang, setLang] = useState('en');
   const [currentUser, setCurrentUser] = useState(null);
+  const [publicMode, setPublicMode] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
   const [toast, setToast] = useState(null);
 
@@ -264,9 +265,61 @@ export default function App() {
   };
 
   // ─── Login screen (no user) ───────────────────────────────────────────────
-  if (!currentUser) {
+  if (!currentUser && !publicMode) {
     return (
-      <Login handleLogin={handleLogin} lang={lang} onToggleLang={() => setLang(l => l === 'en' ? 'ar' : 'en')} />
+      <Login
+        handleLogin={handleLogin}
+        lang={lang}
+        onToggleLang={() => setLang(l => l === 'en' ? 'ar' : 'en')}
+        onEnterPublic={() => setPublicMode(true)}
+      />
+    );
+  }
+
+  // ─── Public live dashboard (no login) ───────────────────────────
+  if (!currentUser && publicMode) {
+    return (
+      <div className="min-h-screen bg-ink-50" dir={dir}>
+        <header className="bg-gradient-to-r from-[#061a27] to-[#0a2a3a] border-b border-white/10 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <img src="/img/rain-o.png" alt="RAIN" className="h-8 object-contain" />
+              <div className="min-w-0">
+                <p className="text-white font-black text-sm truncate">{lang === 'ar' ? 'النتائج المباشرة' : 'Live Results'}</p>
+                <p className="text-ink-400 text-[10px] font-medium truncate">{lang === 'ar' ? 'روبوريف 2026 — للجمهور' : 'RoboRAVE 2026 — Public View'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg text-white text-xs font-bold transition-colors"
+              >
+                {lang === 'en' ? 'العربية' : 'English'}
+              </button>
+              <button
+                onClick={() => setPublicMode(false)}
+                className="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 border border-brand-400 rounded-lg text-white text-xs font-black transition-colors"
+              >
+                {lang === 'ar' ? 'تسجيل الدخول' : 'Staff Login'}
+              </button>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-7xl mx-auto w-full px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6">
+          <Dashboard
+            teams={teams}
+            getTeamStatus={getTeamStatus}
+            scores={scores}
+            lang={lang}
+            participations={participations}
+            categories={categories}
+            group2Matches={group2Matches}
+          />
+        </main>
+        <footer className="text-center py-4 text-[11px] text-ink-400">
+          {lang === 'ar' ? 'تحديث مباشر • RoboRAVE Saudi Arabia 2026' : 'Live updates • RoboRAVE Saudi Arabia 2026'}
+        </footer>
+      </div>
     );
   }
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ShieldCheck, User, Lock, ChevronDown, Globe } from 'lucide-react';
 import { t } from '../constants/translations';
 
-export default function Login({ handleLogin, lang, onToggleLang }) {
+export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }) {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
   const [showDemo, setShowDemo] = useState(false);
@@ -164,6 +164,22 @@ export default function Login({ handleLogin, lang, onToggleLang }) {
                   <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t(lang, 'authenticate')}</>
                 ) : t(lang, 'authenticate')}
               </button>
+
+              {onEnterPublic && (
+                <>
+                  <div className="relative my-1">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-ink-200" /></div>
+                    <div className="relative flex justify-center"><span className="px-2 bg-white text-[10px] font-black uppercase tracking-widest text-ink-400">{lang === 'ar' ? 'أو' : 'or'}</span></div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onEnterPublic}
+                    className="w-full py-3 text-sm font-black rounded-xl border-2 border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    🏆 {lang === 'ar' ? 'عرض النتائج المباشرة (للجمهور)' : 'View Live Results (Public)'}
+                  </button>
+                </>
+              )}
 
               {/* Demo credentials removed — real referee accounts in use */}
             </div>
