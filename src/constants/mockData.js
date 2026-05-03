@@ -11,27 +11,27 @@ export const MOCK_USERS = [
   { id: 'u_radmin_east', username: '0532950543', password: '0000', role: 'region_admin', name: 'Eastern Region Admin', region: 'Eastern' },
 
   // ─── Eastern Region Referees ─── (password: 0000)
-  // All referees also have access to AI Innovation (c3_ai)
   // SoccerBot
-  { id: 'e_soccer_1', username: '0509498800', password: '0000', role: 'ref', name: 'SoccerBot Ref 1', categories: ['c2_soccer', 'c3_ai'], region: 'Eastern' },
-  { id: 'e_soccer_2', username: '0557949085', password: '0000', role: 'ref', name: 'SoccerBot Ref 2', categories: ['c2_soccer', 'c3_ai'], region: 'Eastern' },
+  { id: 'e_soccer_1', username: '0509498800', password: '0000', role: 'ref', name: 'SoccerBot Ref 1', categories: ['c2_soccer'], region: 'Eastern' },
+  { id: 'e_soccer_2', username: '0557949085', password: '0000', role: 'ref', name: 'SoccerBot Ref 2', categories: ['c2_soccer'], region: 'Eastern' },
   // Fastbot
-  { id: 'e_fastbot_1', username: '0563566643', password: '0000', role: 'ref', name: 'Fastbot Ref 1', categories: ['c1_fastbot', 'c3_ai'], region: 'Eastern' },
-  { id: 'e_fastbot_2', username: '0500804360', password: '0000', role: 'ref', name: 'Fastbot Ref 2', categories: ['c1_fastbot', 'c3_ai'], region: 'Eastern' },
-  // Sumo
-  { id: 'e_sumo_1', username: '0554580458', password: '0000', role: 'ref', name: 'Sumo Ref 1', categories: ['c2_sumo', 'c3_ai'], region: 'Eastern' },
-  { id: 'e_sumo_2', username: '0561788878', password: '0000', role: 'ref', name: 'Sumo Ref 2', categories: ['c2_sumo', 'c3_ai'], region: 'Eastern' },
+  { id: 'e_fastbot_1', username: '0563566643', password: '0000', role: 'ref', name: 'Fastbot Ref 1', categories: ['c1_fastbot'], region: 'Eastern' },
+  { id: 'e_fastbot_2', username: '0500804360', password: '0000', role: 'ref', name: 'Fastbot Ref 2', categories: ['c1_fastbot'], region: 'Eastern' },
+  // Sumo (Ref 1 also covers AI Innovation)
+  { id: 'e_sumo_1', username: '0554580458', password: '0000', role: 'ref', name: 'Sumo + AI Ref',  categories: ['c2_sumo', 'c3_ai'], region: 'Eastern' },
+  { id: 'e_sumo_2', username: '0561788878', password: '0000', role: 'ref', name: 'Sumo Ref 2',     categories: ['c2_sumo'], region: 'Eastern' },
   // LineFollowing
-  { id: 'e_line_1', username: '0530171940', password: '0000', role: 'ref', name: 'LineFollowing Ref 1', categories: ['c1_linefollow', 'c3_ai'], region: 'Eastern' },
-  { id: 'e_line_2', username: '0505848477', password: '0000', role: 'ref', name: 'LineFollowing Ref 2', categories: ['c1_linefollow', 'c3_ai'], region: 'Eastern' },
+  { id: 'e_line_1', username: '0530171940', password: '0000', role: 'ref', name: 'LineFollowing Ref 1', categories: ['c1_linefollow'], region: 'Eastern' },
+  { id: 'e_line_2', username: '0505848477', password: '0000', role: 'ref', name: 'LineFollowing Ref 2', categories: ['c1_linefollow'], region: 'Eastern' },
   // a-Maze-ing
-  { id: 'e_maze_1', username: '0556926126', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 1', categories: ['c1_amazeing', 'c3_ai'], region: 'Eastern' },
-  { id: 'e_maze_2', username: '0562274181', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 2', categories: ['c1_amazeing', 'c3_ai'], region: 'Eastern' },
-  // AI Innovation (Ref 1 also covers WebDesign)
-  { id: 'e_ai_1', username: '0505921458', password: '0000', role: 'ref', name: 'AI Innovation + WebDesign Ref', categories: ['c3_ai', 'c3_webdesign'], region: 'Eastern' },
-  { id: 'e_ai_2', username: '0540697768', password: '0000', role: 'ref', name: 'AI Innovation Ref 2', categories: ['c3_ai'], region: 'Eastern' },
-  // WebDesign + AI Innovation
-  { id: 'e_web_nawaf', username: 'nawaf_e', password: '0000', role: 'ref', name: 'Nawaf Al-Jaafari', categories: ['c3_webdesign', 'c3_ai'], region: 'Eastern' },
+  { id: 'e_maze_1', username: '0556926126', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 1', categories: ['c1_amazeing'], region: 'Eastern' },
+  { id: 'e_maze_2', username: '0562274181', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 2', categories: ['c1_amazeing'], region: 'Eastern' },
+  // AI Innovation (0554580458 already listed under Sumo with c3_ai)
+  { id: 'e_ai_1',    username: '0540697768', password: '0000', role: 'ref', name: 'AI Innovation Ref',  categories: ['c3_ai'], region: 'Eastern' },
+  { id: 'e_ai_duaa', username: 'duaa_q',     password: '0000', role: 'ref', name: 'Duaa Q (AI Ref)',    categories: ['c3_ai'], region: 'Eastern' },
+  // Gaming Design + WebDesign
+  { id: 'e_gw_1',      username: '0505921458', password: '0000', role: 'ref', name: 'Gaming + WebDesign Ref', categories: ['c3_gaming', 'c3_webdesign'], region: 'Eastern' },
+  { id: 'e_gw_nawaf',  username: 'nawaf_e',    password: '0000', role: 'ref', name: 'Nawaf Al-Jaafari',       categories: ['c3_gaming', 'c3_webdesign'], region: 'Eastern' },
 
   // ─── Western Region Referees ─── (password: 0000)
   // All referees also have access to AI Innovation (c3_ai)
@@ -56,6 +56,7 @@ export const MOCK_CATEGORIES = [
   { id: 'c2_soccer', name: 'SoccerBot', group: 2, levels: ['ES', 'MS', 'HS', 'US'] },
   { id: 'c3_ai', name: 'AI Innovation', group: 3, levels: ['HS', 'US'] },
   { id: 'c3_webdesign', name: 'WebDesign', group: 3, levels: ['ES', 'MS', 'HS', 'US'] },
+  { id: 'c3_gaming', name: 'Gaming Design', group: 3, levels: ['ES', 'MS', 'HS', 'US'] },
 ];
 
 // No seed teams — real teams will be added via Excel import
@@ -80,4 +81,5 @@ export const CATEGORY_STYLES = {
   c2_soccer:     { from: '#0d9488', to: '#164e63', icon: '⚽', img: '/img/categories/soccer.png' },
   c3_ai:         { from: '#d97706', to: '#92400e', icon: '🧠', img: '/img/categories/ai.png' },
   c3_webdesign:  { from: '#0ea5e9', to: '#075985', icon: '🌐', img: '/img/categories/webdesign.png' },
+  c3_gaming:     { from: '#ec4899', to: '#831843', icon: '🎮', img: '/img/categories/gaming.png' },
 };
