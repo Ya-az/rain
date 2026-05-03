@@ -44,6 +44,7 @@ export default function App() {
   const [group2Matches, setGroup2Matches] = useState([]);
   const [adminRegion, setAdminRegion] = useState('All');
   const [systemConfig, setSystemConfig] = useState(DEFAULT_SYSTEM_CONFIG);
+  const [users, setUsers] = useState(MOCK_USERS);
 
   // ─── Firestore: seed initial data on first run ───────────────────────────
   useEffect(() => {
@@ -55,6 +56,12 @@ export default function App() {
           INITIAL_TEAMS.forEach(tm => batch.set(doc(db, 'teams', tm.id), tm));
           INITIAL_PARTICIPATIONS.forEach(p => batch.set(doc(db, 'participations', p.id), p));
           MOCK_CATEGORIES.forEach(c => batch.set(doc(db, 'categories', c.id), c));
+          await batch.commit();
+        }
+        const usersSnap = await getDocs(collection(db, 'users'));
+        if (usersSnap.empty) {
+          const batch = writeBatch(db);
+          MOCK_USERS.forEach(u => batch.set(doc(db, 'users', u.id), u));
           await batch.commit();
         }
         const cfgSnap = await getDoc(doc(db, 'config', 'system'));
@@ -91,8 +98,12 @@ export default function App() {
     const unsubCfg = onSnapshot(doc(db, 'config', 'system'), snap => {
       if (snap.exists()) setSystemConfig(snap.data());
     });
+    const unsubUsers = onSnapshot(collection(db, 'users'), snap => {
+      const data = snap.docs.map(d => d.data());
+      if (data.length > 0) setUsers(data);
+    });
     return () => {
-      unsubTeams(); unsubParts(); unsubCats(); unsubScores(); unsubMatches(); unsubCfg();
+      unsubTeams(); unsubParts(); unsubCats(); unsubScores(); unsubMatches(); unsubCfg(); unsubUsers();
     };
   }, []);
 
@@ -137,7 +148,7 @@ export default function App() {
 
   // ─── Login / Logout ───────────────────────────────────────────────────────
   const handleLogin = (username, password) => {
-    const user = MOCK_USERS.find(u => u.username === username && u.password === password);
+    const user = users.find(u => u.username === username && u.password === password);
     if (user) {
       setCurrentUser(user);
       if (user.role === 'volunteer') setCurrentView('checkin');
@@ -241,13 +252,60 @@ export default function App() {
   // ─── Matchmaking ──────────────────────────────────────────────────────────
   // (Participation IDs are assigned at import time, not at check-in time)
   const generateMatches = () => {
+    // Build pairings from real participations in Sumo + Soccer categories.
+    const buildPairs = (catId, label) => {
+      const partsInCat = participations.filter(p => p.categoryId === catId);
+      // Group by division so we don't pair ES vs HS, and only include checked-in teams.
+      const byDiv = {};
+      partsInCat.forEach(p => {
+        const team = teams.find(tm => tm.id === p.teamId);
+        if (!team) return;
+        const status = getTeamStatus(team);
+        if (status === 'No-Show') return; // skip absent teams
+        const div = team.division || 'NA';
+        (byDiv[div] = byDiv[div] || []).push({ team, participation: p });
+      });
+      const pairs = [];
+      Object.entries(byDiv).forEach(([div, list]) => {
+        // Shuffle (Fisher-Yates) for fair pairing.
+        const arr = [...list];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        for (let i = 0; i + 1 < arr.length; i += 2) {
+          const a = arr[i], b = arr[i + 1];
+          pairs.push({
+            id: `match_${catId}_${div}_${i / 2 + 1}_${Date.now()}`,
+            title: `${a.team.name} vs ${b.team.name} (${label} • ${div})`,
+            teamA: a.team.name,
+            teamB: b.team.name,
+            teamAId: a.team.id,
+            teamBId: b.team.id,
+            categoryId: catId,
+            division: div,
+          });
+        }
+      });
+      return pairs;
+    };
     const matches = [
-      { id: 'match_1', title: 'Cyber Falcons vs. Desert Rovers (Sumo)', teamA: 'Cyber Falcons', teamB: 'Desert Rovers', categoryId: 'c2_sumo' },
-      { id: 'match_2', title: 'Tech Titans vs. Maze Runners (Soccer)', teamA: 'Tech Titans', teamB: 'Maze Runners', categoryId: 'c2_soccer' },
+      ...buildPairs('c2_sumo',   'Sumo'),
+      ...buildPairs('c2_soccer', 'Soccer'),
     ];
+    if (matches.length === 0) {
+      showToast(t(lang, 'toastNoMatchablePairs') || (lang === 'ar' ? 'لا توجد فرق كافية لتكوين مباريات' : 'No checked-in teams available to pair'), 'error');
+      return;
+    }
+    // Replace existing matches in Firestore (delete old, write new).
     setGroup2Matches(matches);
     (async () => {
       try {
+        // Delete existing matches first.
+        const existing = await getDocs(collection(db, 'group2Matches'));
+        const delBatch = writeBatch(db);
+        existing.docs.forEach(d => delBatch.delete(d.ref));
+        await delBatch.commit();
         const b = writeBatch(db);
         matches.forEach(m => b.set(doc(db, 'group2Matches', m.id), m));
         await b.commit();
@@ -255,7 +313,28 @@ export default function App() {
         console.error('generateMatches Firestore error:', err);
       }
     })();
-    showToast(t(lang, 'toastMatchGenerated'));
+    showToast(`${t(lang, 'toastMatchGenerated')} (${matches.length})`);
+  };
+
+  // ─── User management (Firestore-backed) ────────────────────────────────
+  const addUser = (newUser) => {
+    if (!newUser?.username || !newUser?.password) return false;
+    if (users.some(u => u.username === newUser.username)) {
+      showToast(lang === 'ar' ? 'اسم المستخدم موجود مسبقاً' : 'Username already exists', 'error');
+      return false;
+    }
+    const id = newUser.id || `u_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const userDoc = { ...newUser, id };
+    setUsers(prev => [...prev, userDoc]);
+    setDoc(doc(db, 'users', id), userDoc).catch(err => console.error('user write:', err));
+    showToast(lang === 'ar' ? 'تم إضافة المستخدم ✓' : 'User added ✓');
+    return true;
+  };
+
+  const deleteUser = (userId) => {
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    deleteDoc(doc(db, 'users', userId)).catch(err => console.error('user delete:', err));
+    showToast(lang === 'ar' ? 'تم حذف المستخدم' : 'User removed', 'info');
   };
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
@@ -382,6 +461,10 @@ export default function App() {
             setSystemConfig={setSystemConfigFB}
             lang={lang}
             showToast={showToast}
+            users={users}
+            addUser={addUser}
+            deleteUser={deleteUser}
+            group2Matches={group2Matches}
           />
         )}
       </main>

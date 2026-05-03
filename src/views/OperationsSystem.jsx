@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet } from 'lucide-react';
+import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet, X, Trash2, Shield, MapPin } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import CollapsibleCard from '../components/ui/CollapsibleCard';
 import CustomSelect from '../components/ui/CustomSelect';
@@ -179,9 +179,10 @@ function RosterRow({ team, confirmAttendance, lang, participations = [], categor
 
 // ─── OperationsSystem ────────────────────────────────────────────────────────
 
-export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, currentUser, systemConfig, setSystemConfig, lang, showToast }) {
+export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [] }) {
   const pendingScores = scores.filter(s => s.status === 'PENDING');
   const [rosterSearch, setRosterSearch] = useState('');
+  const [usersOpen, setUsersOpen] = useState(false);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   // ─ Excel import state
@@ -664,28 +665,173 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       {/* Bottom utilities grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center">
-              <Users size={18} className="text-brand-600" />
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+                <Users size={18} className="text-brand-600" />
+              </div>
+              <h3 className="font-bold text-ink-800 text-sm truncate">{t(lang, 'userManagement')}</h3>
             </div>
-            <h3 className="font-bold text-ink-800 text-sm">{t(lang, 'userManagement')}</h3>
+            <span className="text-[10px] font-black uppercase tracking-widest text-ink-400 shrink-0">{users.length}</span>
           </div>
           <p className="text-xs text-ink-500 mb-4">{t(lang, 'userMgmtDesc')}</p>
-          <button className="w-full border-2 border-dashed border-brand-200 text-brand-600 font-bold py-3 rounded-xl hover:bg-brand-50 text-sm transition-colors press-effect">
-            + {t(lang, 'addStaff')}
+          <button onClick={() => setUsersOpen(true)} className="w-full border-2 border-dashed border-brand-300 text-brand-700 font-bold py-3 rounded-xl hover:bg-brand-50 text-sm transition-colors press-effect">
+            👥 {lang === 'ar' ? 'إدارة الموظفين والحكام' : 'Manage Staff & Referees'}
           </button>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-[#061a27]/10 border border-ink-200 flex items-center justify-center">
-              <PlayCircle size={18} className="text-[#061a27]" />
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-[#061a27]/10 border border-ink-200 flex items-center justify-center shrink-0">
+                <PlayCircle size={18} className="text-[#061a27]" />
+              </div>
+              <h3 className="font-bold text-ink-800 text-sm truncate">{t(lang, 'matchmaking')}</h3>
             </div>
-            <h3 className="font-bold text-ink-800 text-sm">{t(lang, 'matchmaking')}</h3>
+            {group2Matches.length > 0 && (
+              <span className="text-[10px] font-black uppercase tracking-widest text-saudi-700 bg-saudi-50 border border-saudi-200 px-2 py-0.5 rounded-full shrink-0">{group2Matches.length} {lang === 'ar' ? 'مباراة' : 'matches'}</span>
+            )}
           </div>
-          <p className="text-xs text-ink-500 mb-4">{t(lang, 'matchmakingDesc')}</p>
+          <p className="text-xs text-ink-500 mb-4">{lang === 'ar' ? 'يولّد مباريات Sumo و SoccerBot تلقائياً من الفرق الحاضرة حسب الفئة العمرية.' : 'Auto-pairs Sumo and SoccerBot teams from currently checked-in rosters, grouped by division.'}</p>
           <button onClick={generateMatches} className="w-full bg-gradient-to-r from-[#061a27] to-[#0d3549] hover:from-[#0a2a3a] hover:to-[#103a52] text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md press-effect">
-            ⚡ {t(lang, 'populateMatches')}
+            ⚡ {lang === 'ar' ? 'توليد مباريات المجموعة 2' : 'Generate Group 2 Matches'}
           </button>
+        </div>
+      </div>
+
+      {usersOpen && (
+        <UsersModal
+          users={users}
+          addUser={addUser}
+          deleteUser={deleteUser}
+          categories={categories}
+          currentUser={currentUser}
+          lang={lang}
+          onClose={() => setUsersOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Users management modal ───────────────────────────────────
+function UsersModal({ users, addUser, deleteUser, categories, currentUser, lang, onClose }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('ref');
+  const [region, setRegion] = useState('Western');
+  const [selectedCats, setSelectedCats] = useState([]);
+
+  const reset = () => { setName(''); setUsername(''); setPassword(''); setRole('ref'); setRegion('Western'); setSelectedCats([]); };
+
+  const submit = (e) => {
+    e?.preventDefault?.();
+    if (!name.trim() || !username.trim() || !password.trim()) return;
+    const newUser = {
+      name: name.trim(),
+      username: username.trim(),
+      password: password.trim(),
+      role,
+      region,
+      categories: role === 'ref' ? selectedCats : [],
+    };
+    const ok = addUser?.(newUser);
+    if (ok) reset();
+  };
+
+  const toggleCat = (id) => {
+    setSelectedCats(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm animate-fade-in" dir={dir} onClick={onClose}>
+      <div className="w-full max-w-3xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-ink-200 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-ink-100 bg-gradient-to-r from-navy-500 to-[#0d3549] text-white">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Users size={20} />
+            <h3 className="font-black text-base truncate">{tx('Manage Staff & Referees', 'إدارة الموظفين والحكام')}</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"><X size={18} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
+          {/* Add form */}
+          <form onSubmit={submit} className="rounded-2xl border border-ink-200 bg-ink-50/60 p-4 sm:p-5 space-y-3">
+            <h4 className="font-black text-sm text-ink-800 mb-1">{tx('Add new account', 'إضافة حساب جديد')}</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input value={name} onChange={e => setName(e.target.value)} placeholder={tx('Full name', 'الاسم الكامل')} className="input-base h-11 text-sm" required />
+              <input value={username} onChange={e => setUsername(e.target.value)} placeholder={tx('Username (e.g. phone)', 'اسم المستخدم (مثل رقم الجوال)')} className="input-base h-11 text-sm" required />
+              <input value={password} onChange={e => setPassword(e.target.value)} placeholder={tx('Password', 'كلمة المرور')} className="input-base h-11 text-sm" required type="text" />
+              <CustomSelect value={role} onChange={e => setRole(e.target.value)} size="md">
+                <option value="ref">{tx('Referee', 'حكم')}</option>
+                <option value="volunteer">{tx('Volunteer (Check-in)', 'متطوع (التسجيل)')}</option>
+                <option value="region_admin">{tx('Region Admin', 'مدير منطقة')}</option>
+                <option value="admin">{tx('Super Admin', 'مدير عام')}</option>
+              </CustomSelect>
+              <CustomSelect value={region} onChange={e => setRegion(e.target.value)} size="md">
+                <option value="Western">{tx('Western', 'الغربية')}</option>
+                <option value="Central">{tx('Central', 'الوسطى')}</option>
+                <option value="Eastern">{tx('Eastern', 'الشرقية')}</option>
+              </CustomSelect>
+            </div>
+            {role === 'ref' && (
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-wider text-ink-500 mb-1.5">{tx('Categories scoped', 'التصنيفات المسموحة')}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(categories || []).map(c => {
+                    const on = selectedCats.includes(c.id);
+                    return (
+                      <button type="button" key={c.id} onClick={() => toggleCat(c.id)} className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition ${on ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-ink-600 border-ink-200 hover:border-brand-300'}`}>
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <button type="submit" className="btn-primary w-full py-2.5 text-sm">
+              + {tx('Add account', 'إضافة الحساب')}
+            </button>
+          </form>
+
+          {/* Existing users list */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="font-black text-sm text-ink-800">{tx('Existing accounts', 'الحسابات الحالية')}</h4>
+              <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">{users.length}</span>
+            </div>
+            <div className="divide-y divide-ink-100 border border-ink-200 rounded-xl overflow-hidden">
+              {users.map(u => {
+                const isCurrent = u.id === currentUser?.id;
+                return (
+                  <div key={u.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-ink-50/60">
+                    <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+                      <Shield size={16} className="text-brand-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-bold text-ink-800 text-sm truncate">{u.name}</p>
+                        <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700">{u.role}</span>
+                        {u.region && <span className="text-[10px] font-bold text-ink-500 inline-flex items-center gap-1"><MapPin size={10} />{u.region}</span>}
+                      </div>
+                      <p className="text-[11px] text-ink-500 font-mono mt-0.5 truncate">{u.username}</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isCurrent}
+                      onClick={() => deleteUser?.(u.id)}
+                      className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                      title={isCurrent ? tx('Cannot delete yourself', 'لا يمكن حذف حسابك') : tx('Remove user', 'حذف الحساب')}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
