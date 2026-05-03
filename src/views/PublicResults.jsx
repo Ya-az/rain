@@ -3,9 +3,9 @@ import { Trophy, Activity, Users, MapPin, Zap, ChevronLeft, ChevronRight, Maximi
 import { CATEGORY_STYLES } from '../constants/mockData';
 
 const REGION_COLORS = {
-  Western: { dot: 'bg-brand-400', chip: 'bg-brand-500/15 text-brand-200 border-brand-400/30' },
-  Central: { dot: 'bg-saudi-400', chip: 'bg-saudi-500/15 text-saudi-200 border-saudi-400/30' },
-  Eastern: { dot: 'bg-amber-400', chip: 'bg-amber-500/15 text-amber-200 border-amber-400/30' },
+  Western: { dot: 'bg-brand-500', chip: 'bg-brand-500/15 text-brand-200 border-brand-400/40' },
+  Central: { dot: 'bg-saudi-500', chip: 'bg-saudi-500/15 text-saudi-200 border-saudi-400/40' },
+  Eastern: { dot: 'bg-teal-500',  chip: 'bg-teal-500/15 text-teal-200 border-teal-400/40' },
 };
 
 export default function PublicResults({ teams, getTeamStatus, scores, lang, participations = [], categories = [], group2Matches = [] }) {
@@ -187,37 +187,56 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
   }, []);
 
   return (
-    <div ref={rootRef} dir={dir} className={`min-h-screen bg-gradient-to-br from-[#03101b] via-[#061a27] to-[#082233] text-white ${projectorMode ? 'projector-mode' : ''}`}>
+    <div ref={rootRef} dir={dir} className={`min-h-screen text-white ${projectorMode ? 'projector-mode' : ''}`}
+      style={{
+        background: 'linear-gradient(135deg, #0A2A3A 0%, #08303d 35%, #0B7A43 100%)',
+        backgroundAttachment: 'fixed',
+      }}>
       {/* Flash overlay on new score */}
       <FlashOverlay key={flashKey} active={flashKey > 0} tx={tx} />
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-[480px] h-[480px] rounded-full bg-saudi-500/10 blur-3xl" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Decorative palette blobs */}
+        <div className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full blur-3xl" style={{ backgroundColor: '#1DA1C9', opacity: 0.18 }} />
+        <div className="absolute -bottom-40 -left-40 w-[480px] h-[480px] rounded-full blur-3xl" style={{ backgroundColor: '#63C132', opacity: 0.16 }} />
+        <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: '#4FA3A5', opacity: 0.14 }} />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-7 pb-6 sm:pb-8">
+          {/* Sponsor / partner logos strip */}
+          <div className="mb-5 sm:mb-6 rounded-2xl border border-white/15 bg-white/95 backdrop-blur shadow-lg px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-center gap-3 sm:gap-5 flex-wrap">
+            <img src="/img/rain-o.png" alt="RAIN" className="h-9 sm:h-12 object-contain" style={{ maxWidth: '90px' }} />
+            <span className="w-px h-8 sm:h-10 bg-navy-500/15" />
+            <img src="/img/roborave-saudiarabia.png" alt="RoboRAVE Saudi Arabia" className="h-7 sm:h-9 object-contain" style={{ maxWidth: '170px' }} />
+            <span className="w-px h-8 sm:h-10 bg-navy-500/15" />
+            <img src="/img/Logo Arena.png" alt="Ai Arena" title="Ai Arena" className="h-9 sm:h-11 object-contain" style={{ maxWidth: '70px' }} />
+            <img src="/img/tech-college.png" alt="Technical College" title="الكلية التقنية" className="h-9 sm:h-11 object-contain" style={{ maxWidth: '70px' }} />
+            <img src="/img/saudi-robotics-federation-o.png" alt="Saudi Robotics Federation" title="الاتحاد السعودي للروبوتات" className="h-9 sm:h-11 object-contain" style={{ maxWidth: '70px' }} />
+          </div>
+
           <div className="flex items-center justify-between gap-2 sm:gap-3 mb-5 flex-wrap">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-brand-500/20 border border-brand-400/30 flex items-center justify-center shrink-0">
-                <Activity size={20} className="text-brand-300" />
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-lg" style={{ background: 'linear-gradient(135deg, #1DA1C9, #4FA3A5)' }}>
+                <Activity size={20} className="text-white" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-2xl font-black leading-none truncate">{tx('Live Results', 'النتائج المباشرة')}</h1>
-                <p className="text-white/50 text-[11px] sm:text-sm font-medium mt-1 truncate">{tx('RoboRAVE Saudi Arabia 2026', 'روبوريف 2026 المملكة العربية السعودية')}</p>
+                <p className="text-white/60 text-[11px] sm:text-sm font-medium mt-1 truncate">{tx('RoboRAVE Saudi Arabia 2026', 'روبوريف 2026 المملكة العربية السعودية')}</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-              <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/5 border border-white/10">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-saudi-400 animate-pulse" />
-                <span className="text-[10px] sm:text-xs font-black text-saudi-300 uppercase tracking-widest">{tx('LIVE', 'مباشر')}</span>
+              <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border" style={{ backgroundColor: 'rgba(99,193,50,0.15)', borderColor: 'rgba(99,193,50,0.4)' }}>
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-pulse" style={{ backgroundColor: '#63C132' }} />
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest" style={{ color: '#aae854' }}>{tx('LIVE', 'مباشر')}</span>
               </div>
-              <div className="font-mono text-xs sm:text-lg font-black tracking-wider px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/5 border border-white/10 tabular-nums">
+              <div className="font-mono text-xs sm:text-lg font-black tracking-wider px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/5 border border-white/15 tabular-nums">
                 {clockStr}
               </div>
               <button
                 onClick={toggleFullscreen}
                 title={tx('Projector mode', 'وضع العرض')}
-                className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-brand-500/20 hover:bg-brand-500/30 border border-brand-400/40 text-brand-200 text-[10px] sm:text-xs font-black transition"
+                className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border text-[10px] sm:text-xs font-black transition"
+                style={{ backgroundColor: 'rgba(29,161,201,0.2)', borderColor: 'rgba(29,161,201,0.45)', color: '#a5e9fb' }}
               >
                 {projectorMode ? <Minimize2 size={14} /> : <Tv size={14} />}
                 <span className="hidden md:inline">{projectorMode ? tx('Exit', 'خروج') : tx('Projector', 'عرض')}</span>
@@ -225,12 +244,12 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
             </div>
           </div>
 
-          {/* Stat strip */}
+          {/* Stat strip — palette gradients */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <HeroStat label={tx('Verified Scores', 'النتائج المعتمدة')} value={stats.valid} icon={<Zap size={18} />} accent="from-amber-400 to-orange-500" />
-            <HeroStat label={tx('Teams Checked In', 'الفرق الحاضرة')} value={`${stats.checkedIn}/${stats.total}`} icon={<Users size={18} />} accent="from-saudi-400 to-emerald-500" />
-            <HeroStat label={tx('Categories Active', 'تصنيفات نشطة')} value={populatedCats.length} icon={<Trophy size={18} />} accent="from-brand-400 to-cyan-500" />
-            <HeroStat label={tx('Regions', 'المناطق')} value={stats.regions} icon={<MapPin size={18} />} accent="from-rose-400 to-pink-500" />
+            <HeroStat label={tx('Verified Scores', 'النتائج المعتمدة')} value={stats.valid} icon={<Zap size={18} />} gradient="linear-gradient(135deg, #63C132, #0B7A43)" />
+            <HeroStat label={tx('Teams Checked In', 'الفرق الحاضرة')} value={`${stats.checkedIn}/${stats.total}`} icon={<Users size={18} />} gradient="linear-gradient(135deg, #4FA3A5, #0B7A43)" />
+            <HeroStat label={tx('Categories Active', 'تصنيفات نشطة')} value={populatedCats.length} icon={<Trophy size={18} />} gradient="linear-gradient(135deg, #1DA1C9, #4FA3A5)" />
+            <HeroStat label={tx('Regions', 'المناطق')} value={stats.regions} icon={<MapPin size={18} />} gradient="linear-gradient(135deg, #1DA1C9, #0A2A3A)" />
           </div>
         </div>
       </section>
@@ -298,13 +317,13 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
 }
 
 // ─── Hero stat tile ────────────────────────────────────────────────────────
-function HeroStat({ label, value, icon, accent }) {
+function HeroStat({ label, value, icon, gradient }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-4">
-      <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full bg-gradient-to-br ${accent} opacity-20 blur-2xl`} />
+    <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] backdrop-blur p-4 shadow-lg">
+      <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-25 blur-2xl" style={{ background: gradient }} />
       <div className="relative flex items-start justify-between gap-2 mb-2">
-        <p className="text-[10px] font-black uppercase tracking-widest text-white/50">{label}</p>
-        <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${accent} flex items-center justify-center text-white shadow`}>
+        <p className="text-[10px] font-black uppercase tracking-widest text-white/60">{label}</p>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md" style={{ background: gradient }}>
           {icon}
         </div>
       </div>
