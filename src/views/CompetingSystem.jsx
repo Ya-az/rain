@@ -23,6 +23,7 @@ import {
   SoccerBotMatchCard,
   ScoringCard,
 } from '../scoring/ScoringCards';
+import { resolveBracket, groupBracketByDivision, groupByRound } from '../utils/bracket';
 
 // Static class mapping for the slot grid so Tailwind JIT can pick them up.
 function slotGridClass(count) {
@@ -740,9 +741,131 @@ function buildTimeMap(matchesByRegion, regions) {
   return map;
 }
 
+// ─── BracketView (shared by Sumo + Soccer) ───────────────────────────────────
+
+function BracketModeToggle({ mode, setMode, lang, hasBracket }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const Btn = ({ value, label, hint }) => (
+    <button
+      onClick={() => setMode(value)}
+      className={`flex-1 px-3 py-2.5 rounded-xl text-xs font-black transition-all border ${
+        mode === value
+          ? 'bg-gradient-to-r from-[#061a27] to-[#0a2a3a] text-white border-[#061a27] shadow-md'
+          : 'bg-white text-ink-600 border-ink-200 hover:border-ink-300'
+      }`}
+    >
+      <div>{label}</div>
+      {hint && <div className={`text-[9px] font-bold mt-0.5 ${mode === value ? 'text-white/60' : 'text-ink-400'}`}>{hint}</div>}
+    </button>
+  );
+  return (
+    <div className="flex items-center gap-2 p-1.5 bg-ink-50 rounded-2xl border border-ink-200">
+      <Btn value="bracket" label={tx('🏆 Knockout Bracket', '🏆 الإقصائيات')} hint={hasBracket ? '' : tx('No bracket yet', 'لم يُولّد بعد')} />
+      <Btn value="roundrobin" label={tx('🌀 Round-Robin (per Region)', '🌀 الدوري الإقليمي')} hint={tx('Group stage', 'دور المجموعات')} />
+    </div>
+  );
+}
+
+function BracketMatchTile({ match, onSelect, lang, accent = 'orange' }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const winnerSide = match._winnerSide;
+  const score = match._scoreObj;
+  const ready = match.teamA && match.teamB && !match.isBye;
+  const accentBorder = accent === 'teal' ? 'border-teal-400' : 'border-orange-400';
+  const accentBg = accent === 'teal' ? 'bg-teal-50' : 'bg-orange-50';
+  const accentText = accent === 'teal' ? 'text-teal-700' : 'text-orange-700';
+
+  const TeamRow = ({ name, side, isBye }) => {
+    const isWinner = winnerSide === side;
+    const empty = !name;
+    return (
+      <div className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-md text-[11px] font-bold ${
+        isWinner ? `${accentBg} ${accentText} border ${accentBorder}` :
+        empty ? 'bg-ink-50 text-ink-300' :
+        isBye ? 'bg-ink-100 text-ink-400 italic' :
+        'bg-white text-ink-700 border border-ink-200'
+      }`}>
+        <span className="truncate">{empty ? tx('TBD', 'لم يُحدد') : name}</span>
+        {isWinner && <span className="text-[10px]">✓</span>}
+      </div>
+    );
+  };
+
+  return (
+    <button
+      onClick={() => ready && !match.isBye && onSelect?.(match.id)}
+      disabled={!ready || match.isBye}
+      className={`w-full text-left rounded-xl p-2 space-y-1 transition-all border ${
+        ready ? `bg-white border-ink-200 hover:shadow-sm cursor-pointer` :
+        'bg-ink-50/50 border-ink-100 cursor-not-allowed opacity-70'
+      }`}
+    >
+      <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-ink-400 px-1">
+        <span>{match.round} #{match.matchIndex + 1}</span>
+        {match.isBye && <span className="text-saudi-600">{tx('BYE', 'تأهل تلقائي')}</span>}
+        {score && <span className={accentText}>{score.score}</span>}
+      </div>
+      <TeamRow name={match.teamA} side="A" />
+      <TeamRow name={match.teamB} side="B" isBye={match.isBye} />
+    </button>
+  );
+}
+
+function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange' }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const resolved = useMemo(() => resolveBracket(matches, scores), [matches, scores]);
+  const byDivision = useMemo(() => groupBracketByDivision(resolved), [resolved]);
+  const divisions = Object.keys(byDivision).sort();
+
+  if (resolved.length === 0) {
+    return (
+      <div className="text-center py-12 bg-ink-50 rounded-xl border-2 border-dashed border-ink-200">
+        <p className="text-ink-500 font-bold text-sm">{tx('No bracket has been generated yet.', 'لم يتم توليد جدول الإقصائيات بعد.')}</p>
+        <p className="text-ink-400 text-xs mt-1">{tx('Ask the admin to generate brackets from Operations.', 'اطلب من الأدمن توليد الإقصائيات من شاشة العمليات.')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {divisions.map(div => {
+        const rounds = groupByRound(byDivision[div]);
+        const final = rounds[rounds.length - 1]?.matches?.[0];
+        const champion = final?._winnerTeamName || '';
+        return (
+          <CollapsibleCard
+            key={div}
+            title={`${tx('Division', 'الفئة')}: ${div}`}
+            badge={champion ? `🏆 ${champion}` : `${rounds.length} ${tx('rounds', 'جولات')}`}
+            badgeColor={champion ? 'bg-saudi-600' : (accent === 'teal' ? 'bg-teal-600' : 'bg-orange-500')}
+          >
+            <div className="p-3 sm:p-4 bg-ink-50/40 overflow-x-auto">
+              <div className="flex gap-3 min-w-max">
+                {rounds.map(({ roundIndex, round, matches: rMatches }) => (
+                  <div key={roundIndex} className="flex flex-col gap-2 min-w-[180px] sm:min-w-[210px]">
+                    <div className="text-center text-[10px] font-black uppercase tracking-widest text-ink-500 pb-1 border-b border-ink-200">
+                      {round}
+                    </div>
+                    <div className="flex flex-col justify-around gap-2 flex-1">
+                      {rMatches.map(m => (
+                        <BracketMatchTile key={m.id} match={m} onSelect={onSelectMatch} lang={lang} accent={accent} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleCard>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── SumoWorkflow ─────────────────────────────────────────────────────────────
 
-function SumoWorkflow({ category, participations, teams, scores, setScores, lang, showToast }) {
+function SumoWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
+  const [mode, setMode] = useState('bracket'); // 'bracket' | 'roundrobin'
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
   const teamEntries = useMemo(() =>
@@ -771,7 +894,19 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, lang
 
   const timeMap = useMemo(() => buildTimeMap(matchesByRegion, regions), [matchesByRegion, regions]);
   const allMatches = useMemo(() => Object.values(matchesByRegion).flat(), [matchesByRegion]);
-  const selectedMatch = allMatches.find(m => m.id === selectedMatchId);
+
+  // Bracket matches for this category (skeletons in Firestore) + resolved view.
+  const bracketRaw = useMemo(
+    () => group2Matches.filter(m => m.categoryId === category.id && m.bracket),
+    [group2Matches, category.id],
+  );
+  const bracketResolved = useMemo(() => resolveBracket(bracketRaw, scores), [bracketRaw, scores]);
+  const hasBracket = bracketResolved.length > 0;
+
+  const selectedMatch =
+    allMatches.find(m => m.id === selectedMatchId) ||
+    bracketResolved.find(m => m.id === selectedMatchId) ||
+    null;
   const existingScores = scores.filter(s => s.pId === selectedMatchId);
 
   const handleSaveScore = (s, inspA, inspB, rawData) => {
@@ -799,7 +934,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, lang
           {lang === 'ar' ? '→ العودة للجدول' : '← Back to Schedule'}
         </button>
         <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-300">{category.name} — Round Robin</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-300">{category.name}{selectedMatch.bracket ? ` — ${selectedMatch.round}` : ' — Round Robin'}</p>
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
           {timeMap[selectedMatchId] && (
             <div className="mt-3">
@@ -817,11 +952,22 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, lang
     );
   }
 
+  // Bracket view (default)
+  if (mode === 'bracket') {
+    return (
+      <div className="space-y-4">
+        <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
+        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="orange" />
+      </div>
+    );
+  }
+
   const totalMatches = Object.values(matchesByRegion).reduce((sum, arr) => sum + arr.length, 0);
   const totalPlayed = allMatches.filter(m => scores.some(s => s.pId === m.id && s.status === 'VALID')).length;
 
   return (
     <div className="space-y-5">
+      <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
       <div className="flex items-center justify-between px-1 text-xs text-ink-500 font-semibold">
         <span>{lang === 'ar' ? 'المناطق:' : 'Regions:'} {regions.length}</span>
         <span>{lang === 'ar' ? 'المباريات:' : 'Matches:'} {totalPlayed}/{totalMatches} {lang === 'ar' ? 'مكتملة' : 'played'}</span>
@@ -876,7 +1022,8 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, lang
 
 // ─── SoccerWorkflow ──────────────────────────────────────────────────────────
 
-function SoccerWorkflow({ category, participations, teams, scores, setScores, lang, showToast }) {
+function SoccerWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
+  const [mode, setMode] = useState('bracket');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
   const teamEntries = useMemo(() =>
@@ -905,7 +1052,18 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, la
 
   const timeMap = useMemo(() => buildTimeMap(matchesByRegion, regions), [matchesByRegion, regions]);
   const allMatches = useMemo(() => Object.values(matchesByRegion).flat(), [matchesByRegion]);
-  const selectedMatch = allMatches.find(m => m.id === selectedMatchId);
+
+  const bracketRaw = useMemo(
+    () => group2Matches.filter(m => m.categoryId === category.id && m.bracket),
+    [group2Matches, category.id],
+  );
+  const bracketResolved = useMemo(() => resolveBracket(bracketRaw, scores), [bracketRaw, scores]);
+  const hasBracket = bracketResolved.length > 0;
+
+  const selectedMatch =
+    allMatches.find(m => m.id === selectedMatchId) ||
+    bracketResolved.find(m => m.id === selectedMatchId) ||
+    null;
   const existingScores = scores.filter(s => s.pId === selectedMatchId);
 
   const handleSaveScore = (s, inspA, inspB, rawData) => {
@@ -933,7 +1091,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, la
           {lang === 'ar' ? '→ العودة للجدول' : '← Back to Schedule'}
         </button>
         <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">{category.name} — Round Robin</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">{category.name}{selectedMatch.bracket ? ` — ${selectedMatch.round}` : ' — Round Robin'}</p>
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
           {timeMap[selectedMatchId] && (
             <div className="mt-3">
@@ -954,8 +1112,18 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, la
   const totalMatches = Object.values(matchesByRegion).reduce((sum, arr) => sum + arr.length, 0);
   const totalPlayed = allMatches.filter(m => scores.some(s => s.pId === m.id && s.status === 'VALID')).length;
 
+  if (mode === 'bracket') {
+    return (
+      <div className="space-y-4">
+        <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
+        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="teal" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
       <div className="flex items-center justify-between px-1 text-xs text-ink-500 font-semibold">
         <span>{lang === 'ar' ? 'المناطق:' : 'Regions:'} {regions.length}</span>
         <span>{lang === 'ar' ? 'المباريات:' : 'Matches:'} {totalPlayed}/{totalMatches} {lang === 'ar' ? 'مكتملة' : 'played'}</span>
@@ -1189,10 +1357,10 @@ export default function CompetingSystem({ categories, participations, teams, get
               <Group1Workflow category={selectedCategory} participations={participations} teams={teams} getTeamStatus={getTeamStatus} scores={scores} setScores={setScores} systemConfig={systemConfig} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_sumo' && (
-              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} lang={lang} showToast={showToast} />
+              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_soccer' && (
-              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} lang={lang} showToast={showToast} />
+              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id !== 'c2_sumo' && selectedCategory.id !== 'c2_soccer' && (
               <Group2Workflow category={selectedCategory} matches={group2Matches.filter(m => m.categoryId === selectedCategory.id)} scores={scores} setScores={setScores} lang={lang} showToast={showToast} />

@@ -715,9 +715,9 @@ export default function OperationsSystem({ scores, setScores, teams, participati
               <span className="text-[10px] font-black uppercase tracking-widest text-saudi-700 bg-saudi-50 border border-saudi-200 px-2 py-0.5 rounded-full shrink-0">{group2Matches.length} {lang === 'ar' ? 'مباراة' : 'matches'}</span>
             )}
           </div>
-          <p className="text-xs text-ink-500 mb-4">{lang === 'ar' ? 'يولّد مباريات Sumo و SoccerBot تلقائياً من الفرق الحاضرة حسب الفئة العمرية.' : 'Auto-pairs Sumo and SoccerBot teams from currently checked-in rosters, grouped by division.'}</p>
+          <p className="text-xs text-ink-500 mb-4">{lang === 'ar' ? 'يولّد جداول إقصائيات (خروج من مرة) لـ Sumo و SoccerBot تلقائياً من الفرق الحاضرة حسب الفئة العمرية، مع ترقية تلقائية للفائز.' : 'Auto-generates single-elimination knockout brackets for Sumo & SoccerBot from currently checked-in teams, grouped by division. Winners auto-advance.'}</p>
           <button onClick={generateMatches} className="w-full bg-gradient-to-r from-[#061a27] to-[#0d3549] hover:from-[#0a2a3a] hover:to-[#103a52] text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md press-effect">
-            ⚡ {lang === 'ar' ? 'توليد مباريات المجموعة 2' : 'Generate Group 2 Matches'}
+            🏆 {lang === 'ar' ? 'توليد جداول الإقصائيات' : 'Generate Knockout Brackets'}
           </button>
         </div>
       </div>

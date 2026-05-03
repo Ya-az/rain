@@ -10,6 +10,7 @@ import PublicResults from './views/PublicResults';
 import CheckInSystem from './views/CheckInSystem';
 import CompetingSystem from './views/CompetingSystem';
 import OperationsSystem from './views/OperationsSystem';
+import { buildBracketForDivision } from './utils/bracket';
 import { db } from './firebase';
 import {
   collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, getDoc,
@@ -249,59 +250,45 @@ export default function App() {
     return true;
   };
 
-  // ─── Matchmaking ──────────────────────────────────────────────────────────
-  // (Participation IDs are assigned at import time, not at check-in time)
+  // ─── Matchmaking — Single-elimination Knockout Brackets ───────────────────
+  // Builds a bracket per (category × division) from currently checked-in teams
+  // and writes the skeleton matches into Firestore `group2Matches`. Later rounds
+  // are filled by resolveBracket() at render time as winners are saved.
   const generateMatches = () => {
-    // Build pairings from real participations in Sumo + Soccer categories.
-    const buildPairs = (catId, label) => {
+    const buildForCategory = (catId, label) => {
       const partsInCat = participations.filter(p => p.categoryId === catId);
-      // Group by division so we don't pair ES vs HS, and only include checked-in teams.
       const byDiv = {};
       partsInCat.forEach(p => {
         const team = teams.find(tm => tm.id === p.teamId);
         if (!team) return;
         const status = getTeamStatus(team);
-        if (status === 'No-Show') return; // skip absent teams
+        if (status === 'No-Show') return;
         const div = team.division || 'NA';
-        (byDiv[div] = byDiv[div] || []).push({ team, participation: p });
+        (byDiv[div] = byDiv[div] || []).push({
+          teamId: team.id,
+          teamName: team.name,
+          region: team.region,
+        });
       });
-      const pairs = [];
-      Object.entries(byDiv).forEach(([div, list]) => {
-        // Shuffle (Fisher-Yates) for fair pairing.
-        const arr = [...list];
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        for (let i = 0; i + 1 < arr.length; i += 2) {
-          const a = arr[i], b = arr[i + 1];
-          pairs.push({
-            id: `match_${catId}_${div}_${i / 2 + 1}_${Date.now()}`,
-            title: `${a.team.name} vs ${b.team.name} (${label} • ${div})`,
-            teamA: a.team.name,
-            teamB: b.team.name,
-            teamAId: a.team.id,
-            teamBId: b.team.id,
-            categoryId: catId,
-            division: div,
-          });
-        }
+      const out = [];
+      Object.entries(byDiv).forEach(([division, entries]) => {
+        if (entries.length < 2) return;
+        out.push(...buildBracketForDivision({ entries, categoryId: catId, division, label }));
       });
-      return pairs;
+      return out;
     };
+
     const matches = [
-      ...buildPairs('c2_sumo',   'Sumo'),
-      ...buildPairs('c2_soccer', 'Soccer'),
+      ...buildForCategory('c2_sumo',   'Sumo'),
+      ...buildForCategory('c2_soccer', 'Soccer'),
     ];
     if (matches.length === 0) {
       showToast(t(lang, 'toastNoMatchablePairs') || (lang === 'ar' ? 'لا توجد فرق كافية لتكوين مباريات' : 'No checked-in teams available to pair'), 'error');
       return;
     }
-    // Replace existing matches in Firestore (delete old, write new).
     setGroup2Matches(matches);
     (async () => {
       try {
-        // Delete existing matches first.
         const existing = await getDocs(collection(db, 'group2Matches'));
         const delBatch = writeBatch(db);
         existing.docs.forEach(d => delBatch.delete(d.ref));
@@ -313,7 +300,8 @@ export default function App() {
         console.error('generateMatches Firestore error:', err);
       }
     })();
-    showToast(`${t(lang, 'toastMatchGenerated')} (${matches.length})`);
+    const playable = matches.filter(m => m.roundIndex === 0 && !m.isBye).length;
+    showToast(`${t(lang, 'toastMatchGenerated')} (${playable} ${lang === 'ar' ? 'مباراة جولة أولى' : 'R1 matches'})`);
   };
 
   // ─── User management (Firestore-backed) ────────────────────────────────
