@@ -4,8 +4,12 @@
 // =============================================
 
 export const MOCK_USERS = [
-  // System admin
-  { id: 'u_admin', username: 'admin', password: 'pass', role: 'admin', name: 'System Admin' },
+  // ─── System Admins ─────────────────────────────────────────────────
+  { id: 'u_admin',     username: 'admin',      password: 'pass', role: 'admin', name: 'System Admin' },
+  { id: 'u_admin_main',username: '0553346688', password: '0000', role: 'admin', name: 'Main Admin' },
+
+  // ─── Region Admins ─────────────────────────────────────────────────
+  { id: 'u_radmin_east', username: '0532950543', password: '0000', role: 'region_admin', name: 'Eastern Region Admin', region: 'Eastern' },
 
   // ─── Eastern Region Referees ─── (password: 0000)
   // All referees also have access to AI Innovation (c3_ai)
@@ -24,8 +28,8 @@ export const MOCK_USERS = [
   // a-Maze-ing
   { id: 'e_maze_1', username: '0556926126', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 1', categories: ['c1_amazeing', 'c3_ai'], region: 'Eastern' },
   { id: 'e_maze_2', username: '0562274181', password: '0000', role: 'ref', name: 'a-Maze-ing Ref 2', categories: ['c1_amazeing', 'c3_ai'], region: 'Eastern' },
-  // AI Innovation
-  { id: 'e_ai_1', username: '0505921458', password: '0000', role: 'ref', name: 'AI Innovation Ref 1', categories: ['c3_ai'], region: 'Eastern' },
+  // AI Innovation (Ref 1 also covers WebDesign)
+  { id: 'e_ai_1', username: '0505921458', password: '0000', role: 'ref', name: 'AI Innovation + WebDesign Ref', categories: ['c3_ai', 'c3_webdesign'], region: 'Eastern' },
   { id: 'e_ai_2', username: '0540697768', password: '0000', role: 'ref', name: 'AI Innovation Ref 2', categories: ['c3_ai'], region: 'Eastern' },
 
   // ─── Western Region Referees ─── (password: 0000)
@@ -37,6 +41,10 @@ export const MOCK_USERS = [
   { id: 'w_sumo_2',    username: '0581123422', password: '0000', role: 'ref', name: 'Sumo Ref 2',         categories: ['c2_sumo', 'c3_ai'],      region: 'Western' },
   { id: 'w_maze_1',    username: '0569650707', password: '0000', role: 'ref', name: 'a-Maze-ing Ref',     categories: ['c1_amazeing', 'c3_ai'],  region: 'Western' },
   { id: 'w_line_1',    username: '0555547581', password: '0000', role: 'ref', name: 'LineFollowing Ref',  categories: ['c1_linefollow', 'c3_ai'],region: 'Western' },
+
+  // ─── Volunteers (check-in / door staff) ────────────────────────────
+  { id: 'vol_east', username: 'vol_east', password: '0000', role: 'volunteer', name: 'Eastern Volunteer', region: 'Eastern' },
+  { id: 'vol_west', username: 'vol_west', password: '0000', role: 'volunteer', name: 'Western Volunteer', region: 'Western' },
 ];
 
 export const MOCK_CATEGORIES = [
