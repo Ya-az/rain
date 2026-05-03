@@ -256,11 +256,18 @@ export default function App() {
   // together. The skeleton matches are written into Firestore `group2Matches`;
   // later rounds are filled by resolveBracket() at render time as winners are saved.
   const generateMatches = () => {
-    const BUCKETS = [
+    const SOCCER_BUCKETS = [
       { key: 'ES / MS', divs: ['ES', 'MS'] },
       { key: 'HS / US', divs: ['HS', 'US'] },
     ];
-    const buildForCategory = (catId, label) => {
+    // Sumo runs each division as its own standalone bracket (ES, MS, HS, US).
+    const SUMO_BUCKETS = [
+      { key: 'ES', divs: ['ES'] },
+      { key: 'MS', divs: ['MS'] },
+      { key: 'HS', divs: ['HS'] },
+      { key: 'US', divs: ['US'] },
+    ];
+    const buildForCategory = (catId, label, BUCKETS) => {
       const partsInCat = participations.filter(p => p.categoryId === catId);
       const byBucket = Object.fromEntries(BUCKETS.map(b => [b.key, []]));
       partsInCat.forEach(p => {
@@ -286,8 +293,8 @@ export default function App() {
     };
 
     const matches = [
-      ...buildForCategory('c2_sumo',   'Sumo'),
-      ...buildForCategory('c2_soccer', 'Soccer'),
+      ...buildForCategory('c2_sumo',   'Sumo',   SUMO_BUCKETS),
+      ...buildForCategory('c2_soccer', 'Soccer', SOCCER_BUCKETS),
     ];
     if (matches.length === 0) {
       showToast(t(lang, 'toastNoMatchablePairs') || (lang === 'ar' ? 'لا توجد فرق كافية لتكوين مباريات' : 'No checked-in teams available to pair'), 'error');
