@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ShieldCheck, User, Lock, ChevronDown, Globe } from 'lucide-react';
 import { t } from '../constants/translations';
+import Footer from '../components/layout/Footer';
 
 export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }) {
   const [user, setUser] = useState('');
@@ -37,7 +38,8 @@ export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }
   };
 
   return (
-    <div className="min-h-screen flex" dir={dir}>
+    <div className="min-h-screen flex flex-col" dir={dir}>
+      <div className="flex flex-1">
       {/* Left hero panel */}
       <div className="hidden lg:flex flex-col justify-between w-[55%] bg-gradient-to-br from-navy-500 via-[#0a2a3a] to-[#091f2e] p-12 relative overflow-hidden">
         {/* Background decorative circles */}
@@ -187,6 +189,8 @@ export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }
           </div>{/* /max-w-sm */}
         </div>
       </div>
+      </div>
+      <Footer lang={lang} variant="light" />
     </div>
   );
 }

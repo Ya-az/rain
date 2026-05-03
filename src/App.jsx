@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { MOCK_USERS, MOCK_CATEGORIES, INITIAL_TEAMS, INITIAL_PARTICIPATIONS, DEFAULT_SYSTEM_CONFIG } from './constants/mockData';
 import { t } from './constants/translations';
 import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
 import NavBar from './components/layout/NavBar';
 import Login from './views/Login';
 import Dashboard from './views/Dashboard';
@@ -384,6 +385,8 @@ export default function App() {
           />
         )}
       </main>
+
+      <Footer lang={lang} />
 
       {/* Toast notification */}
       {toast && (

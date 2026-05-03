@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { Trophy, Activity, Users, MapPin, Zap, ChevronLeft, ChevronRight, Maximize2, Minimize2, Filter, Tv, Medal } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
+import Footer from '../components/layout/Footer';
 
 const REGION_COLORS = {
   Western: { dot: 'bg-brand-500', chip: 'bg-brand-500/15 text-brand-200 border-brand-400/40' },
@@ -309,9 +310,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
         </div>
       </main>
 
-      <footer className="border-t border-white/10 py-5 text-center text-[11px] text-white/40">
-        <p>{tx('Powered by RAIN Operations', 'بإدارة منصة رين للعمليات')} · RoboRAVE Saudi Arabia 2026</p>
-      </footer>
+      <Footer lang={lang} variant="dark" />
     </div>
   );
 }
