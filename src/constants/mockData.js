@@ -4,9 +4,8 @@
 // =============================================
 
 export const MOCK_USERS = [
-  // ─── System Admins ─────────────────────────────────────────────────
-  { id: 'u_admin',     username: 'admin',      password: 'pass', role: 'admin', name: 'System Admin' },
-  { id: 'u_admin_main',username: '0553346688', password: '0000', role: 'admin', name: 'Main Admin' },
+  // ─── System Admin ──────────────────────────────────────────────────
+  { id: 'u_admin_main', username: '0553346688', password: '0000', role: 'admin', name: 'Main Admin' },
 
   // ─── Region Admins ─────────────────────────────────────────────────
   { id: 'u_radmin_east', username: '0532950543', password: '0000', role: 'region_admin', name: 'Eastern Region Admin', region: 'Eastern' },
