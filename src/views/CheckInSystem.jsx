@@ -1,0 +1,279 @@
+import { useState, useEffect } from 'react';
+import { MapPin, Search, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { t } from '../constants/translations';
+import CustomSelect from '../components/ui/CustomSelect';
+import Toggle from '../components/ui/Toggle';
+
+const REGION_COLORS = {
+  Western: 'bg-brand-500',
+  Central: 'bg-saudi-500',
+  Eastern: 'bg-amber-500',
+};
+
+function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participations, categories, lang }) {
+  const [draftCoachPresent, setDraftCoachPresent] = useState(team.coach.present);
+  const [draftMembers, setDraftMembers] = useState(team.members.map(m => ({ ...m })));
+  const [collapsed, setCollapsed] = useState(true);
+
+  useEffect(() => {
+    setDraftCoachPresent(team.coach.present);
+    setDraftMembers(team.members.map(m => ({ ...m })));
+  }, [team]);
+
+  const total = draftMembers.length + 1;
+  const presentCount = draftMembers.filter(m => m.present).length + (draftCoachPresent ? 1 : 0);
+  const originalStatus = getTeamStatus(team);
+
+  let draftStatus = 'Partially Arrived';
+  if (presentCount === 0) draftStatus = 'No-Show';
+  if (presentCount === total) draftStatus = 'Fully Arrived';
+
+  const STATUS_STYLES = {
+    'No-Show':           { border: 'border-ink-200',   bg: 'bg-white',        badge: 'bg-ink-100 text-ink-600',       icon: <XCircle size={13} className="text-ink-400" /> },
+    'Partially Arrived': { border: 'border-amber-300', bg: 'bg-amber-50/30',  badge: 'bg-amber-100 text-amber-800',   icon: <Clock size={13} className="text-amber-500" /> },
+    'Fully Arrived':     { border: 'border-saudi-400', bg: 'bg-saudi-50/30',  badge: 'bg-saudi-100 text-saudi-800',   icon: <CheckCircle2 size={13} className="text-saudi-500" /> },
+  };
+  const ss = STATUS_STYLES[draftStatus];
+
+  let buttonText = t(lang, 'checkInBtn');
+  let isButtonDisabled = false;
+  if (originalStatus === 'No-Show' && draftStatus === 'No-Show') isButtonDisabled = true;
+  if (originalStatus === 'Partially Arrived' && draftStatus === 'No-Show') buttonText = t(lang, 'submit');
+
+  const teamParts = participations ? participations.filter(p => p.teamId === team.id) : [];
+  const regionColor = REGION_COLORS[team.region] || 'bg-ink-400';
+  const teamCategoryNames = teamParts
+    .map(p => categories?.find(c => c.id === p.categoryId)?.name)
+    .filter(Boolean)
+    .join(', ');
+
+  return (
+    <div className={`rounded-2xl border-2 transition-all overflow-hidden shadow-card ${ss.border} ${ss.bg}`}>
+      <button
+        className="w-full flex items-center gap-3 p-4 text-start hover:bg-black/3 transition-colors"
+        onClick={() => setCollapsed(c => !c)}
+      >
+        {/* Region color bar */}
+        <div className={`w-1 self-stretch rounded-full ${regionColor} shrink-0`} />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-bold text-ink-800 text-sm">{team.name}</h3>
+            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${ss.badge}`}>
+              {ss.icon}
+              {draftStatus === 'Fully Arrived' ? t(lang, 'fullyArrived')
+                : draftStatus === 'Partially Arrived' ? t(lang, 'partiallyArrived')
+                : t(lang, 'noShow')}
+            </span>
+          </div>
+          <p className="text-xs text-ink-400 mt-0.5 font-medium">
+            {team.region} · {t(lang, 'divisionLabel')} {team.division}
+          </p>
+          <p className="text-xs text-ink-300 mt-0.5 truncate">
+            {teamCategoryNames}
+          </p>
+          {teamParts.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {teamParts.map(p => (
+                <span key={p.id} className="text-[10px] font-black font-mono bg-white border border-ink-200 text-ink-500 px-2 py-0.5 rounded-lg">
+                  #{p.id}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Presence counter */}
+        <div className="text-right shrink-0">
+          <div className="text-lg font-black text-ink-700">{presentCount}<span className="text-xs text-ink-400 font-bold">/{total}</span></div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+            className={`ml-auto mt-1 text-ink-300 transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+      </button>
+
+      <div className={`overflow-hidden transition-all duration-300 ${collapsed ? 'max-h-0' : 'max-h-[600px]'}`}>
+        <div className="px-4 pb-4 space-y-2">
+          <div className="bg-white rounded-xl border border-ink-100 overflow-hidden divide-y divide-ink-50">
+            {/* Coach row */}
+            <div className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-ink-50 transition-colors">
+              <div>
+                <span className="text-[10px] font-black text-ink-400 uppercase tracking-wide block">{t(lang, 'coachLabel')}</span>
+                <span className="font-semibold text-ink-700 text-sm">{team.coach.name}</span>
+              </div>
+              <Toggle checked={draftCoachPresent} onChange={setDraftCoachPresent} />
+            </div>
+            {/* Member rows */}
+            {draftMembers.map(member => (
+              <div key={member.id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-ink-50 transition-colors">
+                <div>
+                  <span className="text-[10px] font-black text-ink-400 uppercase tracking-wide block">{t(lang, 'studentLabel')}</span>
+                  <span className="font-medium text-ink-700 text-sm">{member.name}</span>
+                </div>
+                <Toggle
+                  checked={member.present}
+                  onChange={v => setDraftMembers(prev => prev.map(m => m.id === member.id ? { ...m, present: v } : m))}
+                />
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => confirmAttendance(team.id, draftCoachPresent, draftMembers)}
+            disabled={isButtonDisabled}
+            className={`w-full font-bold py-3 rounded-xl text-sm transition-colors ${
+              isButtonDisabled
+                ? 'bg-ink-100 text-ink-300 cursor-not-allowed'
+                : 'btn-primary'
+            }`}
+          >
+            {buttonText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance, participations, categories, lang }) {
+  const [activeTab, setActiveTab] = useState('No-Show');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [levelFilter, setLevelFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  const totalTeams = teams.length;
+  const checkedInTeams = teams.filter(t => getTeamStatus(t) === 'Fully Arrived').length;
+  const partiallyChecked = teams.filter(t => getTeamStatus(t) === 'Partially Arrived').length;
+  const noShowCount = totalTeams - checkedInTeams - partiallyChecked;
+
+  // Filter all teams (used for both pending + fully arrived tabs)
+  const allFiltered = teams.filter(team => {
+    const pIds = participations.filter(p => p.teamId === team.id).map(p => p.id.toLowerCase());
+    const matchSearch = team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      pIds.some(id => id.includes(searchQuery.toLowerCase()));
+    const matchLevel = levelFilter ? team.division === levelFilter : true;
+    const matchCat = categoryFilter
+      ? participations.some(p => p.teamId === team.id && p.categoryId === categoryFilter)
+      : true;
+    return matchSearch && matchLevel && matchCat;
+  });
+
+  const noShowTeams = allFiltered.filter(team => getTeamStatus(team) === 'No-Show');
+  const partialTeams = allFiltered.filter(team => getTeamStatus(team) === 'Partially Arrived');
+  const fullyArrivedTeams = allFiltered.filter(team => getTeamStatus(team) === 'Fully Arrived');
+  const visibleTeams = activeTab === 'No-Show' ? noShowTeams
+    : activeTab === 'Partially Arrived' ? partialTeams
+    : fullyArrivedTeams;
+
+  return (
+    <div className="space-y-4" dir={dir}>
+      {/* Page title */}
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center">
+          <MapPin className="text-brand-600" size={18} />
+        </div>
+        <h2 className="text-xl font-black text-ink-900">{t(lang, 'registrationDesk')}</h2>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="bg-white rounded-2xl shadow-card border border-saudi-200 p-3 sm:p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-black text-saudi-700">{checkedInTeams}</div>
+          <div className="text-[10px] sm:text-xs font-bold text-saudi-500 mt-0.5 leading-tight">{t(lang, 'fullyArrived')}</div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-card border border-amber-200 p-3 sm:p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-black text-amber-700">{partiallyChecked}</div>
+          <div className="text-[10px] sm:text-xs font-bold text-amber-500 mt-0.5 leading-tight">{t(lang, 'partiallyArrived')}</div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-card border border-ink-200 p-3 sm:p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-black text-ink-600">{noShowCount}</div>
+          <div className="text-[10px] sm:text-xs font-bold text-ink-400 mt-0.5 leading-tight">{t(lang, 'noShow')}</div>
+        </div>
+      </div>
+
+      {/* Search + filters */}
+      <div className="bg-white rounded-2xl shadow-card border border-ink-100 p-4 space-y-3">
+        <div className="relative">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder={t(lang, 'searchTeam')}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="input-base pl-10 h-12 text-base"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)} size="sm">
+            <option value="">{t(lang, 'allLevels')}</option>
+            {['ES', 'MS', 'HS', 'US'].map(l => <option key={l} value={l}>{l}</option>)}
+          </CustomSelect>
+          <CustomSelect value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} size="sm">
+            <option value="">{t(lang, 'allCategories')}</option>
+            {(categories || []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </CustomSelect>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1.5 sm:gap-2">
+        <button
+          onClick={() => setActiveTab('No-Show')}
+          className={`flex-1 py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all press-effect ${
+            activeTab === 'No-Show'
+              ? 'bg-ink-800 text-white shadow-sm'
+              : 'bg-white text-ink-500 border border-ink-200 hover:border-ink-300'
+          }`}
+        >
+          {t(lang, 'noShow')} ({noShowTeams.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('Partially Arrived')}
+          className={`flex-1 py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all press-effect ${
+            activeTab === 'Partially Arrived'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-white text-amber-600 border border-amber-200 hover:border-amber-300'
+          }`}
+        >
+          {t(lang, 'partialCheckin')} ({partialTeams.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('Fully Arrived')}
+          className={`flex-1 py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all press-effect ${
+            activeTab === 'Fully Arrived'
+              ? 'bg-saudi-500 text-white shadow-sm'
+              : 'bg-white text-saudi-600 border border-saudi-200 hover:border-saudi-300'
+          }`}
+        >
+          {t(lang, 'fullyArrivedTab')} ({fullyArrivedTeams.length})
+        </button>
+      </div>
+
+      {/* Team cards */}
+      {visibleTeams.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl shadow-card border border-ink-100">
+          <div className="w-12 h-12 rounded-2xl bg-ink-50 border border-ink-100 flex items-center justify-center mb-3">
+            <Search className="text-ink-300" size={22} />
+          </div>
+          <p className="text-ink-400 font-medium text-sm">{t(lang, 'noTeamsMatch')}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pb-24 sm:pb-4">
+          {visibleTeams.map(team => (
+            <TeamAttendanceCard
+              key={team.id}
+              team={team}
+              getTeamStatus={getTeamStatus}
+              confirmAttendance={confirmAttendance}
+              participations={participations}
+              categories={categories}
+              lang={lang}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

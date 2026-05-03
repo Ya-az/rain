@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Tajawal:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    background-color: #f8fafc;
+  }
+  [dir="ltr"] {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  [dir="rtl"] {
+    font-family: 'Tajawal', system-ui, sans-serif;
+  }
+  button, a, input, select, textarea, label {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+  }
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-ink-100;
+  }
+  .card-dark {
+    @apply bg-gradient-to-br from-navy-500 to-[#0a2a3a] rounded-2xl border border-white/10 shadow-xl;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold;
+  }
+  .input-base {
+    @apply w-full px-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all font-medium text-ink-800 bg-white;
+  }
+  .btn-primary {
+    @apply bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm press-effect;
+  }
+  .btn-secondary {
+    @apply bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl transition-colors press-effect;
+  }
+  .section-header {
+    @apply flex items-center gap-2.5 px-5 py-4 border-b border-ink-100;
+  }
+  .scoring-card {
+    @apply border-2 rounded-2xl bg-white shadow-sm mb-4 transition-all duration-200;
+  }
+  .scoring-card-active {
+    @apply border-teal-400 shadow-glow-teal;
+  }
+  .score-result-box {
+    @apply p-4 bg-gradient-to-br from-brand-50 to-brand-100/50 border border-brand-200 rounded-2xl mb-4;
+  }
+  .fsm-badge-awaiting {
+    @apply bg-ink-100 text-ink-500 border border-ink-200;
+  }
+  .fsm-badge-submitted {
+    @apply bg-saudi-50 text-saudi-700 border border-saudi-200;
+  }
+  .fsm-badge-pending {
+    @apply bg-amber-50 text-amber-700 border border-amber-200;
+  }
+}
+
+@layer utilities {
+  .hex-clip {
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  }
+  .mb-nav {
+    margin-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .tap-target {
+    position: relative;
+  }
+  .tap-target::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+  .press-effect {
+    transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+  .press-effect:active {
+    transform: scale(0.96);
+    opacity: 0.85;
+  }
+  .glass-dark {
+    background: rgba(10, 42, 58, 0.90);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #1da1c9, #4FA3A5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-emerald {
+    background: linear-gradient(135deg, #0B7A43, #63C132);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.25s ease-out;
+  }
+}
+
+/* iOS Safari viewport fix — override Tailwind's min-h-screen */
+@supports (min-height: 100dvh) {
+  .min-h-screen { min-height: 100dvh; }
+}
