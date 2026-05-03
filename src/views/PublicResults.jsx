@@ -196,28 +196,28 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
         <div className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full bg-brand-500/10 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-[480px] h-[480px] rounded-full bg-saudi-500/10 blur-3xl" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-2xl bg-brand-500/20 border border-brand-400/30 flex items-center justify-center shrink-0">
-                <Activity size={22} className="text-brand-300" />
+          <div className="flex items-center justify-between gap-2 sm:gap-3 mb-5 flex-wrap">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-brand-500/20 border border-brand-400/30 flex items-center justify-center shrink-0">
+                <Activity size={20} className="text-brand-300" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-black leading-none">{tx('Live Results', 'النتائج المباشرة')}</h1>
-                <p className="text-white/50 text-xs sm:text-sm font-medium mt-1">{tx('RoboRAVE Saudi Arabia 2026', 'روبوريف 2026 المملكة العربية السعودية')}</p>
+                <h1 className="text-lg sm:text-2xl font-black leading-none truncate">{tx('Live Results', 'النتائج المباشرة')}</h1>
+                <p className="text-white/50 text-[11px] sm:text-sm font-medium mt-1 truncate">{tx('RoboRAVE Saudi Arabia 2026', 'روبوريف 2026 المملكة العربية السعودية')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                <span className="w-2 h-2 rounded-full bg-saudi-400 animate-pulse" />
-                <span className="text-xs font-black text-saudi-300 uppercase tracking-widest">{tx('LIVE', 'مباشر')}</span>
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/5 border border-white/10">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-saudi-400 animate-pulse" />
+                <span className="text-[10px] sm:text-xs font-black text-saudi-300 uppercase tracking-widest">{tx('LIVE', 'مباشر')}</span>
               </div>
-              <div className="font-mono text-base sm:text-lg font-black tracking-wider px-3 py-2 rounded-xl bg-white/5 border border-white/10">
+              <div className="font-mono text-xs sm:text-lg font-black tracking-wider px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/5 border border-white/10 tabular-nums">
                 {clockStr}
               </div>
               <button
                 onClick={toggleFullscreen}
                 title={tx('Projector mode', 'وضع العرض')}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-500/20 hover:bg-brand-500/30 border border-brand-400/40 text-brand-200 text-xs font-black transition"
+                className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-brand-500/20 hover:bg-brand-500/30 border border-brand-400/40 text-brand-200 text-[10px] sm:text-xs font-black transition"
               >
                 {projectorMode ? <Minimize2 size={14} /> : <Tv size={14} />}
                 <span className="hidden md:inline">{projectorMode ? tx('Exit', 'خروج') : tx('Projector', 'عرض')}</span>

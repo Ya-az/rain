@@ -280,7 +280,7 @@ export default function App() {
   // ─── Public live dashboard (no login) ───────────────────────────
   if (!currentUser && publicMode) {
     return (
-      <div className="relative">
+      <div className="relative pt-14 sm:pt-0">
         <PublicResults
           teams={teams}
           getTeamStatus={getTeamStatus}
@@ -291,16 +291,16 @@ export default function App() {
           group2Matches={group2Matches}
         />
         {/* Floating controls */}
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-2 py-1.5 rounded-full bg-black/40 backdrop-blur border border-white/15 shadow-xl">
+        <div className="fixed top-2 sm:top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:py-1.5 rounded-full bg-black/50 backdrop-blur border border-white/15 shadow-xl">
           <button
             onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')}
-            className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-colors"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[11px] sm:text-xs font-black transition-colors whitespace-nowrap"
           >
             {lang === 'en' ? 'العربية' : 'English'}
           </button>
           <button
             onClick={() => setPublicMode(false)}
-            className="px-3 py-1.5 rounded-full bg-brand-500 hover:bg-brand-400 text-white text-xs font-black transition-colors"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-brand-500 hover:bg-brand-400 text-white text-[11px] sm:text-xs font-black transition-colors whitespace-nowrap"
           >
             {lang === 'ar' ? 'دخول الموظفين' : 'Staff Login'}
           </button>

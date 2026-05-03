@@ -24,6 +24,19 @@ import {
   ScoringCard,
 } from '../scoring/ScoringCards';
 
+// Static class mapping for the slot grid so Tailwind JIT can pick them up.
+function slotGridClass(count) {
+  const clamped = Math.min(Math.max(count, 1), 7);
+  // Mobile: 2 cols (or 1 if count===1). sm: 3 cols. lg: up to `count` cols.
+  const lgMap = {
+    1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3',
+    4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-6',
+    7: 'lg:grid-cols-7',
+  };
+  const base = clamped === 1 ? 'grid-cols-1' : 'grid-cols-2';
+  return `${base} sm:grid-cols-3 ${lgMap[clamped]}`;
+}
+
 function FastBotScheduleCell({ slot, scoreFormatter = formatFastBotScore }) {
   const { timeLabel } = getFastBotCellDisplay(slot);
   const scoreLabel = scoreFormatter(getFastBotScoreValue(slot?.scoreObj));
@@ -66,15 +79,15 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
           <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">{rows.length} {t(lang, 'teamLabel')}</span>
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="min-w-[1120px] w-full text-sm">
+      <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
+        <table className="min-w-[820px] sm:min-w-[1120px] w-full text-xs sm:text-sm">
           <thead className="bg-[#061a27] text-white">
             <tr className="text-left">
-              <th className="px-3 py-3 font-bold">{t(lang, 'teamName')}</th>
-              <th className="px-3 py-3 font-bold">{t(lang, 'teamNumber')}</th>
-              <th className="px-3 py-3 font-bold">{t(lang, 'divisionLabel')}</th>
-              {activeSlotKeys.map(slotKey => <th key={slotKey} className="px-3 py-3 font-bold text-center">{slotKey}</th>)}
-              <th className="px-3 py-3 font-bold text-center">{`Best (R1-R${activeSlotKeys.filter(k => k.startsWith('R')).length})`}</th>
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamName')}</th>
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamNumber')}</th>
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'divisionLabel')}</th>
+              {activeSlotKeys.map(slotKey => <th key={slotKey} className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{slotKey}</th>)}
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{`Best (R1-R${activeSlotKeys.filter(k => k.startsWith('R')).length})`}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-100">
@@ -162,7 +175,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
         </div>
       </div>
 
-      <div className={`grid grid-cols-2 gap-3 lg:grid-cols-${Math.min(activeSlotKeys.length, 7)}`}>
+      <div className={`grid gap-2 sm:gap-3 ${slotGridClass(activeSlotKeys.length)}`}>
         {activeSlotKeys.map(slotKey => {
           const slot = row.slots[slotKey];
           const { timeLabel, scoreLabel } = getFastBotCellDisplay(slot);
@@ -172,15 +185,15 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
             <button
               key={slotKey}
               onClick={() => onSlotChange(slotKey)}
-              className={`rounded-2xl border px-3 py-3 text-left transition-all ${
+              className={`rounded-2xl border px-2.5 sm:px-3 py-2.5 sm:py-3 text-left transition-all ${
                 isActive
                   ? 'border-brand-400 bg-brand-50 shadow-sm'
                   : 'border-ink-200 bg-white hover:border-brand-200 hover:bg-brand-50/40'
               }`}
             >
               <p className={`text-sm font-black ${isActive ? 'text-brand-700' : 'text-ink-700'}`}>{slotKey}</p>
-              <p className="font-mono text-[11px] text-ink-500 mt-1">{timeLabel}</p>
-              <p className={`text-xs font-black mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
+              <p className="font-mono text-[10px] sm:text-[11px] text-ink-500 mt-1">{timeLabel}</p>
+              <p className={`text-xs font-black mt-1.5 sm:mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
             </button>
           );
         })}
@@ -239,7 +252,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
         </div>
       </div>
 
-      <div className={`grid grid-cols-2 gap-3 lg:grid-cols-${Math.min(activeSlotKeys.length, 7)}`}>
+      <div className={`grid gap-2 sm:gap-3 ${slotGridClass(activeSlotKeys.length)}`}>
         {activeSlotKeys.map(slotKey => {
           const slot = row.slots[slotKey];
           const { timeLabel } = getFastBotCellDisplay(slot);
@@ -250,15 +263,15 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
             <button
               key={slotKey}
               onClick={() => onSlotChange(slotKey)}
-              className={`rounded-2xl border px-3 py-3 text-left transition-all ${
+              className={`rounded-2xl border px-2.5 sm:px-3 py-2.5 sm:py-3 text-left transition-all ${
                 isActive
                   ? 'border-brand-400 bg-brand-50 shadow-sm'
                   : 'border-ink-200 bg-white hover:border-brand-200 hover:bg-brand-50/40'
               }`}
             >
               <p className={`text-sm font-black ${isActive ? 'text-brand-700' : 'text-ink-700'}`}>{slotKey}</p>
-              <p className="font-mono text-[11px] text-ink-500 mt-1">{timeLabel}</p>
-              <p className={`text-xs font-black mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
+              <p className="font-mono text-[10px] sm:text-[11px] text-ink-500 mt-1">{timeLabel}</p>
+              <p className={`text-xs font-black mt-1.5 sm:mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
             </button>
           );
         })}
