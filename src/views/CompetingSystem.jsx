@@ -741,6 +741,109 @@ function buildTimeMap(matchesByRegion, regions) {
   return map;
 }
 
+// ─── Round-Robin buckets (FastBot-style grouping) ────────────────────────────
+// Sumo & SoccerBot are bucketed as ES/MS together and HS/US together.
+const RR_BUCKETS = [
+  { key: 'ES / MS', divs: ['ES', 'MS'] },
+  { key: 'HS / US', divs: ['HS', 'US'] },
+];
+
+function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange' }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const accentChip = accent === 'teal'
+    ? 'bg-teal-50 border-teal-200 text-teal-700'
+    : 'bg-orange-50 border-orange-200 text-orange-700';
+  const accentBadge = accent === 'teal' ? 'bg-teal-600' : 'bg-orange-500';
+
+  return (
+    <div className="space-y-4">
+      {RR_BUCKETS.map(({ key: bucketKey }) => {
+        const regionMap = matchesByBucket[bucketKey] || {};
+        const regions = Object.keys(regionMap).sort();
+        const allBucketMatches = regions.flatMap(r => regionMap[r] || []);
+        const total = allBucketMatches.length;
+        const played = allBucketMatches.filter(m => scores.some(s => s.pId === m.id && s.status === 'VALID')).length;
+        return (
+          <CollapsibleCard
+            key={bucketKey}
+            title={`${categoryLabel} ${tx('Schedule', 'جدول')} — ${bucketKey}`}
+            badge={total > 0 ? `${played}/${total}` : tx('No teams', 'لا فرق')}
+            badgeColor={accentBadge}
+          >
+            {total === 0 ? (
+              <div className="px-4 py-8 text-center text-ink-400 text-sm">{tx('No matchable teams in this group.', 'لا توجد فرق كافية في هذه الفئة.')}</div>
+            ) : (
+              <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
+                <table className="min-w-[720px] sm:min-w-[920px] w-full text-xs sm:text-sm">
+                  <thead className="bg-[#061a27] text-white">
+                    <tr className="text-left">
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold w-12 text-center">#</th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Time', 'الوقت')}</th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Region', 'المنطقة')}</th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Team A', 'الفريق أ')}</th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center w-10">{tx('vs', 'ضد')}</th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Team B', 'الفريق ب')}</th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center">{tx('Score', 'النتيجة')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-ink-100 bg-white">
+                    {regions.map(region => {
+                      const list = regionMap[region] || [];
+                      if (list.length === 0) return null;
+                      return (
+                        <Fragment key={region}>
+                          <tr className="bg-ink-50/80">
+                            <td colSpan={7} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
+                              {tx('Region', 'منطقة')}: {region} · {list.length} {tx('matches', 'مباريات')}
+                            </td>
+                          </tr>
+                          {list.map((m, i) => {
+                            const sc = scores.find(s => s.pId === m.id && s.status === 'VALID');
+                            return (
+                              <tr
+                                key={m.id}
+                                tabIndex={0}
+                                onClick={() => onSelectMatch?.(m.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onSelectMatch?.(m.id);
+                                  }
+                                }}
+                                className="cursor-pointer hover:bg-brand-50/60 focus:bg-brand-50 focus:outline-none transition-colors"
+                              >
+                                <td className="px-3 py-2.5 text-center font-mono text-[11px] text-ink-500">{i + 1}</td>
+                                <td className="px-3 py-2.5 font-mono text-[11px] text-ink-500 whitespace-nowrap">{timeMap?.[m.id] || '--'}</td>
+                                <td className="px-3 py-2.5">
+                                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${accentChip}`}>{region}</span>
+                                </td>
+                                <td className="px-3 py-2.5 font-bold text-ink-700 truncate max-w-[160px]">{m.teamA}</td>
+                                <td className="px-2 py-2.5 text-center text-[10px] font-black text-ink-400">vs</td>
+                                <td className="px-3 py-2.5 font-bold text-ink-700 truncate max-w-[160px]">{m.teamB}</td>
+                                <td className="px-3 py-2.5 text-center font-black">
+                                  {sc ? (
+                                    <span className="inline-flex items-center rounded-full bg-saudi-50 border border-saudi-200 px-2.5 py-1 text-[10px] font-black text-saudi-700">{sc.score}</span>
+                                  ) : (
+                                    <span className="inline-flex items-center rounded-full bg-ink-50 border border-ink-200 px-2.5 py-1 text-[10px] font-bold text-ink-400">{tx('Pending', 'لم تُلعب')}</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CollapsibleCard>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── BracketView (shared by Sumo + Soccer) ───────────────────────────────────
 
 function BracketModeToggle({ mode, setMode, lang, hasBracket }) {
@@ -761,7 +864,7 @@ function BracketModeToggle({ mode, setMode, lang, hasBracket }) {
   return (
     <div className="flex items-center gap-2 p-1.5 bg-ink-50 rounded-2xl border border-ink-200">
       <Btn value="bracket" label={tx('🏆 Knockout Bracket', '🏆 الإقصائيات')} hint={hasBracket ? '' : tx('No bracket yet', 'لم يُولّد بعد')} />
-      <Btn value="roundrobin" label={tx('🌀 Round-Robin (per Region)', '🌀 الدوري الإقليمي')} hint={tx('Group stage', 'دور المجموعات')} />
+      <Btn value="roundrobin" label={tx('🌀 Round-Robin', '🌀 الدوري')} hint={tx('Grouped by ES/MS · HS/US', 'مقسّم ES/MS · HS/US')} />
     </div>
   );
 }
@@ -946,20 +1049,38 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
     [participations, teams, category.id],
   );
 
-  const regions = useMemo(() => [...new Set(teamEntries.map(e => e.region))].sort(), [teamEntries]);
+  // R.R matches grouped first by bucket (ES/MS, HS/US) then by region.
+  const matchesByBucket = useMemo(() => {
+    const result = {};
+    RR_BUCKETS.forEach(({ key, divs }) => {
+      const bucketEntries = teamEntries.filter(e => divs.includes(e.division));
+      const regionsInBucket = [...new Set(bucketEntries.map(e => e.region))].sort();
+      result[key] = Object.fromEntries(
+        regionsInBucket.map(region => [
+          region,
+          generateRoundRobinMatches(bucketEntries.filter(e => e.region === region), category.id, 'all', region),
+        ]),
+      );
+    });
+    return result;
+  }, [teamEntries, category.id]);
 
-  const matchesByRegion = useMemo(() =>
-    Object.fromEntries(
-      regions.map(region => [
-        region,
-        generateRoundRobinMatches(teamEntries.filter(e => e.region === region), category.id, 'all', region),
-      ]),
-    ),
-    [teamEntries, regions, category.id],
-  );
-
-  const timeMap = useMemo(() => buildTimeMap(matchesByRegion, regions), [matchesByRegion, regions]);
-  const allMatches = useMemo(() => Object.values(matchesByRegion).flat(), [matchesByRegion]);
+  const { timeMap, allMatches } = useMemo(() => {
+    const flatByRegion = {};
+    const orderedKeys = [];
+    RR_BUCKETS.forEach(({ key }) => {
+      const regionMap = matchesByBucket[key] || {};
+      Object.keys(regionMap).sort().forEach(region => {
+        const composite = `${key}::${region}`;
+        flatByRegion[composite] = regionMap[region];
+        orderedKeys.push(composite);
+      });
+    });
+    return {
+      timeMap: buildTimeMap(flatByRegion, orderedKeys),
+      allMatches: orderedKeys.flatMap(k => flatByRegion[k]),
+    };
+  }, [matchesByBucket]);
 
   // Bracket matches for this category (skeletons in Firestore) + resolved view.
   const bracketRaw = useMemo(
@@ -1028,60 +1149,18 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
     );
   }
 
-  const totalMatches = Object.values(matchesByRegion).reduce((sum, arr) => sum + arr.length, 0);
-  const totalPlayed = allMatches.filter(m => scores.some(s => s.pId === m.id && s.status === 'VALID')).length;
-
   return (
     <div className="space-y-5">
       <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
-      <div className="flex items-center justify-between px-1 text-xs text-ink-500 font-semibold">
-        <span>{lang === 'ar' ? 'المناطق:' : 'Regions:'} {regions.length}</span>
-        <span>{lang === 'ar' ? 'المباريات:' : 'Matches:'} {totalPlayed}/{totalMatches} {lang === 'ar' ? 'مكتملة' : 'played'}</span>
-      </div>
-      <div className="space-y-3">
-        {regions.length === 0 ? (
-          <div className="text-center py-8 text-ink-400 text-sm">{lang === 'ar' ? 'لا توجد فرق.' : 'No teams.'}</div>
-        ) : regions.map(region => {
-          const regionMatches = matchesByRegion[region] || [];
-          const playedCount = regionMatches.filter(m => scores.some(s => s.pId === m.id && s.status === 'VALID')).length;
-          return (
-            <CollapsibleCard key={region} title={`${lang === 'ar' ? 'منطقة' : 'Region'}: ${region}`} badge={`${playedCount}/${regionMatches.length}`} badgeColor="bg-orange-500">
-              {regionMatches.length < 2 ? (
-                <div className="px-4 py-6 text-center text-ink-400 text-sm">{lang === 'ar' ? 'يلزم فريقان على الأقل.' : 'At least 2 teams needed.'}</div>
-              ) : (
-                <div className="divide-y divide-ink-100">
-                  {regionMatches.map((match, idx) => {
-                    const matchScore = scores.find(s => s.pId === match.id && s.status === 'VALID');
-                    const scheduledTime = timeMap?.[match.id];
-                    return (
-                      <button key={match.id} onClick={() => setSelectedMatchId(match.id)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-brand-50/60 transition-colors text-left gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="shrink-0 flex flex-col items-center gap-0.5">
-                            <span className="w-6 h-6 rounded-full bg-ink-100 text-ink-500 text-[10px] font-black flex items-center justify-center">{idx + 1}</span>
-                            {scheduledTime && <span className="text-[9px] font-black text-orange-500 whitespace-nowrap">{scheduledTime}</span>}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-ink-800 text-sm truncate">{match.teamA}</p>
-                            <p className="text-[10px] text-orange-500 font-black uppercase tracking-widest">vs</p>
-                            <p className="font-bold text-ink-800 text-sm truncate">{match.teamB}</p>
-                          </div>
-                        </div>
-                        <div className="shrink-0">
-                          {matchScore ? (
-                            <span className="inline-flex items-center rounded-full bg-saudi-50 border border-saudi-200 px-2.5 py-1 text-[10px] font-black text-saudi-700">{matchScore.score}</span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-ink-50 border border-ink-200 px-2.5 py-1 text-[10px] font-bold text-ink-400">{lang === 'ar' ? 'لم تُلعب' : 'Pending'}</span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </CollapsibleCard>
-          );
-        })}
-      </div>
+      <RoundRobinBucketsView
+        categoryLabel={category.name}
+        matchesByBucket={matchesByBucket}
+        timeMap={timeMap}
+        scores={scores}
+        onSelectMatch={setSelectedMatchId}
+        lang={lang}
+        accent="orange"
+      />
     </div>
   );
 }
@@ -1104,20 +1183,38 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
     [participations, teams, category.id],
   );
 
-  const regions = useMemo(() => [...new Set(teamEntries.map(e => e.region))].sort(), [teamEntries]);
+  // R.R matches grouped first by bucket (ES/MS, HS/US) then by region.
+  const matchesByBucket = useMemo(() => {
+    const result = {};
+    RR_BUCKETS.forEach(({ key, divs }) => {
+      const bucketEntries = teamEntries.filter(e => divs.includes(e.division));
+      const regionsInBucket = [...new Set(bucketEntries.map(e => e.region))].sort();
+      result[key] = Object.fromEntries(
+        regionsInBucket.map(region => [
+          region,
+          generateRoundRobinMatches(bucketEntries.filter(e => e.region === region), category.id, 'all', region),
+        ]),
+      );
+    });
+    return result;
+  }, [teamEntries, category.id]);
 
-  const matchesByRegion = useMemo(() =>
-    Object.fromEntries(
-      regions.map(region => [
-        region,
-        generateRoundRobinMatches(teamEntries.filter(e => e.region === region), category.id, 'all', region),
-      ]),
-    ),
-    [teamEntries, regions, category.id],
-  );
-
-  const timeMap = useMemo(() => buildTimeMap(matchesByRegion, regions), [matchesByRegion, regions]);
-  const allMatches = useMemo(() => Object.values(matchesByRegion).flat(), [matchesByRegion]);
+  const { timeMap, allMatches } = useMemo(() => {
+    const flatByRegion = {};
+    const orderedKeys = [];
+    RR_BUCKETS.forEach(({ key }) => {
+      const regionMap = matchesByBucket[key] || {};
+      Object.keys(regionMap).sort().forEach(region => {
+        const composite = `${key}::${region}`;
+        flatByRegion[composite] = regionMap[region];
+        orderedKeys.push(composite);
+      });
+    });
+    return {
+      timeMap: buildTimeMap(flatByRegion, orderedKeys),
+      allMatches: orderedKeys.flatMap(k => flatByRegion[k]),
+    };
+  }, [matchesByBucket]);
 
   const bracketRaw = useMemo(
     () => group2Matches.filter(m => m.categoryId === category.id && m.bracket),
@@ -1175,7 +1272,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
     );
   }
 
-  const totalMatches = Object.values(matchesByRegion).reduce((sum, arr) => sum + arr.length, 0);
+  const totalMatches = allMatches.length;
   const totalPlayed = allMatches.filter(m => scores.some(s => s.pId === m.id && s.status === 'VALID')).length;
 
   if (mode === 'bracket') {
@@ -1191,53 +1288,17 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
     <div className="space-y-5">
       <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
       <div className="flex items-center justify-between px-1 text-xs text-ink-500 font-semibold">
-        <span>{lang === 'ar' ? 'المناطق:' : 'Regions:'} {regions.length}</span>
         <span>{lang === 'ar' ? 'المباريات:' : 'Matches:'} {totalPlayed}/{totalMatches} {lang === 'ar' ? 'مكتملة' : 'played'}</span>
       </div>
-      <div className="space-y-3">
-        {regions.length === 0 ? (
-          <div className="text-center py-8 text-ink-400 text-sm">{lang === 'ar' ? 'لا توجد فرق.' : 'No teams.'}</div>
-        ) : regions.map(region => {
-          const regionMatches = matchesByRegion[region] || [];
-          const playedCount = regionMatches.filter(m => scores.some(s => s.pId === m.id && s.status === 'VALID')).length;
-          return (
-            <CollapsibleCard key={region} title={`${lang === 'ar' ? 'منطقة' : 'Region'}: ${region}`} badge={`${playedCount}/${regionMatches.length}`} badgeColor="bg-teal-600">
-              {regionMatches.length < 2 ? (
-                <div className="px-4 py-6 text-center text-ink-400 text-sm">{lang === 'ar' ? 'يلزم فريقان على الأقل.' : 'At least 2 teams needed.'}</div>
-              ) : (
-                <div className="divide-y divide-ink-100">
-                  {regionMatches.map((match, idx) => {
-                    const matchScore = scores.find(s => s.pId === match.id && s.status === 'VALID');
-                    const scheduledTime = timeMap?.[match.id];
-                    return (
-                      <button key={match.id} onClick={() => setSelectedMatchId(match.id)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-teal-50/60 transition-colors text-left gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="shrink-0 flex flex-col items-center gap-0.5">
-                            <span className="w-6 h-6 rounded-full bg-ink-100 text-ink-500 text-[10px] font-black flex items-center justify-center">{idx + 1}</span>
-                            {scheduledTime && <span className="text-[9px] font-black text-teal-600 whitespace-nowrap">{scheduledTime}</span>}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-ink-800 text-sm truncate">{match.teamA}</p>
-                            <p className="text-[10px] text-teal-600 font-black uppercase tracking-widest">vs</p>
-                            <p className="font-bold text-ink-800 text-sm truncate">{match.teamB}</p>
-                          </div>
-                        </div>
-                        <div className="shrink-0">
-                          {matchScore ? (
-                            <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-200 px-2.5 py-1 text-[10px] font-black text-teal-700">{matchScore.score}</span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-ink-50 border border-ink-200 px-2.5 py-1 text-[10px] font-bold text-ink-400">{lang === 'ar' ? 'لم تُلعب' : 'Pending'}</span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </CollapsibleCard>
-          );
-        })}
-      </div>
+      <RoundRobinBucketsView
+        categoryLabel={category.name}
+        matchesByBucket={matchesByBucket}
+        timeMap={timeMap}
+        scores={scores}
+        onSelectMatch={setSelectedMatchId}
+        lang={lang}
+        accent="teal"
+      />
     </div>
   );
 }
