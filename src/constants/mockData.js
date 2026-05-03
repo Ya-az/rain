@@ -30,6 +30,8 @@ export const MOCK_USERS = [
   // AI Innovation (Ref 1 also covers WebDesign)
   { id: 'e_ai_1', username: '0505921458', password: '0000', role: 'ref', name: 'AI Innovation + WebDesign Ref', categories: ['c3_ai', 'c3_webdesign'], region: 'Eastern' },
   { id: 'e_ai_2', username: '0540697768', password: '0000', role: 'ref', name: 'AI Innovation Ref 2', categories: ['c3_ai'], region: 'Eastern' },
+  // WebDesign + AI Innovation
+  { id: 'e_web_nawaf', username: 'nawaf_e', password: '0000', role: 'ref', name: 'Nawaf Al-Jaafari', categories: ['c3_webdesign', 'c3_ai'], region: 'Eastern' },
 
   // ─── Western Region Referees ─── (password: 0000)
   // All referees also have access to AI Innovation (c3_ai)
