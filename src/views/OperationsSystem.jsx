@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet, X, Trash2, Shield, MapPin } from 'lucide-react';
+import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet, X, Trash2, Shield, MapPin, UserPlus, Plus } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import CollapsibleCard from '../components/ui/CollapsibleCard';
 import CustomSelect from '../components/ui/CustomSelect';
@@ -177,9 +177,191 @@ function RosterRow({ team, confirmAttendance, lang, participations = [], categor
   );
 }
 
+// ─── AddTeamCard ──────────────────────────────────────────────────────────────
+
+const REGION_OPTIONS = ['Western', 'Central', 'Eastern'];
+const DIVISION_OPTIONS = ['ES', 'MS', 'HS', 'US'];
+
+function AddTeamCard({ lang, categories, addTeam, defaultRegion = 'Western' }) {
+  const [name, setName] = useState('');
+  const [region, setRegion] = useState(defaultRegion);
+  const [division, setDivision] = useState('ES');
+  const [coachName, setCoachName] = useState('');
+  const [members, setMembers] = useState([{ name: '' }, { name: '' }]);
+  const [selectedCats, setSelectedCats] = useState([]);
+
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+
+  // Categories that allow the chosen division
+  const eligibleCats = categories.filter(c => !c.levels || c.levels.includes(division));
+
+  const toggleCat = (id) => {
+    setSelectedCats(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const setMember = (idx, val) => {
+    setMembers(prev => prev.map((m, i) => i === idx ? { name: val } : m));
+  };
+  const addMember = () => setMembers(prev => [...prev, { name: '' }]);
+  const removeMember = (idx) => setMembers(prev => prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev);
+
+  const handleSubmit = () => {
+    const ok = addTeam({
+      name,
+      region,
+      division,
+      coachName,
+      members: members.filter(m => m.name.trim()),
+      categoryIds: selectedCats.filter(id => eligibleCats.some(c => c.id === id)),
+    });
+    if (ok) {
+      setName('');
+      setCoachName('');
+      setMembers([{ name: '' }, { name: '' }]);
+      setSelectedCats([]);
+    }
+  };
+
+  return (
+    <CollapsibleCard
+      title={<><UserPlus size={18} className="text-brand-400 mr-2" />{tx('Add Team Manually', 'إضافة فريق يدوياً')}</>}
+      badge={tx('Admin Only', 'للمشرف فقط')}
+      badgeColor="bg-brand-600"
+      headerClass="bg-[#061a27]"
+    >
+      <div className="p-5 space-y-5 bg-ink-50">
+        <p className="text-sm text-ink-500">
+          {tx('Register a new team without uploading a spreadsheet. Participation IDs are generated automatically.', 'سجّل فريقاً جديداً بدون رفع ملف Excel. سيتم توليد معرّف المشاركة تلقائياً.')}
+        </p>
+
+        {/* Basic info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-[11px] font-black uppercase tracking-wider text-ink-500 mb-1 block">{tx('Team Name', 'اسم الفريق')}</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder={tx('e.g. Cyber Falcons', 'مثل: Cyber Falcons')}
+              className="w-full p-3 border-2 border-ink-200 rounded-xl text-sm font-medium text-ink-700 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-black uppercase tracking-wider text-ink-500 mb-1 block">{tx('Coach Name', 'اسم المدرب')}</label>
+            <input
+              type="text"
+              value={coachName}
+              onChange={e => setCoachName(e.target.value)}
+              placeholder={tx('e.g. Dr. Ahmed', 'مثل: د. أحمد')}
+              className="w-full p-3 border-2 border-ink-200 rounded-xl text-sm font-medium text-ink-700 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-black uppercase tracking-wider text-ink-500 mb-1 block">{tx('Region', 'المنطقة')}</label>
+            <CustomSelect value={region} onChange={e => setRegion(e.target.value)}>
+              {REGION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </CustomSelect>
+          </div>
+          <div>
+            <label className="text-[11px] font-black uppercase tracking-wider text-ink-500 mb-1 block">{tx('Division (Level)', 'المستوى')}</label>
+            <CustomSelect value={division} onChange={e => { setDivision(e.target.value); setSelectedCats([]); }}>
+              {DIVISION_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+            </CustomSelect>
+          </div>
+        </div>
+
+        {/* Members */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[11px] font-black uppercase tracking-wider text-ink-500">{tx('Members', 'الأعضاء')}</label>
+            <button
+              type="button"
+              onClick={addMember}
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 hover:text-brand-800 bg-white border border-brand-200 px-2 py-1 rounded-lg"
+            >
+              <Plus size={12} /> {tx('Add member', 'إضافة عضو')}
+            </button>
+          </div>
+          <div className="space-y-2">
+            {members.map((m, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-ink-400 w-6 text-center">#{i + 1}</span>
+                <input
+                  type="text"
+                  value={m.name}
+                  onChange={e => setMember(i, e.target.value)}
+                  placeholder={tx('Member name', 'اسم العضو')}
+                  className="flex-1 p-2.5 border-2 border-ink-200 rounded-xl text-sm font-medium text-ink-700 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                />
+                {members.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeMember(i)}
+                    className="p-2 text-ink-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    aria-label="remove"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div>
+          <label className="text-[11px] font-black uppercase tracking-wider text-ink-500 mb-2 block">
+            {tx('Categories', 'الفئات')} <span className="text-ink-400 font-bold normal-case tracking-normal">({tx('eligible for', 'المتاحة لـ')} {division})</span>
+          </label>
+          {eligibleCats.length === 0 ? (
+            <p className="text-xs text-ink-400 italic">{tx('No categories accept this division.', 'لا توجد فئات تقبل هذا المستوى.')}</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {eligibleCats.map(c => {
+                const checked = selectedCats.includes(c.id);
+                return (
+                  <label
+                    key={c.id}
+                    className={`flex items-center gap-2 p-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                      checked
+                        ? 'border-brand-500 bg-brand-50'
+                        : 'border-ink-200 bg-white hover:border-ink-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleCat(c.id)}
+                      className="w-4 h-4 accent-brand-600"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-ink-700 truncate">{c.name}</p>
+                      <p className="text-[10px] text-ink-400 font-mono">{c.id}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-sm text-sm transition-colors"
+          >
+            <UserPlus size={16} /> {tx('Add Team', 'إضافة الفريق')}
+          </button>
+        </div>
+      </div>
+    </CollapsibleCard>
+  );
+}
+
 // ─── OperationsSystem ────────────────────────────────────────────────────────
 
-export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [] }) {
+export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, addTeam, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [] }) {
   const pendingScores = scores.filter(s => s.status === 'PENDING');
   const [rosterSearch, setRosterSearch] = useState('');
   const [usersOpen, setUsersOpen] = useState(false);
@@ -448,6 +630,16 @@ export default function OperationsSystem({ scores, setScores, teams, participati
 
           </div>
         </CollapsibleCard>
+      )}
+
+      {/* Add Team manually — admin only */}
+      {currentUser?.role === 'admin' && addTeam && (
+        <AddTeamCard
+          lang={lang}
+          categories={categories}
+          addTeam={addTeam}
+          defaultRegion={currentUser?.role === 'region_admin' ? currentUser.region : 'Western'}
+        />
       )}
 
       {/* Configuration — admin only */}

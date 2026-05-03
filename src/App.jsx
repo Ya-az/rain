@@ -339,6 +339,70 @@ export default function App() {
     showToast(lang === 'ar' ? 'تم حذف المستخدم' : 'User removed', 'info');
   };
 
+  // ─── Add a single team manually (admin-only UI) ────────────────────────
+  // payload: { name, region, division, coachName, members: [{name}], categoryIds: [string] }
+  const addTeam = (payload) => {
+    if (!payload?.name?.trim() || !payload?.region || !payload?.division) {
+      showToast(lang === 'ar' ? 'الاسم والمنطقة والمستوى مطلوبة' : 'Name, region & division are required', 'error');
+      return false;
+    }
+    const memberList = (payload.members || [])
+      .map((m, idx) => ({ id: `m_${Date.now()}_${idx}`, name: (m.name || '').trim(), present: false }))
+      .filter(m => m.name);
+    if (memberList.length === 0) {
+      showToast(lang === 'ar' ? 'أضف عضواً واحداً على الأقل' : 'Add at least one member', 'error');
+      return false;
+    }
+    const catIds = (payload.categoryIds || []).filter(Boolean);
+    if (catIds.length === 0) {
+      showToast(lang === 'ar' ? 'اختر فئة واحدة على الأقل' : 'Pick at least one category', 'error');
+      return false;
+    }
+
+    const teamId = `t_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const newTeam = {
+      id: teamId,
+      name: payload.name.trim(),
+      division: payload.division,
+      region: payload.region,
+      members: memberList,
+      coach: { name: (payload.coachName || '').trim() || '—', present: false },
+      categories: catIds,
+    };
+
+    // Generate participation IDs (26<seq><RegionLetter>) — same scheme as Excel import.
+    const letter = (payload.region || 'W').charAt(0).toUpperCase();
+    let maxSeq = participations.reduce((m, p) => {
+      const match = p.id?.match?.(/^26(\d{3})/);
+      return match ? Math.max(m, parseInt(match[1], 10)) : m;
+    }, 0);
+    const newParts = catIds.map(catId => {
+      maxSeq += 1;
+      return {
+        id: `26${String(maxSeq).padStart(3, '0')}${letter}`,
+        teamId,
+        categoryId: catId,
+      };
+    });
+
+    setTeams(prev => [...prev, newTeam]);
+    setParticipations(prev => [...prev, ...newParts]);
+
+    (async () => {
+      try {
+        const b = writeBatch(db);
+        b.set(doc(db, 'teams', teamId), newTeam);
+        newParts.forEach(p => b.set(doc(db, 'participations', p.id), p));
+        await b.commit();
+      } catch (err) {
+        console.error('addTeam Firestore error:', err);
+      }
+    })();
+
+    showToast(lang === 'ar' ? `تم إضافة الفريق ✓ (${newParts.length} مشاركة)` : `Team added ✓ (${newParts.length} participations)`);
+    return true;
+  };
+
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   // ─── Access control ───────────────────────────────────────────────────────
@@ -466,6 +530,7 @@ export default function App() {
             users={users}
             addUser={addUser}
             deleteUser={deleteUser}
+            addTeam={addTeam}
             group2Matches={group2Matches}
           />
         )}
