@@ -348,6 +348,26 @@ export default function App() {
   // together. The skeleton matches are written into Firestore `group2Matches`;
   // later rounds are filled by resolveBracket() at render time as winners are saved.
   const generateMatches = () => {
+    // Guard: if existing brackets already have winners recorded, regenerating
+    // will wipe them. Prompt for type-to-confirm before nuking real results.
+    const hasResults = group2Matches.some(m => m?.winnerSide || m?.winnerTeamId);
+    if (hasResults) {
+      setConfirmState({
+        kind: 'regenMatches',
+        variant: 'danger',
+        typeToConfirm: 'REGEN',
+        title: lang === 'ar' ? 'إعادة توليد الجداول' : 'Regenerate Brackets',
+        message: lang === 'ar'
+          ? 'الجداول الحالية تحتوي على نتائج مسجّلة. إعادة التوليد ستمسح كل المباريات (بما فيها الفائزين) وتنشئ قرعة جديدة. لا يمكن التراجع.'
+          : 'Existing brackets already have recorded winners. Regenerating will delete all matches (including results) and create fresh brackets. This cannot be undone.',
+        confirmLabel: lang === 'ar' ? 'تأكيد الإعادة' : 'Regenerate',
+      });
+      return;
+    }
+    runGenerateMatches();
+  };
+
+  const runGenerateMatches = () => {
     const SOCCER_BUCKETS = [
       { key: 'ES / MS', divs: ['ES', 'MS'] },
       { key: 'HS / US', divs: ['HS', 'US'] },
@@ -664,6 +684,9 @@ export default function App() {
             const payload = pendingImport;
             setConfirmState(null);
             await runImport(payload);
+          } else if (state.kind === 'regenMatches') {
+            setConfirmState(null);
+            runGenerateMatches();
           } else {
             setConfirmState(null);
           }
