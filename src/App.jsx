@@ -95,6 +95,16 @@ export default function App() {
           const batch = writeBatch(db);
           MOCK_USERS.forEach(u => batch.set(doc(db, 'users', u.id), u));
           await batch.commit();
+        } else {
+          // Backfill any MOCK_USERS that aren't in Firestore yet (e.g. new
+          // admin accounts added to the seed list after first deployment).
+          const existingIds = new Set(usersSnap.docs.map(d => d.id));
+          const missing = MOCK_USERS.filter(u => !existingIds.has(u.id));
+          if (missing.length > 0) {
+            const batch = writeBatch(db);
+            missing.forEach(u => batch.set(doc(db, 'users', u.id), u));
+            await batch.commit();
+          }
         }
         const cfgSnap = await getDoc(doc(db, 'config', 'system'));
         if (!cfgSnap.exists()) {
