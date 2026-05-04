@@ -169,7 +169,14 @@ export default function App() {
       // Upsert added/changed
       nextById.forEach((s, id) => {
         if (prevById.get(id) !== s) {
-          setDoc(doc(db, 'scores', id), s).catch(err => reportError('save score', err));
+          // Stamp first-seen time so downstream UI (PublicResults "Xm ago")
+          // can show how recent a score is. Preserve any existing ts.
+          const stamped = s && typeof s === 'object' && !s.ts ? { ...s, ts: Date.now() } : s;
+          if (stamped !== s) {
+            // Reflect the stamp back into the in-memory list as well.
+            next[next.indexOf(s)] = stamped;
+          }
+          setDoc(doc(db, 'scores', id), stamped).catch(err => reportError('save score', err));
         }
       });
       // Delete removed

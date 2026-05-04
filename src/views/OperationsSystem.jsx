@@ -471,7 +471,12 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       setImportResult(result);
       setImportState('preview');
     } catch (err) {
-      setImportError(lang === 'ar' ? 'حدث خطأ أثناء قراءة الملف. تأكد أن الملف بصيغة .xlsx أو .csv' : 'Failed to read file. Make sure it is a valid .xlsx or .csv file.');
+      const reason = err?.message || String(err || '');
+      const friendly = lang === 'ar'
+        ? `فشل قراءة الملف: ${reason}. تأكد من صيغة .xlsx/.csv ومن وجود الأعمدة المطلوبة (Team Name, Region, Division, Category, Members).`
+        : `Failed to read file: ${reason}. Make sure it is a valid .xlsx/.csv with required columns (Team Name, Region, Division, Category, Members).`;
+      setImportError(friendly);
+      console.error('Excel import error:', err);
       setImportState('idle');
     }
     e.target.value = '';

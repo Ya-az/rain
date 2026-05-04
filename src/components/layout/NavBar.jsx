@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { BarChart3, Users, Activity, Settings } from 'lucide-react';
 import { t } from '../../constants/translations';
 
@@ -8,8 +9,36 @@ const TABS = [
   { id: 'operations', iconKey: Settings, labelKey: 'operations' },
 ];
 
+// Hide the mobile bottom nav while a text/number/textarea input is focused
+// (so the on-screen keyboard doesn't get covered by the nav bar).
+function useInputFocused() {
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    const isFormControl = (el) => {
+      if (!el) return false;
+      const tag = el.tagName;
+      if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (tag === 'INPUT') {
+        const type = (el.type || 'text').toLowerCase();
+        return !['checkbox', 'radio', 'button', 'submit', 'reset', 'file'].includes(type);
+      }
+      return el.isContentEditable === true;
+    };
+    const onIn = (e) => { if (isFormControl(e.target)) setFocused(true); };
+    const onOut = (e) => { if (isFormControl(e.target)) setFocused(false); };
+    document.addEventListener('focusin', onIn);
+    document.addEventListener('focusout', onOut);
+    return () => {
+      document.removeEventListener('focusin', onIn);
+      document.removeEventListener('focusout', onOut);
+    };
+  }, []);
+  return focused;
+}
+
 export default function NavBar({ currentView, setCurrentView, currentUser, allowedViews = [], lang, pendingCount = 0 }) {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
+  const inputFocused = useInputFocused();
 
   if (!currentUser) return null;
 
@@ -35,7 +64,7 @@ export default function NavBar({ currentView, setCurrentView, currentUser, allow
                 <Icon size={17} strokeWidth={active ? 2.5 : 2} />
                 <span>{t(lang, labelKey)}</span>
                 {id === 'operations' && pendingCount > 0 && (
-                  <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none">
+                  <span className="ms-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full leading-none animate-pulse">
                     {pendingCount}
                   </span>
                 )}
@@ -47,8 +76,9 @@ export default function NavBar({ currentView, setCurrentView, currentUser, allow
 
       {/* Mobile bottom nav */}
       <nav
-        className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-navy-500 border-t border-white/10 flex pb-safe"
+        className={`sm:hidden fixed bottom-0 inset-x-0 z-50 bg-navy-500 border-t border-white/10 flex pb-safe transition-transform duration-200 ${inputFocused ? 'translate-y-full pointer-events-none' : 'translate-y-0'}`}
         dir={dir}
+        aria-hidden={inputFocused}
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4px)' }}
       >
         {visibleTabs.map(({ id, iconKey: Icon, labelKey }) => {
@@ -70,7 +100,7 @@ export default function NavBar({ currentView, setCurrentView, currentUser, allow
               }`}>
                 <Icon size={active ? 22 : 20} strokeWidth={active ? 2.5 : 1.8} />
                 {id === 'operations' && pendingCount > 0 && (
-                  <span className="absolute top-0 right-0.5 w-2 h-2 bg-rose-500 rounded-full border border-ink-900" />
+                  <span className="absolute top-0 right-0.5 w-2 h-2 bg-rose-500 rounded-full border border-ink-900 animate-pulse" />
                 )}
               </span>
               <span className={`text-[10px] leading-none font-bold transition-all ${

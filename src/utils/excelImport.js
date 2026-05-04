@@ -84,7 +84,28 @@ export function parseExcelFile(file, existingTeams = []) {
         const data = new Uint8Array(e.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
+        if (!ws) {
+          throw new Error('Workbook has no sheets');
+        }
         const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (!rows.length) {
+          throw new Error('Sheet is empty');
+        }
+
+        // ── Header validation: report ALL missing required columns at once ──
+        const headerKeys = new Set(Object.keys(rows[0] || {}).map(k => k.trim()));
+        const required = [
+          { col: COL_TEAM,     label: 'Team Name' },
+          { col: COL_CATEGORY, label: 'Category' },
+          { col: COL_DIVISION, label: 'Division' },
+          { col: COL_REGION,   label: 'Region' },
+        ];
+        const missing = required.filter(r => !headerKeys.has(r.col));
+        if (missing.length) {
+          throw new Error(
+            `Missing required column(s): ${missing.map(m => `"${m.col}" (${m.label})`).join(', ')}`
+          );
+        }
 
         // normalised-name → existing team (for check-in state preservation)
         const existingByName = new Map(

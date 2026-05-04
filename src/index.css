@@ -43,7 +43,7 @@
     @apply w-full px-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all font-medium text-ink-800 bg-white;
   }
   .btn-primary {
-    @apply bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm press-effect;
+    @apply bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-bold rounded-xl transition-colors shadow-sm press-effect;
   }
   .btn-secondary {
     @apply bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl transition-colors press-effect;

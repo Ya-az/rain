@@ -37,8 +37,19 @@ function InspectionScoringTabs({ step, onChange, hasInspection, isPassed, lang =
           }`}
         >
           🏆 {lang === 'ar' ? 'التسجيل' : 'Scoring'}
+          {!hasInspection && (
+            <span
+              className="ms-1.5 inline-block w-2 h-2 rounded-full bg-amber-500"
+              title={lang === 'ar' ? 'لم يتم الفحص' : 'Inspection not completed'}
+            />
+          )}
         </button>
       </div>
+      {step === 'scoring' && !hasInspection && (
+        <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-semibold">
+          ⚠ {lang === 'ar' ? 'لم يتم تسجيل الفحص بعد (اختياري لكن مُستحسن قبل التسجيل).' : 'Inspection not recorded yet (optional but recommended before scoring).'}
+        </p>
+      )}
     </div>
   );
 }

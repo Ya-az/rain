@@ -101,6 +101,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
           catId: cat?.id || '',
           region: team?.region || '',
           score: cat?.id === 'c1_fastbot' ? `${(parseFloat(s.score) || 0).toFixed(2)}s` : s.score,
+          ts: typeof s.ts === 'number' ? s.ts : null,
         };
       });
   }, [scores, participations, categories, teams]);
@@ -306,7 +307,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
         {/* Region medal board + Recent results */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <RegionBoard tally={regionMedals} tx={tx} />
-          <RecentResults recent={recent} tx={tx} />
+          <RecentResults recent={recent} tx={tx} lang={lang} />
         </div>
       </main>
 
@@ -530,7 +531,20 @@ function RegionBoard({ tally, tx }) {
 }
 
 // ─── Recent results feed ───────────────────────────────────────────────────
-function RecentResults({ recent, tx }) {
+function formatAgo(ts, lang) {
+  if (!ts) return '';
+  const diff = Math.max(0, Date.now() - ts);
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60)  return lang === 'ar' ? 'الآن' : 'now';
+  const min = Math.floor(sec / 60);
+  if (min < 60)  return lang === 'ar' ? `قبل ${min} د` : `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24)   return lang === 'ar' ? `قبل ${hr} س` : `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  return lang === 'ar' ? `قبل ${d} ي` : `${d}d ago`;
+}
+
+function RecentResults({ recent, tx, lang }) {
   return (
     <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5">
       <SectionHeader inline title={tx('Recent Results', 'آخر النتائج')} subtitle={tx('Latest verified scores', 'أحدث النتائج المعتمدة')} />
@@ -548,7 +562,10 @@ function RecentResults({ recent, tx }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-sm truncate">{r.team}</p>
-                  <p className="text-[10px] font-bold text-white/50 truncate">{r.cat}</p>
+                  <p className="text-[10px] font-bold text-white/50 truncate">
+                    {r.cat}
+                    {r.ts && <span className="ms-1.5 text-white/40">· {formatAgo(r.ts, lang)}</span>}
+                  </p>
                 </div>
                 {r.region && <span className={`w-2 h-2 rounded-full shrink-0 ${REGION_COLORS[r.region]?.dot || 'bg-white/30'}`} />}
                 <span className="font-black tabular-nums text-saudi-300 shrink-0">{r.score}</span>

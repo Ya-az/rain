@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ShieldCheck, User, Lock, ChevronDown, Globe } from 'lucide-react';
+import { ShieldCheck, User, Lock, ChevronDown, Globe, Eye, EyeOff } from 'lucide-react';
 import { t } from '../constants/translations';
 import Footer from '../components/layout/Footer';
 
 export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }) {
   const [user, setUser] = useState('');
   const [pass, setPass] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -140,13 +141,22 @@ export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
                   <input
-                    type="password"
+                    type={showPass ? 'text' : 'password'}
                     value={pass}
                     onChange={e => setPass(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                    className="input-base pl-10"
+                    className="input-base pl-10 pr-10"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(s => !s)}
+                    aria-label={showPass ? (lang === 'ar' ? 'إخفاء كلمة المرور' : 'Hide password') : (lang === 'ar' ? 'إظهار كلمة المرور' : 'Show password')}
+                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 transition-colors p-1"
+                  >
+                    {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
                 </div>
               </div>
 

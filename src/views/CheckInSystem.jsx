@@ -66,7 +66,8 @@ function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participat
                 : t(lang, 'noShow')}
             </span>
           </div>
-          <p className="text-xs text-ink-400 mt-0.5 font-medium">
+          <p className="text-xs text-ink-400 mt-0.5 font-medium flex items-center gap-1.5">
+            <span className={`inline-block w-2 h-2 rounded-full ${regionColor}`} />
             {team.region} · {t(lang, 'divisionLabel')} {team.division}
           </p>
           <p className="text-xs text-ink-300 mt-0.5 truncate">
@@ -195,6 +196,20 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
 
       {/* Search + filters */}
       <div className="bg-white rounded-2xl shadow-card border border-ink-100 p-4 space-y-3">
+        {/* Region color legend */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] font-semibold text-ink-500">
+          <span className="uppercase tracking-wider text-[10px] text-ink-400">{lang === 'ar' ? 'دليل المناطق' : 'Region legend'}:</span>
+          {[
+            { name: 'Western', cls: 'bg-brand-500',  ar: 'الغربية' },
+            { name: 'Central', cls: 'bg-saudi-500',  ar: 'الوسطى' },
+            { name: 'Eastern', cls: 'bg-amber-500',  ar: 'الشرقية' },
+          ].map(r => (
+            <span key={r.name} className="inline-flex items-center gap-1.5">
+              <span className={`inline-block w-2.5 h-2.5 rounded-full ${r.cls}`} />
+              {lang === 'ar' ? r.ar : r.name}
+            </span>
+          ))}
+        </div>
         <div className="relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
           <input

@@ -79,7 +79,66 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
           <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">{rows.length} {t(lang, 'teamLabel')}</span>
         </div>
       )}
-      <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
+
+      {/* Mobile: card view (avoids horizontal table scroll on small screens) */}
+      <div className="sm:hidden divide-y divide-ink-100">
+        {rows.length === 0 && (
+          <div className="px-4 py-8 text-center text-sm text-ink-400 font-medium">
+            {t(lang, 'fastbotNoTeamsForGroup')}
+          </div>
+        )}
+        {rows.map(row => (
+          <button
+            key={row.participationId}
+            type="button"
+            onClick={() => onSelectRow(row)}
+            className="w-full text-start p-3 active:bg-brand-50 transition-colors press-effect"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold text-ink-800 text-sm truncate">{row.teamName}</p>
+                  <FastBotCheckInBadge status={row.checkInStatus} lang={lang} />
+                </div>
+                <p className="font-mono text-[11px] text-ink-500 mt-0.5">
+                  #{row.participationId}
+                  <span className="ms-2 inline-flex items-center rounded-full bg-brand-50 border border-brand-200 px-2 py-0.5 text-[9px] font-black uppercase text-brand-700">{row.division}</span>
+                </p>
+              </div>
+              <div className="text-end shrink-0">
+                <p className="text-[9px] font-black uppercase tracking-wider text-ink-400">{t(lang, 'bestResult')}</p>
+                <p className={`text-base font-black tabular-nums ${row.bestOfficialScore !== null ? 'text-saudi-700' : 'text-ink-300'}`}>
+                  {scoreFormatter(row.bestOfficialScore)}
+                </p>
+              </div>
+            </div>
+            {activeSlotKeys.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {activeSlotKeys.map(slotKey => {
+                  const slot = row.slots[slotKey];
+                  const label = scoreFormatter(getFastBotScoreValue(slot?.scoreObj));
+                  const has = label !== '--';
+                  return (
+                    <span
+                      key={slotKey}
+                      className={`inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-black ${
+                        has ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-ink-200 bg-ink-50 text-ink-400'
+                      }`}
+                    >
+                      <span className="opacity-70">{slotKey}</span>
+                      <span className="tabular-nums">{label}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-1.5 text-[10px] text-brand-500 font-black uppercase tracking-wider">{t(lang, 'openFastBotTeam')} →</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Desktop / tablet: table view */}
+      <div className="hidden sm:block overflow-x-auto -webkit-overflow-scrolling-touch">
         <table className="min-w-[820px] sm:min-w-[1120px] w-full text-xs sm:text-sm">
           <thead className="bg-[#061a27] text-white">
             <tr className="text-left">

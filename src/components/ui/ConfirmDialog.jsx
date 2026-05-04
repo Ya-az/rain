@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 
 /**
@@ -32,10 +32,22 @@ export default function ConfirmDialog({
   lang = 'en',
 }) {
   const [typed, setTyped] = useState('');
+  const cancelBtnRef = useRef(null);
 
   useEffect(() => {
     if (!open) setTyped('');
   }, [open]);
+
+  useEffect(() => {
+    if (open && !typeToConfirm) {
+      // Default focus on Cancel for safer UX (Enter/Space won't immediately
+      // trigger the destructive action). Type-to-confirm dialogs already
+      // autofocus their text field.
+      const id = setTimeout(() => cancelBtnRef.current?.focus(), 50);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [open, typeToConfirm]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -102,10 +114,11 @@ export default function ConfirmDialog({
           )}
           <div className="flex justify-end gap-2 pt-1">
             <button
+              ref={cancelBtnRef}
               type="button"
               onClick={onCancel}
               disabled={busy}
-              className="px-4 py-2 text-sm font-bold text-ink-700 bg-ink-100 hover:bg-ink-200 rounded-xl transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-bold text-ink-700 bg-ink-100 hover:bg-ink-200 rounded-xl transition-colors disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ink-400"
             >
               {cancelLabel || tx('Cancel', 'إلغاء')}
             </button>
