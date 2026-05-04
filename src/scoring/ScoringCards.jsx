@@ -79,8 +79,9 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
   const [data, setData] = useState(buildInitialData(initialScoreObj));
   const [photo, setPhoto] = useState(initialScoreObj?.rawInput?.photo || null);
   const [elapsedFromTimer, setElapsedFromTimer] = useState(null);
-  // Inspection is OPTIONAL and decoupled from scoring — default to Scoring tab.
-  const [step, setStep] = useState('scoring');
+  // Inspection is OPTIONAL but the card opens on the Inspection tab by default;
+  // referees can switch to Scoring at any time without completing it.
+  const [step, setStep] = useState(initFSM === 'AWAITING_SUBMISSION' ? 'inspection' : 'scoring');
   const [editMode, setEditMode] = useState(null);
 
   useEffect(() => {
@@ -94,7 +95,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
     setData(buildInitialData(initialScoreObj));
     setPhoto(initialScoreObj?.rawInput?.photo || null);
     setElapsedFromTimer(null);
-    setStep('scoring');
+    setStep(nextFSM === 'AWAITING_SUBMISSION' ? 'inspection' : 'scoring');
     setEditMode(null);
   }, [initialScoreObj, minLaps, attemptNumber]);
 
@@ -339,8 +340,8 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
   const [fsmState, setFsmState] = useState(initFSM);
   const [insp, setInsp] = useState(initialScoreObj ? (initialScoreObj.proposedInspection || initialScoreObj.inspectionData || {}) : {});
   const maxBalls = systemConfig?.linefollowBalls?.[teamDivision] || { ES: 2, MS: 3, HS: 4, US: 5 }[teamDivision] || 2;
-  // Inspection is OPTIONAL and decoupled from scoring — default to Scoring tab.
-  const [step, setStep] = useState('scoring');
+  // Inspection is OPTIONAL but the card opens on the Inspection tab by default.
+  const [step, setStep] = useState(initFSM === 'AWAITING_SUBMISSION' ? 'inspection' : 'scoring');
   const [data, setData] = useState(initialScoreObj?.rawInput || {
     leavesHome: false, turns1stT: false, turns2ndT: false, reachTower: false,
     deliver1Ball: false, returnHome: false, bonusStart: false, bonus1stT: false,
@@ -562,8 +563,8 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
   const [inspA, setInspA] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionA || initialScoreObj.inspectionA || {}) : {});
   const [inspB, setInspB] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionB || initialScoreObj.inspectionB || {}) : {});
   const [data, setData] = useState(initialScoreObj?.rawInput || { showA: false, showB: false, r1: null, r2: null, r3: null, notes: '' });
-  // Inspection is OPTIONAL and decoupled from scoring — default to Scoring tab.
-  const [step, setStep] = useState('scoring');
+  // Inspection is OPTIONAL but the card opens on the Inspection tab by default.
+  const [step, setStep] = useState(initFSM === 'AWAITING_SUBMISSION' ? 'inspection' : 'scoring');
 
   useEffect(() => {
     if (initialScoreObj) {
@@ -714,11 +715,11 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
   const [inspA, setInspA] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionA || initialScoreObj.inspectionA || {}) : {});
   const [inspB, setInspB] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionB || initialScoreObj.inspectionB || {}) : {});
   const [data, setData] = useState(initialScoreObj?.rawInput || { showA: false, showB: false, unableA: false, unableB: false, goalsA: 0, goalsB: 0, notes: '' });
-  // Inspection is now OPTIONAL and fully decoupled from scoring. Default to the
-  // Scoring tab so referees can record results immediately. They can switch to
-  // the Inspection tab at any time to fill it in (its data is saved alongside
-  // the score on submit, so an inspection-only or scoring-only flow both work).
-  const [step, setStep] = useState('scoring');
+  // Inspection is OPTIONAL and fully decoupled from scoring. The card opens on
+  // the Inspection tab by default; referees can switch to Scoring at any time
+  // without completing inspection. Inspection data, if filled, is saved
+  // alongside the score on submit.
+  const [step, setStep] = useState(initFSM === 'AWAITING_SUBMISSION' ? 'inspection' : 'scoring');
 
   useEffect(() => {
     if (initialScoreObj) {
