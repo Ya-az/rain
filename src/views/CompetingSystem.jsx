@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import { CheckCircle2, Search } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import { t } from '../constants/translations';
+import { genId } from '../utils/ids';
 import CollapsibleCard from '../components/ui/CollapsibleCard';
 import CustomSelect from '../components/ui/CustomSelect';
 import {
@@ -82,7 +83,7 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
         <table className="min-w-[820px] sm:min-w-[1120px] w-full text-xs sm:text-sm">
           <thead className="bg-[#061a27] text-white">
             <tr className="text-left">
-              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamName')}</th>
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold sticky start-0 bg-[#061a27] z-10">{t(lang, 'teamName')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamNumber')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'divisionLabel')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{t(lang, 'bestResult')}</th>
@@ -108,9 +109,9 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                     onSelectRow(row);
                   }
                 }}
-                className="cursor-pointer transition-colors hover:bg-brand-50/60 focus:outline-none focus:bg-brand-50"
+                className="cursor-pointer transition-colors hover:bg-brand-50/60 focus:outline-none focus:bg-brand-50 group"
               >
-                <td className="px-3 py-3">
+                <td className="px-3 py-3 sticky start-0 bg-white group-hover:bg-brand-50/60 group-focus:bg-brand-50 z-[5]">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-bold text-ink-800">{row.teamName}</p>
@@ -433,7 +434,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
           proposedRawInput: undefined,
         } : score);
       }
-      return [...prev, { id: Date.now() + Math.random(), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
+      return [...prev, { id: genId('s'), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
     });
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -484,7 +485,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
           proposedRawInput: undefined,
         } : score);
       }
-      return [...prev, { id: Date.now() + Math.random(), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
+      return [...prev, { id: genId('s'), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
     });
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -642,7 +643,7 @@ function Group2Workflow({ category, matches, scores, setScores, lang, showToast 
   }
 
   const onSaveScore = (s, inspA, inspB, rawData) => {
-    setScores(prev => [...prev, { id: Date.now(), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
+    setScores(prev => [...prev, { id: genId('s'), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
     setSelectedMatchId('');
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -1086,7 +1087,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
   const existingScores = scores.filter(s => s.pId === selectedMatchId);
 
   const handleSaveScore = (s, inspA, inspB, rawData) => {
-    setScores(prev => [...prev, { id: Date.now(), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
+    setScores(prev => [...prev, { id: genId('s'), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
     setSelectedMatchId(null);
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -1225,7 +1226,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
   const existingScores = scores.filter(s => s.pId === selectedMatchId);
 
   const handleSaveScore = (s, inspA, inspB, rawData) => {
-    setScores(prev => [...prev, { id: Date.now(), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
+    setScores(prev => [...prev, { id: genId('s'), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
     setSelectedMatchId(null);
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -1376,7 +1377,7 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
           <ScoringCard title={`${t(lang, 'presentationAttempt')} ${existingScores.length + 1}: ${teamName}`}
             lang={lang}
             onSaveScore={(s, insp) => {
-              setScores(prev => [...prev, { id: Date.now(), pId: selectedP, score: s, inspectionData: insp || {}, status: 'VALID' }]);
+              setScores(prev => [...prev, { id: genId('s'), pId: selectedP, score: s, inspectionData: insp || {}, status: 'VALID' }]);
               setSelectedP('');
               if (showToast) showToast(t(lang, 'toastScoreSubmit'));
             }} />

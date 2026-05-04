@@ -15,6 +15,7 @@ import { buildBracketForDivision } from './utils/bracket';
 import { db, ensureAuthReady } from './firebase';
 import { hashPassword, verifyPassword, looksHashed, generateSalt } from './utils/passwords';
 import { saveSession, loadSession, clearSession } from './utils/session';
+import { genId } from './utils/ids';
 import {
   collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, getDoc,
 } from 'firebase/firestore';
@@ -450,7 +451,7 @@ export default function App() {
       showToast(lang === 'ar' ? 'اسم المستخدم موجود مسبقاً' : 'Username already exists', 'error');
       return false;
     }
-    const id = newUser.id || `u_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const id = newUser.id || genId('u');
     const salt = generateSalt();
     const passwordHash = await hashPassword(newUser.password, salt);
     const userDoc = { ...newUser, id, salt, passwordHash };
@@ -475,7 +476,7 @@ export default function App() {
       return false;
     }
     const memberList = (payload.members || [])
-      .map((m, idx) => ({ id: `m_${Date.now()}_${idx}`, name: (m.name || '').trim(), present: false }))
+      .map((m, idx) => ({ id: genId('m'), name: (m.name || '').trim(), present: false }))
       .filter(m => m.name);
     if (memberList.length === 0) {
       showToast(lang === 'ar' ? 'أضف عضواً واحداً على الأقل' : 'Add at least one member', 'error');
@@ -487,7 +488,7 @@ export default function App() {
       return false;
     }
 
-    const teamId = `t_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const teamId = genId('t');
     const newTeam = {
       id: teamId,
       name: payload.name.trim(),

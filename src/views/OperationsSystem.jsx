@@ -6,6 +6,7 @@ import CustomSelect from '../components/ui/CustomSelect';
 import Toggle from '../components/ui/Toggle';
 import { t } from '../constants/translations';
 import { parseExcelFile, downloadTemplate } from '../utils/excelImport';
+import { exportResultsToExcel } from '../utils/exportResults';
 
 // ─── RosterMobileCard ─────────────────────────────────────────────────────── 
 
@@ -425,6 +426,39 @@ export default function OperationsSystem({ scores, setScores, teams, participati
         <Settings size={22} className="text-ink-600" />
         <h2 className="text-xl font-black text-ink-800">{t(lang, 'operationsCmd')}</h2>
       </div>
+
+      {/* ─ Export Results — admin only */}
+      {currentUser?.role === 'admin' && (
+        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-saudi-200 bg-saudi-50">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-saudi-500 text-white flex items-center justify-center shrink-0">
+              <Download size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-ink-800 text-sm truncate">
+                {lang === 'ar' ? 'تصدير النتائج النهائية' : 'Export Final Results'}
+              </p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                {lang === 'ar' ? 'ملف Excel متعدد الأوراق (ورقة لكل مسابقة) مع الترتيب.' : 'Multi-sheet Excel (one sheet per category) with rankings.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              try {
+                exportResultsToExcel({ categories, participations, teams, scores, group2Matches });
+                if (showToast) showToast(lang === 'ar' ? 'تم تصدير النتائج' : 'Results exported', 'success');
+              } catch (err) {
+                console.error('export error', err);
+                if (showToast) showToast(lang === 'ar' ? 'فشل التصدير' : 'Export failed', 'error');
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl bg-saudi-500 hover:bg-saudi-600 text-white font-bold text-xs sm:text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0"
+          >
+            <Download size={14} /> {lang === 'ar' ? 'تنزيل' : 'Download'}
+          </button>
+        </div>
+      )}
 
       {/* ─ Import Team Data — admin only */}
       {currentUser?.role === 'admin' && (
