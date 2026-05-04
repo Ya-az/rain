@@ -1,16 +1,16 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
 import { MOCK_USERS, MOCK_CATEGORIES, INITIAL_TEAMS, INITIAL_PARTICIPATIONS, DEFAULT_SYSTEM_CONFIG } from './constants/mockData';
 import { t } from './constants/translations';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import NavBar from './components/layout/NavBar';
 import ConfirmDialog from './components/ui/ConfirmDialog';
-import Login from './views/Login';
-import Dashboard from './views/Dashboard';
-import PublicResults from './views/PublicResults';
-import CheckInSystem from './views/CheckInSystem';
-import CompetingSystem from './views/CompetingSystem';
-import OperationsSystem from './views/OperationsSystem';
+const Login = lazy(() => import('./views/Login'));
+const Dashboard = lazy(() => import('./views/Dashboard'));
+const PublicResults = lazy(() => import('./views/PublicResults'));
+const CheckInSystem = lazy(() => import('./views/CheckInSystem'));
+const CompetingSystem = lazy(() => import('./views/CompetingSystem'));
+const OperationsSystem = lazy(() => import('./views/OperationsSystem'));
 import { buildBracketForDivision } from './utils/bracket';
 import { db, ensureAuthReady } from './firebase';
 import { hashPassword, verifyPassword, looksHashed, generateSalt } from './utils/passwords';
@@ -28,6 +28,14 @@ const getAllowedViews = (user) => {
   if (role === 'volunteer') return ['checkin'];
   return ['dashboard'];
 };
+
+function ViewSpinner() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh] w-full">
+      <div className="w-10 h-10 rounded-full border-4 border-brand-200 border-t-brand-500 animate-spin" />
+    </div>
+  );
+}
 
 export default function App() {
   const [lang, setLang] = useState('en');
@@ -351,7 +359,9 @@ export default function App() {
     // Guard: if existing brackets already have winners recorded, regenerating
     // will wipe them. Prompt for type-to-confirm before nuking real results.
     const hasResults = group2Matches.some(m => m?.winnerSide || m?.winnerTeamId);
-    if (hasResults) {
+    const matchIds = new Set(group2Matches.map(m => m.id));
+    const hasMatchScores = scores.some(s => s?.pId && matchIds.has(s.pId));
+    if (hasResults || hasMatchScores) {
       setConfirmState({
         kind: 'regenMatches',
         variant: 'danger',
@@ -532,12 +542,14 @@ export default function App() {
   // ─── Login screen (no user) ───────────────────────────────────────────────
   if (!currentUser && !publicMode) {
     return (
-      <Login
-        handleLogin={handleLogin}
-        lang={lang}
-        onToggleLang={() => setLang(l => l === 'en' ? 'ar' : 'en')}
-        onEnterPublic={() => setPublicMode(true)}
-      />
+      <Suspense fallback={<ViewSpinner />}>
+        <Login
+          handleLogin={handleLogin}
+          lang={lang}
+          onToggleLang={() => setLang(l => l === 'en' ? 'ar' : 'en')}
+          onEnterPublic={() => setPublicMode(true)}
+        />
+      </Suspense>
     );
   }
 
@@ -545,15 +557,17 @@ export default function App() {
   if (!currentUser && publicMode) {
     return (
       <div className="relative pt-14 sm:pt-0">
-        <PublicResults
-          teams={teams}
-          getTeamStatus={getTeamStatus}
-          scores={scores}
-          lang={lang}
-          participations={participations}
-          categories={categories}
-          group2Matches={group2Matches}
-        />
+        <Suspense fallback={<ViewSpinner />}>
+          <PublicResults
+            teams={teams}
+            getTeamStatus={getTeamStatus}
+            scores={scores}
+            lang={lang}
+            participations={participations}
+            categories={categories}
+            group2Matches={group2Matches}
+          />
+        </Suspense>
         {/* Floating controls */}
         <div className="fixed top-2 sm:top-3 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 sm:gap-2 px-2 py-1 sm:py-1.5 rounded-full bg-black/50 backdrop-blur border border-white/15 shadow-xl">
           <button
@@ -594,6 +608,7 @@ export default function App() {
       />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6">
+        <Suspense fallback={<ViewSpinner />}>
         {currentView === 'dashboard' && allowedViews.includes('dashboard') && (
           <Dashboard
             teams={authorizedTeams}
@@ -654,6 +669,7 @@ export default function App() {
             busyMatches={busyMatches}
           />
         )}
+        </Suspense>
       </main>
 
       <Footer lang={lang} />

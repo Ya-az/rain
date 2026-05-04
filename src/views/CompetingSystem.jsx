@@ -520,9 +520,9 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
       <div className="space-y-5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+            <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
             <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+              className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
           </div>
           <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
             <option value="">{t(lang, 'allLevelsOption')}</option>
@@ -579,9 +579,9 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+          <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
           <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+            className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
         </div>
         <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
           <option value="">{t(lang, 'allLevelsOption')}</option>
@@ -992,12 +992,12 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
                             </td>
                             <td className={`px-3 py-2.5 font-bold ${isWinnerA ? 'text-saudi-700' : 'text-ink-700'} ${!m.teamA ? 'text-ink-300 italic font-medium' : ''}`}>
                               {m.teamA || tx('TBD', 'لم يُحدد')}
-                              {isWinnerA && <span className="ml-1 text-saudi-600">✓</span>}
+                              {isWinnerA && <span className="ms-1 text-saudi-600">✓</span>}
                             </td>
                             <td className="px-2 py-2.5 text-center text-[10px] font-black text-ink-400">vs</td>
                             <td className={`px-3 py-2.5 font-bold ${isWinnerB ? 'text-saudi-700' : 'text-ink-700'} ${!m.teamB ? 'text-ink-300 italic font-medium' : ''} ${m.isBye ? 'italic text-ink-400' : ''}`}>
                               {m.teamB || tx('TBD', 'لم يُحدد')}
-                              {isWinnerB && <span className="ml-1 text-saudi-600">✓</span>}
+                              {isWinnerB && <span className="ms-1 text-saudi-600">✓</span>}
                             </td>
                             <td className="px-3 py-2.5 text-center font-black text-ink-700">
                               {m._scoreObj?.score || (m.isBye ? tx('BYE', 'تأهل') : '--')}
@@ -1028,7 +1028,7 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
 
 // ─── SumoWorkflow ─────────────────────────────────────────────────────────────
 
-function SumoWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
+function SumoWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast, currentUser }) {
   const [mode, setMode] = useState('bracket'); // 'bracket' | 'roundrobin'
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
@@ -1114,7 +1114,17 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
         </div>
         {existingScores.map((scoreObj, index) => (
-          <SumoMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
+          <div key={scoreObj.id} className="space-y-2">
+            <SumoMatchCard title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
+            {isAdmin && (
+              <button
+                onClick={() => handleReplay(scoreObj.id)}
+                className="w-full py-2.5 rounded-xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                🔄 {lang === 'ar' ? `إعادة المحاولة ${index + 1} (حذف وإعادة تسجيل)` : `Replay attempt ${index + 1} (delete & re-record)`}
+              </button>
+            )}
+          </div>
         ))}
         <SumoMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} lang={lang} />
       </div>
@@ -1149,7 +1159,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
 
 // ─── SoccerWorkflow ──────────────────────────────────────────────────────────
 
-function SoccerWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
+function SoccerWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast, currentUser }) {
   const [mode, setMode] = useState('bracket');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
@@ -1214,6 +1224,15 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
     setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, proposedInspectionA: newInspA, proposedInspectionB: newInspB, proposedRawInput: newRaw, status: 'PENDING' } : s));
     setSelectedMatchId(null);
   };
+  const isAdmin = currentUser?.role === 'admin';
+  const handleReplay = (scoreId) => {
+    const ok = window.confirm(lang === 'ar'
+      ? 'سيتم حذف هذه المحاولة ويمكن إعادة تسجيلها. متأكد؟'
+      : 'This attempt will be deleted and can be re-recorded. Continue?');
+    if (!ok) return;
+    setScores(prev => prev.filter(s => s.id !== scoreId));
+    if (showToast) showToast(lang === 'ar' ? 'تم حذف المحاولة' : 'Attempt deleted', 'info');
+  };
 
   if (teamEntries.length === 0) {
     return (
@@ -1234,7 +1253,17 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
         </div>
         {existingScores.map((scoreObj, index) => (
-          <SoccerBotMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
+          <div key={scoreObj.id} className="space-y-2">
+            <SoccerBotMatchCard title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
+            {isAdmin && (
+              <button
+                onClick={() => handleReplay(scoreObj.id)}
+                className="w-full py-2.5 rounded-xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                🔄 {lang === 'ar' ? `إعادة المحاولة ${index + 1} (حذف وإعادة تسجيل)` : `Replay attempt ${index + 1} (delete & re-record)`}
+              </button>
+            )}
+          </div>
         ))}
         <SoccerBotMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} lang={lang} />
       </div>
@@ -1307,9 +1336,9 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+          <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
           <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+            className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
         </div>
         <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
           <option value="">{t(lang, 'allLevelsOption')}</option>
@@ -1452,10 +1481,10 @@ export default function CompetingSystem({ categories, participations, teams, get
               <Group1Workflow category={selectedCategory} participations={participations} teams={teams} getTeamStatus={getTeamStatus} scores={scores} setScores={setScores} systemConfig={systemConfig} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_sumo' && (
-              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
+              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} currentUser={currentUser} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_soccer' && (
-              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
+              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} currentUser={currentUser} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id !== 'c2_sumo' && selectedCategory.id !== 'c2_soccer' && (
               <Group2Workflow category={selectedCategory} matches={group2Matches.filter(m => m.categoryId === selectedCategory.id)} scores={scores} setScores={setScores} lang={lang} showToast={showToast} />

@@ -178,17 +178,31 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
       </div>
 
       {/* Upcoming Matches */}
-      {group2Matches.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-card border border-ink-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-ink-100 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center">
-              <PlayCircle className="text-brand-500" size={17} />
-            </div>
-            <h2 className="text-base font-bold text-ink-800">{t(lang, 'upcomingMatches')}</h2>
-            <span className="ml-auto badge bg-brand-50 text-brand-700 border border-brand-200">
+      <div className="bg-white rounded-2xl shadow-card border border-ink-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-ink-100 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center">
+            <PlayCircle className="text-brand-500" size={17} />
+          </div>
+          <h2 className="text-base font-bold text-ink-800">{t(lang, 'upcomingMatches')}</h2>
+          {group2Matches.length > 0 && (
+            <span className="ms-auto badge bg-brand-50 text-brand-700 border border-brand-200">
               {upcomingMatches.length} {lang === 'ar' ? 'متبقية' : 'remaining'}
             </span>
+          )}
+        </div>
+        {group2Matches.length === 0 ? (
+          <div className="px-5 py-10 text-center">
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-ink-50 border border-ink-200 flex items-center justify-center mb-3">
+              <PlayCircle className="text-ink-300" size={20} />
+            </div>
+            <p className="text-sm font-bold text-ink-500">
+              {lang === 'ar' ? 'لا توجد مباريات بعد' : 'No matches yet'}
+            </p>
+            <p className="text-xs text-ink-400 mt-1">
+              {lang === 'ar' ? 'سيتم عرض المباريات هنا بعد توليد الجداول.' : 'Matches will appear here after brackets are generated.'}
+            </p>
           </div>
+        ) : (
           <div className="divide-y divide-ink-50">
             {group2Matches.map(m => {
               const isDone = scores.some(s => s.pId === m.id && s.status === 'VALID');
@@ -210,8 +224,8 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

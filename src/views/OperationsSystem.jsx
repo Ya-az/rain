@@ -224,7 +224,7 @@ function AddTeamCard({ lang, categories, addTeam, defaultRegion = 'Western' }) {
 
   return (
     <CollapsibleCard
-      title={<><UserPlus size={18} className="text-brand-400 mr-2" />{tx('Add Team Manually', 'إضافة فريق يدوياً')}</>}
+      title={<><UserPlus size={18} className="text-brand-400 me-2" />{tx('Add Team Manually', 'إضافة فريق يدوياً')}</>}
       badge={tx('Admin Only', 'للمشرف فقط')}
       badgeColor="bg-brand-600"
       headerClass="bg-[#061a27]"
@@ -429,7 +429,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       {/* ─ Import Team Data — admin only */}
       {currentUser?.role === 'admin' && (
         <CollapsibleCard
-          title={<><FileSpreadsheet size={18} className="text-saudi-400 mr-2" />{lang === 'ar' ? 'استيراد بيانات الفرق (Excel)' : 'Import Team Data (Excel)'}</>}
+          title={<><FileSpreadsheet size={18} className="text-saudi-400 me-2" />{lang === 'ar' ? 'استيراد بيانات الفرق (Excel)' : 'Import Team Data (Excel)'}</>}
           badge={lang === 'ar' ? `${teams.length} فريق` : `${teams.length} teams`}
           badgeColor="bg-saudi-600"
           headerClass="bg-[#061a27]"
@@ -573,7 +573,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                     <p className="px-3 py-2 text-xs text-ink-400 font-semibold bg-ink-50">
                       +{importResult.teams.length - 8} {lang === 'ar' ? 'فريق إضافي' : 'more teams'}
                       {importResult.participations?.length > 0 && (
-                        <span className="ml-2 text-brand-500">({importResult.participations.length} {lang === 'ar' ? 'مشاركة' : 'participations total'})</span>
+                        <span className="ms-2 text-brand-500">({importResult.participations.length} {lang === 'ar' ? 'مشاركة' : 'participations total'})</span>
                       )}
                     </p>
                   )}
@@ -645,7 +645,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       {/* Configuration — admin only */}
       {currentUser?.role === 'admin' && (
         <CollapsibleCard
-          title={<><Settings size={18} className="text-brand-400 mr-2" />{t(lang, 'configParams')}</>}
+          title={<><Settings size={18} className="text-brand-400 me-2" />{t(lang, 'configParams')}</>}
           badge={t(lang, 'systemAdminOnly')}
           badgeColor="bg-brand-600"
           headerClass="bg-[#061a27]"
@@ -774,7 +774,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
 
       {/* Roster */}
       <CollapsibleCard
-        title={<><CheckCircle2 size={18} className="mr-2" />{t(lang, 'rosterTitle')}</>}
+        title={<><CheckCircle2 size={18} className="me-2" />{t(lang, 'rosterTitle')}</>}
         badge={`${teams.length} ${t(lang, 'teamsRegistered')}`}
         badgeColor="bg-saudi-600"
         headerClass="bg-[#061a27]"
@@ -823,7 +823,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
 
       {/* Score Approvals */}
       <CollapsibleCard
-        title={<><Activity size={18} className="text-orange-400 mr-2" />{t(lang, 'scoreApprovals')}</>}
+        title={<><Activity size={18} className="text-orange-400 me-2" />{t(lang, 'scoreApprovals')}</>}
         badge={`${pendingScores.length} ${t(lang, 'pending')}`}
         badgeColor={pendingScores.length > 0 ? 'bg-orange-500' : 'bg-ink-500'}
         headerClass="bg-[#061a27]"
