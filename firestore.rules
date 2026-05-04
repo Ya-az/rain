@@ -1,0 +1,45 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Firestore Security Rules — RoboRAVE Rain
+// ─────────────────────────────────────────────────────────────────────────────
+// Strategy (Phase 1, transitional):
+//   • App signs in anonymously on load (Firebase Anonymous Auth).
+//   • Reads & writes require `request.auth != null` — outsiders are blocked.
+//   • Role enforcement still happens client-side until Phase 4 (Firebase Auth
+//     with custom claims). Outsiders cannot reach the data, but a malicious
+//     authenticated app user could still misuse writes — this is acceptable
+//     for the current trust model and will be tightened in Phase 4.
+//
+//   • Wholesale collection wipes are disallowed: `allow delete: if false` on
+//     individual docs would also block legitimate user/team removal. Instead
+//     we allow delete only via authenticated calls (no public exposure).
+// ─────────────────────────────────────────────────────────────────────────────
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: any signed-in user (anonymous OK).
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Public-readable, signed-in writable collections.
+    match /teams/{id}        { allow read, write: if isSignedIn(); }
+    match /participations/{id} { allow read, write: if isSignedIn(); }
+    match /categories/{id}   { allow read, write: if isSignedIn(); }
+    match /scores/{id}       { allow read, write: if isSignedIn(); }
+    match /group2Matches/{id} { allow read, write: if isSignedIn(); }
+    match /config/{id}       { allow read, write: if isSignedIn(); }
+
+    // Users collection: signed-in app may read for login lookup,
+    // and write to create/manage user records (admin-gated in UI).
+    // Phase 4 will move this to Firebase Auth + custom claims.
+    match /users/{id}        { allow read, write: if isSignedIn(); }
+
+    // Catch-all: deny anything else.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

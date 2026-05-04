@@ -11,26 +11,26 @@ export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }
   const [loading, setLoading] = useState(false);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user.trim() || !pass.trim()) {
       setError(t(lang, 'loginEmptyFields'));
       return;
     }
     setLoading(true);
     setError('');
-    const success = handleLogin(user.trim(), pass.trim());
+    const success = await handleLogin(user.trim(), pass.trim());
     if (!success) {
       setError(t(lang, 'loginError'));
       setLoading(false);
     }
   };
 
-  const fillAndSubmit = (username, password) => {
+  const fillAndSubmit = async (username, password) => {
     setUser(username);
     setPass(password);
     setError('');
     setLoading(true);
-    const success = handleLogin(username, password);
+    const success = await handleLogin(username, password);
     if (!success) {
       setError(t(lang, 'loginError'));
       setLoading(false);

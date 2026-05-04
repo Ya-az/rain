@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { MOCK_USERS, MOCK_CATEGORIES, INITIAL_TEAMS, INITIAL_PARTICIPATIONS, DEFAULT_SYSTEM_CONFIG } from './constants/mockData';
 import { t } from './constants/translations';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import NavBar from './components/layout/NavBar';
+import ConfirmDialog from './components/ui/ConfirmDialog';
 import Login from './views/Login';
 import Dashboard from './views/Dashboard';
 import PublicResults from './views/PublicResults';
@@ -11,7 +12,9 @@ import CheckInSystem from './views/CheckInSystem';
 import CompetingSystem from './views/CompetingSystem';
 import OperationsSystem from './views/OperationsSystem';
 import { buildBracketForDivision } from './utils/bracket';
-import { db } from './firebase';
+import { db, ensureAuthReady } from './firebase';
+import { hashPassword, verifyPassword, looksHashed, generateSalt } from './utils/passwords';
+import { saveSession, loadSession, clearSession } from './utils/session';
 import {
   collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, getDoc,
 } from 'firebase/firestore';
@@ -28,14 +31,29 @@ const getAllowedViews = (user) => {
 
 export default function App() {
   const [lang, setLang] = useState('en');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => loadSession());
   const [publicMode, setPublicMode] = useState(false);
   const [currentView, setCurrentView] = useState('dashboard');
   const [toast, setToast] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [confirmState, setConfirmState] = useState(null); // { title, message, ... }
+  const [pendingImport, setPendingImport] = useState(null); // payload waiting on confirm
+  const [busyImport, setBusyImport] = useState(false);
+  const [busyMatches, setBusyMatches] = useState(false);
+  const showToastRef = useRef(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+  showToastRef.current = showToast;
+
+  const reportError = (label, err) => {
+    console.error(`${label}:`, err);
+    showToastRef.current?.(
+      lang === 'ar' ? `تعذّر ${label}` : `${label} failed: ${err?.message || err}`,
+      'error',
+    );
   };
 
   const [teams, setTeams] = useState(INITIAL_TEAMS);
@@ -47,8 +65,21 @@ export default function App() {
   const [systemConfig, setSystemConfig] = useState(DEFAULT_SYSTEM_CONFIG);
   const [users, setUsers] = useState(MOCK_USERS);
 
-  // ─── Firestore: seed initial data on first run ───────────────────────────
+  // ─── Anonymous Firebase Auth (Phase 1) ───────────────────────────
   useEffect(() => {
+    ensureAuthReady()
+      .then(() => setAuthReady(true))
+      .catch((err) => {
+        console.error('Anonymous auth failed:', err);
+        // Allow the app to keep running so existing users can still see UI;
+        // Firestore reads/writes will fail with a clear error in dev.
+        setAuthReady(true);
+      });
+  }, []);
+
+  // ─── Firestore: seed initial data on first run ───────────────────────
+  useEffect(() => {
+    if (!authReady) return;
     const seedIfEmpty = async () => {
       try {
         const teamsSnap = await getDocs(collection(db, 'teams'));
@@ -74,10 +105,11 @@ export default function App() {
       }
     };
     seedIfEmpty();
-  }, []);
+  }, [authReady]);
 
-  // ─── Firestore: live sync subscriptions ──────────────────────────────────
+  // ─── Firestore: live sync subscriptions ──────────────────────
   useEffect(() => {
+    if (!authReady) return undefined;
     const unsubTeams = onSnapshot(collection(db, 'teams'), snap => {
       const data = snap.docs.map(d => d.data());
       if (data.length > 0) setTeams(data);
@@ -106,7 +138,7 @@ export default function App() {
     return () => {
       unsubTeams(); unsubParts(); unsubCats(); unsubScores(); unsubMatches(); unsubCfg(); unsubUsers();
     };
-  }, []);
+  }, [authReady]);
 
   // ─── Firestore-aware setters ─────────────────────────────────────────────
   const setScoresFB = (updater) => {
@@ -117,13 +149,13 @@ export default function App() {
       // Upsert added/changed
       nextById.forEach((s, id) => {
         if (prevById.get(id) !== s) {
-          setDoc(doc(db, 'scores', id), s).catch(err => console.error('score write:', err));
+          setDoc(doc(db, 'scores', id), s).catch(err => reportError('save score', err));
         }
       });
       // Delete removed
       prevById.forEach((_, id) => {
         if (!nextById.has(id)) {
-          deleteDoc(doc(db, 'scores', id)).catch(err => console.error('score delete:', err));
+          deleteDoc(doc(db, 'scores', id)).catch(err => reportError('remove score', err));
         }
       });
       return next;
@@ -133,7 +165,7 @@ export default function App() {
   const setSystemConfigFB = (updater) => {
     setSystemConfig(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      setDoc(doc(db, 'config', 'system'), next).catch(err => console.error('cfg write:', err));
+      setDoc(doc(db, 'config', 'system'), next).catch(err => reportError('save config', err));
       return next;
     });
   };
@@ -148,19 +180,53 @@ export default function App() {
   }, [teams, currentUser, adminRegion]);
 
   // ─── Login / Logout ───────────────────────────────────────────────────────
-  const handleLogin = (username, password) => {
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      if (user.role === 'volunteer') setCurrentView('checkin');
-      else if (user.role === 'admin' || user.role === 'region_admin') setCurrentView('operations');
-      else setCurrentView('competing');
-      return true;
+  // Supports both hashed and legacy plain-text password records during the
+  // migration window. On a successful legacy login we silently upgrade the
+  // record to a hashed value.
+  const handleLogin = async (username, password) => {
+    if (!username || !password) return false;
+    const candidate = users.find(u => u.username === username);
+    if (!candidate) return false;
+
+    let ok = false;
+    if (candidate.passwordHash) {
+      ok = await verifyPassword(password, candidate.passwordHash, candidate.salt || '');
+    } else if (looksHashed(candidate.password)) {
+      // Legacy migrations may have stored the hash directly in `password`.
+      ok = (await hashPassword(password, candidate.salt || '')) === candidate.password;
+    } else if (candidate.password) {
+      // Legacy plain-text fallback.
+      ok = candidate.password === password;
+      if (ok) {
+        // Auto-upgrade to a hashed record (best-effort).
+        const salt = generateSalt();
+        const passwordHash = await hashPassword(password, salt);
+        const upgraded = { ...candidate, salt, passwordHash };
+        delete upgraded.password;
+        setUsers(prev => prev.map(u => (u.id === candidate.id ? upgraded : u)));
+        setDoc(doc(db, 'users', candidate.id), upgraded).catch(err => reportError('upgrade password', err));
+      }
     }
-    return false;
+
+    if (!ok) return false;
+
+    // Drop sensitive fields from in-memory + persisted session.
+    const safeUser = { ...candidate };
+    delete safeUser.password;
+    delete safeUser.passwordHash;
+    delete safeUser.salt;
+
+    setCurrentUser(safeUser);
+    saveSession(safeUser);
+
+    if (safeUser.role === 'volunteer') setCurrentView('checkin');
+    else if (safeUser.role === 'admin' || safeUser.role === 'region_admin') setCurrentView('operations');
+    else setCurrentView('competing');
+    return true;
   };
 
   const handleLogout = () => {
+    clearSession();
     setCurrentUser(null);
     setCurrentView('dashboard');
     setAdminRegion('All');
@@ -180,74 +246,90 @@ export default function App() {
     setTeams(prev => prev.map(team => {
       if (team.id !== teamId) return team;
       const updated = { ...team, coach: { ...team.coach, present: coachPresent }, members: updatedMembers };
-      setDoc(doc(db, 'teams', teamId), updated).catch(err => console.error('team write:', err));
+      setDoc(doc(db, 'teams', teamId), updated).catch(err => reportError('save attendance', err));
       return updated;
     }));
     showToast(t(lang, 'toastCheckIn'));
   };
 
   // ─── Import teams from Excel ──────────────────────────────────────────────
-  const importTeams = ({ teams: importedTeams, participations: importedParticipations, categories: importedCategories }) => {
-    const confirmed = window.confirm(
-      '⚠️ This will reset all check-in and scoring data. Continue?'
-    );
-    if (!confirmed) return false;
-
-    // Remap dynamic category IDs to existing MOCK_CATEGORIES IDs when names match
-    const normalize = (v) => v?.toString().toLowerCase().trim().replace(/\s+/g, ' ') ?? '';
-    const catIdRemap = {};
-    importedCategories.forEach(importedCat => {
-      const match = MOCK_CATEGORIES.find(
-        mc => normalize(mc.name) === normalize(importedCat.name)
-      );
-      if (match && match.id !== importedCat.id) {
-        catIdRemap[importedCat.id] = match.id;
-      }
+  // Opens a destructive type-to-confirm dialog; the actual write happens in
+  // `runImport`. Returns Promise<boolean> (true on success, false on cancel).
+  const importResolverRef = useRef(null);
+  const importTeams = (payload) => {
+    return new Promise((resolve) => {
+      importResolverRef.current = resolve;
+      setPendingImport(payload);
+      setConfirmState({
+        kind: 'import',
+        variant: 'danger',
+        typeToConfirm: 'RESET',
+        title: lang === 'ar' ? 'إعادة تعيين البيانات' : 'Reset Tournament Data',
+        message: lang === 'ar'
+          ? 'سيتم حذف جميع بيانات الحضور والدرجات والمباريات واستبدالها بالفرق المستوردة. لا يمكن التراجع.'
+          : 'All check-in, scoring, and bracket data will be permanently replaced with the imported teams. This cannot be undone.',
+        confirmLabel: lang === 'ar' ? 'تأكيد الإعادة' : 'Reset & Import',
+      });
     });
+  };
 
-    const remappedParticipations = importedParticipations.map(p => ({
-      ...p,
-      categoryId: catIdRemap[p.categoryId] ?? p.categoryId,
-    }));
+  const runImport = async ({ teams: importedTeams, participations: importedParticipations, categories: importedCategories }) => {
+    setBusyImport(true);
+    try {
+      const normalize = (v) => v?.toString().toLowerCase().trim().replace(/\s+/g, ' ') ?? '';
+      const catIdRemap = {};
+      importedCategories.forEach(importedCat => {
+        const match = MOCK_CATEGORIES.find(
+          mc => normalize(mc.name) === normalize(importedCat.name)
+        );
+        if (match && match.id !== importedCat.id) {
+          catIdRemap[importedCat.id] = match.id;
+        }
+      });
 
-    setTeams(importedTeams);
-    setParticipations(remappedParticipations);
+      const remappedParticipations = importedParticipations.map(p => ({
+        ...p,
+        categoryId: catIdRemap[p.categoryId] ?? p.categoryId,
+      }));
 
-    // Merge imported categories with known MOCK_CATEGORIES (prefer existing entries)
-    const knownIds = new Set(MOCK_CATEGORIES.map(c => c.id));
-    const remappedCategories = importedCategories.map(c => ({
-      ...c,
-      id: catIdRemap[c.id] ?? c.id,
-    }));
-    const merged = [
-      ...MOCK_CATEGORIES,
-      ...remappedCategories.filter(c => !knownIds.has(c.id)),
-    ];
-    setCategories(merged);
-    setScores([]);
-    setGroup2Matches([]);
+      setTeams(importedTeams);
+      setParticipations(remappedParticipations);
 
-    // Persist the entire reset to Firestore
-    (async () => {
-      try {
-        // Wipe existing collections first
-        const wipe = async (name) => {
-          const snap = await getDocs(collection(db, name));
-          const b = writeBatch(db);
-          snap.docs.forEach(d => b.delete(d.ref));
-          await b.commit();
-        };
-        await Promise.all([wipe('teams'), wipe('participations'), wipe('categories'), wipe('scores'), wipe('group2Matches')]);
+      const knownIds = new Set(MOCK_CATEGORIES.map(c => c.id));
+      const remappedCategories = importedCategories.map(c => ({
+        ...c,
+        id: catIdRemap[c.id] ?? c.id,
+      }));
+      const merged = [
+        ...MOCK_CATEGORIES,
+        ...remappedCategories.filter(c => !knownIds.has(c.id)),
+      ];
+      setCategories(merged);
+      setScores([]);
+      setGroup2Matches([]);
+
+      const wipe = async (name) => {
+        const snap = await getDocs(collection(db, name));
         const b = writeBatch(db);
-        importedTeams.forEach(tm => b.set(doc(db, 'teams', tm.id), tm));
-        remappedParticipations.forEach(p => b.set(doc(db, 'participations', p.id), p));
-        merged.forEach(c => b.set(doc(db, 'categories', c.id), c));
+        snap.docs.forEach(d => b.delete(d.ref));
         await b.commit();
-      } catch (err) {
-        console.error('importTeams Firestore error:', err);
-      }
-    })();
-    return true;
+      };
+      await Promise.all([wipe('teams'), wipe('participations'), wipe('categories'), wipe('scores'), wipe('group2Matches')]);
+      const b = writeBatch(db);
+      importedTeams.forEach(tm => b.set(doc(db, 'teams', tm.id), tm));
+      remappedParticipations.forEach(p => b.set(doc(db, 'participations', p.id), p));
+      merged.forEach(c => b.set(doc(db, 'categories', c.id), c));
+      await b.commit();
+      showToast(lang === 'ar' ? 'تم استيراد الفرق ✓' : 'Teams imported ✓');
+      importResolverRef.current?.(true);
+    } catch (err) {
+      reportError(lang === 'ar' ? 'استيراد الفرق' : 'team import', err);
+      importResolverRef.current?.(false);
+    } finally {
+      importResolverRef.current = null;
+      setBusyImport(false);
+      setPendingImport(null);
+    }
   };
 
   // ─── Matchmaking — Single-elimination Knockout Brackets ───────────────────
@@ -301,6 +383,7 @@ export default function App() {
       return;
     }
     setGroup2Matches(matches);
+    setBusyMatches(true);
     (async () => {
       try {
         const existing = await getDocs(collection(db, 'group2Matches'));
@@ -311,7 +394,9 @@ export default function App() {
         matches.forEach(m => b.set(doc(db, 'group2Matches', m.id), m));
         await b.commit();
       } catch (err) {
-        console.error('generateMatches Firestore error:', err);
+        reportError(lang === 'ar' ? 'توليد المباريات' : 'generate matches', err);
+      } finally {
+        setBusyMatches(false);
       }
     })();
     const playable = matches.filter(m => m.roundIndex === 0 && !m.isBye).length;
@@ -319,23 +404,26 @@ export default function App() {
   };
 
   // ─── User management (Firestore-backed) ────────────────────────────────
-  const addUser = (newUser) => {
+  const addUser = async (newUser) => {
     if (!newUser?.username || !newUser?.password) return false;
     if (users.some(u => u.username === newUser.username)) {
       showToast(lang === 'ar' ? 'اسم المستخدم موجود مسبقاً' : 'Username already exists', 'error');
       return false;
     }
     const id = newUser.id || `u_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const userDoc = { ...newUser, id };
+    const salt = generateSalt();
+    const passwordHash = await hashPassword(newUser.password, salt);
+    const userDoc = { ...newUser, id, salt, passwordHash };
+    delete userDoc.password;
     setUsers(prev => [...prev, userDoc]);
-    setDoc(doc(db, 'users', id), userDoc).catch(err => console.error('user write:', err));
+    setDoc(doc(db, 'users', id), userDoc).catch(err => reportError('save user', err));
     showToast(lang === 'ar' ? 'تم إضافة المستخدم ✓' : 'User added ✓');
     return true;
   };
 
   const deleteUser = (userId) => {
     setUsers(prev => prev.filter(u => u.id !== userId));
-    deleteDoc(doc(db, 'users', userId)).catch(err => console.error('user delete:', err));
+    deleteDoc(doc(db, 'users', userId)).catch(err => reportError('delete user', err));
     showToast(lang === 'ar' ? 'تم حذف المستخدم' : 'User removed', 'info');
   };
 
@@ -395,7 +483,7 @@ export default function App() {
         newParts.forEach(p => b.set(doc(db, 'participations', p.id), p));
         await b.commit();
       } catch (err) {
-        console.error('addTeam Firestore error:', err);
+        reportError(lang === 'ar' ? 'إضافة الفريق' : 'add team', err);
       }
     })();
 
@@ -532,11 +620,45 @@ export default function App() {
             deleteUser={deleteUser}
             addTeam={addTeam}
             group2Matches={group2Matches}
+            busyImport={busyImport}
+            busyMatches={busyMatches}
           />
         )}
       </main>
 
       <Footer lang={lang} />
+
+      {/* Confirm dialog (destructive actions) */}
+      <ConfirmDialog
+        open={!!confirmState}
+        lang={lang}
+        title={confirmState?.title}
+        message={confirmState?.message}
+        confirmLabel={confirmState?.confirmLabel}
+        cancelLabel={confirmState?.cancelLabel}
+        variant={confirmState?.variant}
+        typeToConfirm={confirmState?.typeToConfirm}
+        busy={confirmState?.kind === 'import' ? busyImport : false}
+        onCancel={() => {
+          setConfirmState(null);
+          if (pendingImport) setPendingImport(null);
+          if (importResolverRef.current) {
+            importResolverRef.current(false);
+            importResolverRef.current = null;
+          }
+        }}
+        onConfirm={async () => {
+          const state = confirmState;
+          if (!state) return;
+          if (state.kind === 'import' && pendingImport) {
+            const payload = pendingImport;
+            setConfirmState(null);
+            await runImport(payload);
+          } else {
+            setConfirmState(null);
+          }
+        }}
+      />
 
       {/* Toast notification */}
       {toast && (

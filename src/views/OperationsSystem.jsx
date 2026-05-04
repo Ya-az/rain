@@ -361,7 +361,7 @@ function AddTeamCard({ lang, categories, addTeam, defaultRegion = 'Western' }) {
 
 // ─── OperationsSystem ────────────────────────────────────────────────────────
 
-export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, addTeam, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [] }) {
+export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, addTeam, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [], busyImport = false, busyMatches = false }) {
   const pendingScores = scores.filter(s => s.status === 'PENDING');
   const [rosterSearch, setRosterSearch] = useState('');
   const [usersOpen, setUsersOpen] = useState(false);
@@ -390,20 +390,20 @@ export default function OperationsSystem({ scores, setScores, teams, participati
     e.target.value = '';
   };
 
-  const handleConfirmImport = () => {
+  const handleConfirmImport = async () => {
     if (!importResult?.teams?.length) return;
     setImportState('importing');
-    const accepted = importTeams({
+    const ok = await importTeams({
       teams:          importResult.teams,
       participations: importResult.participations,
       categories:     importResult.categories,
     });
-    if (accepted === false) {
+    if (ok) {
+      setImportState('done');
+      if (showToast) showToast(lang === 'ar' ? `تم استيراد ${importResult.imported} فريق بنجاح` : `${importResult.imported} teams imported successfully`);
+    } else {
       setImportState('preview');
-      return;
     }
-    setImportState('done');
-    if (showToast) showToast(lang === 'ar' ? `تم استيراد ${importResult.imported} فريق بنجاح` : `${importResult.imported} teams imported successfully`);
   };
 
   const handleReset = () => {
@@ -908,8 +908,14 @@ export default function OperationsSystem({ scores, setScores, teams, participati
             )}
           </div>
           <p className="text-xs text-ink-500 mb-4">{lang === 'ar' ? 'يولّد جداول إقصائيات (خروج من مرة) لـ Sumo و SoccerBot تلقائياً من الفرق الحاضرة حسب الفئة العمرية، مع ترقية تلقائية للفائز.' : 'Auto-generates single-elimination knockout brackets for Sumo & SoccerBot from currently checked-in teams, grouped by division. Winners auto-advance.'}</p>
-          <button onClick={generateMatches} className="w-full bg-gradient-to-r from-[#061a27] to-[#0d3549] hover:from-[#0a2a3a] hover:to-[#103a52] text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md press-effect">
-            🏆 {lang === 'ar' ? 'توليد جداول الإقصائيات' : 'Generate Knockout Brackets'}
+          <button
+            onClick={generateMatches}
+            disabled={busyMatches}
+            className="w-full bg-gradient-to-r from-[#061a27] to-[#0d3549] hover:from-[#0a2a3a] hover:to-[#103a52] disabled:opacity-60 disabled:cursor-wait text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md press-effect"
+          >
+            🏆 {busyMatches
+              ? (lang === 'ar' ? 'جارٍ التوليد…' : 'Generating…')
+              : (lang === 'ar' ? 'توليد جداول الإقصائيات' : 'Generate Knockout Brackets')}
           </button>
         </div>
       </div>
