@@ -1,8 +1,47 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, Edit3, Check as CheckIcon, ShieldCheck, Clock, CheckCircle2, Lock, ChevronRight } from 'lucide-react';
+import { AlertCircle, Edit3, Check as CheckIcon, ShieldCheck, Clock, CheckCircle2, Lock } from 'lucide-react';
 import PrecisionTimer from '../components/ui/PrecisionTimer';
 import CategoryInspectionUI from '../components/inspection/CategoryInspectionUI';
 import { getInspectionStatus } from '../components/inspection/inspectionLogic';
+
+// Shared tab switcher: Inspection (optional, decoupled) | Scoring (always available).
+// Used by every match/attempt card so referees can score without inspection.
+function InspectionScoringTabs({ step, onChange, hasInspection, isPassed, lang = 'en' }) {
+  return (
+    <div className="px-4 sm:px-5 -mt-1 mb-3">
+      <div className="grid grid-cols-2 gap-2 p-1 bg-ink-100 rounded-xl">
+        <button
+          type="button"
+          onClick={() => onChange('inspection')}
+          className={`py-2 rounded-lg text-xs font-black transition-colors ${
+            step === 'inspection'
+              ? 'bg-white text-ink-800 shadow-sm border border-ink-200'
+              : 'bg-transparent text-ink-500 hover:text-ink-700'
+          }`}
+        >
+          🔍 {lang === 'ar' ? 'الفحص' : 'Inspection'}
+          {hasInspection && (
+            <span className={`ms-1.5 inline-block w-2 h-2 rounded-full ${isPassed ? 'bg-saudi-500' : 'bg-amber-500'}`} />
+          )}
+          <span className="ms-1 text-[9px] font-bold uppercase tracking-wider text-ink-400">
+            {lang === 'ar' ? 'اختياري' : 'Optional'}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange('scoring')}
+          className={`py-2 rounded-lg text-xs font-black transition-colors ${
+            step === 'scoring'
+              ? 'bg-white text-ink-800 shadow-sm border border-ink-200'
+              : 'bg-transparent text-ink-500 hover:text-ink-700'
+          }`}
+        >
+          🏆 {lang === 'ar' ? 'التسجيل' : 'Scoring'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function FsmButton({ fsmState, onAction, showScore, lang = 'en' }) {
   if (!showScore) return null;
@@ -40,7 +79,8 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
   const [data, setData] = useState(buildInitialData(initialScoreObj));
   const [photo, setPhoto] = useState(initialScoreObj?.rawInput?.photo || null);
   const [elapsedFromTimer, setElapsedFromTimer] = useState(null);
-  const [step, setStep] = useState(initFSM !== 'AWAITING_SUBMISSION' ? 'scoring' : 'inspection');
+  // Inspection is OPTIONAL and decoupled from scoring — default to Scoring tab.
+  const [step, setStep] = useState('scoring');
   const [editMode, setEditMode] = useState(null);
 
   useEffect(() => {
@@ -54,7 +94,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
     setData(buildInitialData(initialScoreObj));
     setPhoto(initialScoreObj?.rawInput?.photo || null);
     setElapsedFromTimer(null);
-    setStep(nextFSM !== 'AWAITING_SUBMISSION' ? 'scoring' : 'inspection');
+    setStep('scoring');
     setEditMode(null);
   }, [initialScoreObj, minLaps, attemptNumber]);
 
@@ -78,7 +118,8 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
     reader.readAsDataURL(file);
   };
 
-  const showScore = isInspectionPassed || fsmState !== 'AWAITING_SUBMISSION';
+  const showScore = true;
+  const inspectionTouched = Object.keys(insp).length > 0;
 
   return (
     <div className={`scoring-card ${isInspectionPassed ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
@@ -87,29 +128,9 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
         {fsmState === 'PENDING_ADMIN' && <PendingBanner />}
       </div>
 
-      {/* Step progress — AWAITING_SUBMISSION only */}
-      {fsmState === 'AWAITING_SUBMISSION' && (
-        <div className="px-5 pb-3 flex items-center gap-2">
-          <div className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide ${
-            step === 'inspection' ? 'text-brand-600' : 'text-saudi-600'
-          }`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-              step === 'inspection' ? 'bg-brand-600 text-white' : 'bg-saudi-500 text-white'
-            }`}>1</span>
-            {lang === 'ar' ? 'الفحص' : 'Inspect'}
-          </div>
-          <div className="flex-1 h-0.5 bg-ink-100 rounded-full overflow-hidden">
-            <div className={`h-full bg-saudi-500 rounded-full transition-all duration-500 ${step === 'scoring' ? 'w-full' : 'w-0'}`} />
-          </div>
-          <div className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wide ${
-            step === 'scoring' ? 'text-brand-600' : 'text-ink-300'
-          }`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-              step === 'scoring' ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-400'
-            }`}>2</span>
-            {lang === 'ar' ? 'التسجيل' : 'Score'}
-          </div>
-        </div>
+      {/* Tabs replace the linear 1→2 stepper. Inspection is optional. */}
+      {fsmState !== 'EDIT_REQUESTED' && fsmState !== 'PENDING_ADMIN' && (
+        <InspectionScoringTabs step={step} onChange={setStep} hasInspection={inspectionTouched} isPassed={isInspectionPassed} lang={lang} />
       )}
 
       {/* EDIT_REQUESTED: 2-card section selector */}
@@ -169,13 +190,12 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
       {((fsmState === 'AWAITING_SUBMISSION' && step === 'inspection') || (fsmState === 'EDIT_REQUESTED' && editMode === 'inspection')) && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} lang={lang} />
-          {fsmState === 'AWAITING_SUBMISSION' && isInspectionPassed && (
-            <button
-              onClick={() => setStep('scoring')}
-              className="w-full mt-3 py-3.5 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all text-sm shadow-md shadow-brand-600/20 press-effect"
-            >
-              <ChevronRight size={16} /> {lang === 'ar' ? 'التالي: التسجيل' : 'Continue to Scoring'}
-            </button>
+          {fsmState === 'AWAITING_SUBMISSION' && (
+            <div className="mt-3 p-3 rounded-xl bg-ink-50 border border-ink-200 text-[11px] text-ink-600 leading-relaxed">
+              {lang === 'ar'
+                ? 'الفحص اختياري ولا يمنع تسجيل النتيجة. اضغط على تبويب “التسجيل” في أي وقت.'
+                : 'Inspection is optional. Switch to the “Scoring” tab at any time — inspection results are saved alongside the score on submit.'}
+            </div>
           )}
           {fsmState === 'EDIT_REQUESTED' && (
             <div className="flex gap-3 mt-3">
@@ -199,12 +219,14 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
       {/* Scoring step */}
       {((fsmState !== 'EDIT_REQUESTED' && step === 'scoring') || (fsmState === 'EDIT_REQUESTED' && editMode === 'scoring')) && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <button
-            onClick={() => fsmState === 'EDIT_REQUESTED' ? setEditMode(null) : setStep('inspection')}
-            className="w-full mb-4 py-2.5 bg-ink-50 hover:bg-ink-100 text-ink-600 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200 press-effect"
-          >
-            {lang === 'ar' ? '→' : '←'} {fsmState === 'EDIT_REQUESTED' ? (lang === 'ar' ? 'رجوع لاختيار القسم' : 'Back to section selection') : isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
-          </button>
+          {fsmState === 'EDIT_REQUESTED' && (
+            <button
+              onClick={() => setEditMode(null)}
+              className="w-full mb-4 py-2.5 bg-ink-50 hover:bg-ink-100 text-ink-600 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200 press-effect"
+            >
+              {lang === 'ar' ? '→ رجوع لاختيار القسم' : '← Back to section selection'}
+            </button>
+          )}
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
@@ -317,7 +339,8 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
   const [fsmState, setFsmState] = useState(initFSM);
   const [insp, setInsp] = useState(initialScoreObj ? (initialScoreObj.proposedInspection || initialScoreObj.inspectionData || {}) : {});
   const maxBalls = systemConfig?.linefollowBalls?.[teamDivision] || { ES: 2, MS: 3, HS: 4, US: 5 }[teamDivision] || 2;
-  const [step, setStep] = useState(initFSM !== 'AWAITING_SUBMISSION' ? 'scoring' : 'inspection');
+  // Inspection is OPTIONAL and decoupled from scoring — default to Scoring tab.
+  const [step, setStep] = useState('scoring');
   const [data, setData] = useState(initialScoreObj?.rawInput || {
     leavesHome: false, turns1stT: false, turns2ndT: false, reachTower: false,
     deliver1Ball: false, returnHome: false, bonusStart: false, bonus1stT: false,
@@ -374,7 +397,9 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
     else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, res.final, insp, data); setFsmState('PENDING_ADMIN'); } }
   };
-  const showScore = isInspectionPassed || fsmState !== 'AWAITING_SUBMISSION';
+  // Scoring is ALWAYS available regardless of inspection status.
+  const showScore = true;
+  const inspectionTouched = Object.keys(insp).length > 0;
 
   return (
     <div className={`scoring-card ${isInspectionPassed ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
@@ -382,21 +407,19 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
         <CardHeader title={title} inspPassed={isInspectionPassed} lang={lang} />
         {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
+      <InspectionScoringTabs step={step} onChange={setStep} hasInspection={inspectionTouched} isPassed={isInspectionPassed} lang={lang} />
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} lang={lang} />
-          {isInspectionPassed && (
-            <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
-            </button>
-          )}
+          <div className="mt-3 p-3 rounded-xl bg-ink-50 border border-ink-200 text-[11px] text-ink-600 leading-relaxed">
+            {lang === 'ar'
+              ? 'الفحص اختياري ولا يمنع تسجيل النتيجة. يتم حفظ نتيجة الفحص تلقائياً عند حفظ النتيجة.'
+              : 'Inspection is optional and does not block scoring. Results are saved alongside the score on submit.'}
+          </div>
         </div>
       )}
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
-          </button>
           {showScore && (
             <>
               <div className="space-y-2 mb-4 text-sm">
@@ -476,7 +499,9 @@ export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNu
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
     else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, finalScore, insp, data); setFsmState('PENDING_ADMIN'); } }
   };
-  const showScore = isInspectionPassed || fsmState !== 'AWAITING_SUBMISSION';
+  // Scoring is ALWAYS available regardless of inspection status.
+  const showScore = true;
+  const inspectionTouched = Object.keys(insp).length > 0;
 
   return (
     <div className={`scoring-card ${isInspectionPassed ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
@@ -484,21 +509,19 @@ export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNu
         <CardHeader title={title} inspPassed={isInspectionPassed} lang={lang} />
         {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
+      <InspectionScoringTabs step={step} onChange={setStep} hasInspection={inspectionTouched} isPassed={isInspectionPassed} lang={lang} />
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <CategoryInspectionUI categoryId={categoryId} isInitial={isInitial} insp={insp} updateInsp={(k, v) => setInsp(p => ({ ...p, [k]: v }))} disabled={disabled} lang={lang} />
-          {isInspectionPassed && (
-            <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
-            </button>
-          )}
+          <div className="mt-3 p-3 rounded-xl bg-ink-50 border border-ink-200 text-[11px] text-ink-600 leading-relaxed">
+            {lang === 'ar'
+              ? 'الفحص اختياري ولا يمنع تسجيل النتيجة. يتم حفظ نتيجة الفحص تلقائياً عند حفظ النتيجة.'
+              : 'Inspection is optional and does not block scoring. Results are saved alongside the score on submit.'}
+          </div>
         </div>
       )}
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
-          </button>
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
@@ -539,7 +562,8 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
   const [inspA, setInspA] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionA || initialScoreObj.inspectionA || {}) : {});
   const [inspB, setInspB] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionB || initialScoreObj.inspectionB || {}) : {});
   const [data, setData] = useState(initialScoreObj?.rawInput || { showA: false, showB: false, r1: null, r2: null, r3: null, notes: '' });
-  const [step, setStep] = useState(initFSM !== 'AWAITING_SUBMISSION' ? 'scoring' : 'inspection');
+  // Inspection is OPTIONAL and decoupled from scoring — default to Scoring tab.
+  const [step, setStep] = useState('scoring');
 
   useEffect(() => {
     if (initialScoreObj) {
@@ -583,7 +607,9 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
     else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) onEditRequest(initialScoreObj.id, `${scoreA} - ${scoreB}`, inspA, inspB, data); }
   };
-  const showScore = isInspectionPassed || fsmState !== 'AWAITING_SUBMISSION';
+  // Scoring is ALWAYS available regardless of inspection status.
+  const showScore = true;
+  const inspectionTouched = Object.keys(inspA).length > 0 || Object.keys(inspB).length > 0;
 
   const RoundRow = ({ val, field }) => (
     <div className="flex gap-2 mb-2">
@@ -606,6 +632,7 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
         <CardHeader title={title} inspPassed={isInspectionPassed || isForfeit} matchReady lang={lang} />
         {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
+      <InspectionScoringTabs step={step} onChange={setStep} hasInspection={inspectionTouched} isPassed={isInspectionPassed} lang={lang} />
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
@@ -613,10 +640,12 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
             <TeamInspPanel label={`${lang === 'ar' ? 'الفريق ب' : 'Team B'}: ${match.teamB}`} pass={passB} categoryId={categoryId} isInitial={isInitial} insp={inspB} setInsp={setInspB} disabled={disabled} lang={lang} />
           </div>
 
-          {/* Forfeit win — one team passed, one failed */}
-          {isForfeit && fsmState === 'AWAITING_SUBMISSION' && (
+          {/* Optional forfeit shortcut: only meaningful if the referee actually filled
+              both inspections and one passed while the other failed. Inspection is no
+              longer required for scoring — this is just a convenience submit. */}
+          {isForfeit && inspectionTouched && fsmState === 'AWAITING_SUBMISSION' && (
             <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
-              <p className="text-xs font-black uppercase tracking-widest text-amber-600 mb-1">{lang === 'ar' ? 'فوز بالفحص' : 'Inspection Forfeit'}</p>
+              <p className="text-xs font-black uppercase tracking-widest text-amber-600 mb-1">{lang === 'ar' ? 'فوز بالفحص (اختياري)' : 'Inspection Forfeit (optional)'}</p>
               <p className="font-bold text-amber-900 text-sm mb-1">
                 <span className="text-rose-600">{forfeitWinA ? match.teamB : match.teamA}</span> {lang === 'ar' ? 'رسب في الفحص.' : 'failed inspection.'}
               </p>
@@ -632,19 +661,15 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
             </div>
           )}
 
-          {/* Both teams passed — proceed to scoring */}
-          {isInspectionPassed && (
-            <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
-            </button>
-          )}
+          <div className="mt-3 p-3 rounded-xl bg-ink-50 border border-ink-200 text-[11px] text-ink-600 leading-relaxed">
+            {lang === 'ar'
+              ? 'الفحص اختياري ولا يمنع التسجيل. اضغط على تبويب “التسجيل” في أي وقت لتسجيل نتيجة المباراة.'
+              : 'Inspection is optional. Switch to the “Scoring” tab at any time to record the match result.'}
+          </div>
         </div>
       )}
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
-          </button>
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
