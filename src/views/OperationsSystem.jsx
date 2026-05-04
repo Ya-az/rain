@@ -7,6 +7,7 @@ import Toggle from '../components/ui/Toggle';
 import { t } from '../constants/translations';
 import { parseExcelFile, downloadTemplate } from '../utils/excelImport';
 import { exportResultsToExcel } from '../utils/exportResults';
+import { exportBackupJson, importBackupJson } from '../utils/backup';
 
 // ─── RosterMobileCard ─────────────────────────────────────────────────────── 
 
@@ -360,6 +361,91 @@ function AddTeamCard({ lang, categories, addTeam, defaultRegion = 'Western' }) {
   );
 }
 
+// ─── BackupRestoreCard ──────────────────────────────────────────────────────
+
+function BackupRestoreCard({ lang, showToast }) {
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleExport = async () => {
+    setBusy(true);
+    try {
+      await exportBackupJson();
+      if (showToast) showToast(lang === 'ar' ? 'تم تنزيل النسخة الاحتياطية' : 'Backup downloaded', 'success');
+    } catch (err) {
+      console.error('backup export error', err);
+      if (showToast) showToast(lang === 'ar' ? 'فشل تنزيل النسخة' : 'Backup failed', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRestore = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const ok = window.confirm(lang === 'ar'
+      ? 'سيتم استبدال جميع البيانات الحالية بالكامل من ملف النسخة الاحتياطية. لا يمكن التراجع. هل تريد المتابعة؟'
+      : 'This will WIPE and replace ALL current Firestore data with the backup. This cannot be undone. Continue?');
+    if (!ok) return;
+    setBusy(true);
+    try {
+      const text = await file.text();
+      const result = await importBackupJson(text);
+      const total = Object.values(result.counts).reduce((a, b) => a + b, 0);
+      if (showToast) showToast(
+        lang === 'ar' ? `تم الاستعادة (${total} عنصر)` : `Restore complete (${total} items)`,
+        'success',
+      );
+    } catch (err) {
+      console.error('restore error', err);
+      if (showToast) showToast(
+        (lang === 'ar' ? 'فشل الاستعادة: ' : 'Restore failed: ') + (err?.message || ''),
+        'error',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl border border-brand-200 bg-brand-50">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-10 h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center shrink-0">
+          <Shield size={18} />
+        </div>
+        <div className="min-w-0">
+          <p className="font-bold text-ink-800 text-sm">
+            {lang === 'ar' ? 'نسخ احتياطي / استعادة' : 'Backup / Restore'}
+          </p>
+          <p className="text-xs text-ink-500 mt-0.5">
+            {lang === 'ar'
+              ? 'JSON كامل لجميع البيانات (الفرق، النتائج، المباريات، الإعدادات).'
+              : 'Full JSON snapshot of all data (teams, scores, matches, config).'}
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <button
+          disabled={busy}
+          onClick={handleExport}
+          className="px-3 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-bold text-xs whitespace-nowrap transition-colors flex items-center gap-1.5"
+        >
+          <Download size={13} /> {lang === 'ar' ? 'نسخ احتياطي' : 'Backup'}
+        </button>
+        <button
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+          className="px-3 py-2.5 rounded-xl border-2 border-rose-300 bg-white hover:bg-rose-50 disabled:opacity-50 text-rose-700 font-bold text-xs whitespace-nowrap transition-colors flex items-center gap-1.5"
+        >
+          <Upload size={13} /> {lang === 'ar' ? 'استعادة' : 'Restore'}
+        </button>
+        <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleRestore} />
+      </div>
+    </div>
+  );
+}
+
 // ─── OperationsSystem ────────────────────────────────────────────────────────
 
 export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, addTeam, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [], busyImport = false, busyMatches = false }) {
@@ -458,6 +544,11 @@ export default function OperationsSystem({ scores, setScores, teams, participati
             <Download size={14} /> {lang === 'ar' ? 'تنزيل' : 'Download'}
           </button>
         </div>
+      )}
+
+      {/* ─ Backup / Restore — admin only */}
+      {currentUser?.role === 'admin' && (
+        <BackupRestoreCard lang={lang} showToast={showToast} />
       )}
 
       {/* ─ Import Team Data — admin only */}

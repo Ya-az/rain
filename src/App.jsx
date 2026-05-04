@@ -16,6 +16,7 @@ import { db, ensureAuthReady } from './firebase';
 import { hashPassword, verifyPassword, looksHashed, generateSalt } from './utils/passwords';
 import { saveSession, loadSession, clearSession } from './utils/session';
 import { genId } from './utils/ids';
+import { logAudit } from './utils/audit';
 import {
   collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, getDoc,
 } from 'firebase/firestore';
@@ -175,6 +176,7 @@ export default function App() {
       prevById.forEach((_, id) => {
         if (!nextById.has(id)) {
           deleteDoc(doc(db, 'scores', id)).catch(err => reportError('remove score', err));
+          logAudit({ user: currentUser, action: 'score.delete', target: `scores/${id}` });
         }
       });
       return next;
@@ -379,6 +381,7 @@ export default function App() {
   };
 
   const runGenerateMatches = () => {
+    logAudit({ user: currentUser, action: 'matches.regenerate', target: 'group2Matches' });
     const SOCCER_BUCKETS = [
       { key: 'ES / MS', divs: ['ES', 'MS'] },
       { key: 'HS / US', divs: ['HS', 'US'] },
@@ -458,6 +461,7 @@ export default function App() {
     delete userDoc.password;
     setUsers(prev => [...prev, userDoc]);
     setDoc(doc(db, 'users', id), userDoc).catch(err => reportError('save user', err));
+    logAudit({ user: currentUser, action: 'user.create', target: `users/${id}`, details: { username: newUser.username, role: newUser.role } });
     showToast(lang === 'ar' ? 'تم إضافة المستخدم ✓' : 'User added ✓');
     return true;
   };
@@ -465,6 +469,7 @@ export default function App() {
   const deleteUser = (userId) => {
     setUsers(prev => prev.filter(u => u.id !== userId));
     deleteDoc(doc(db, 'users', userId)).catch(err => reportError('delete user', err));
+    logAudit({ user: currentUser, action: 'user.delete', target: `users/${userId}` });
     showToast(lang === 'ar' ? 'تم حذف المستخدم' : 'User removed', 'info');
   };
 
