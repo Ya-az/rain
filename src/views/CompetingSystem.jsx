@@ -1094,6 +1094,15 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
     setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, proposedInspectionA: newInspA, proposedInspectionB: newInspB, proposedRawInput: newRaw, status: 'PENDING' } : s));
     setSelectedMatchId(null);
   };
+  const isAdmin = currentUser?.role === 'admin';
+  const handleReplay = (scoreId) => {
+    const ok = window.confirm(lang === 'ar'
+      ? 'سيتم حذف هذه المحاولة ويمكن إعادة تسجيلها. متأكد؟'
+      : 'This attempt will be deleted and can be re-recorded. Continue?');
+    if (!ok) return;
+    setScores(prev => prev.filter(s => s.id !== scoreId));
+    if (showToast) showToast(lang === 'ar' ? 'تم حذف المحاولة' : 'Attempt deleted', 'info');
+  };
 
   if (teamEntries.length === 0) {
     return (
