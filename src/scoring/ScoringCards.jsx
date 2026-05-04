@@ -876,28 +876,59 @@ export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest
 
   const [fsmState, setFsmState] = useState(initFSM);
   const [scoreVal, setScoreVal] = useState(initialScoreObj ? (initialScoreObj.proposedScore || initialScoreObj.score || '') : '');
+  // Inspection for AI/Presentation: free-form notes only (no defined schema).
+  const [inspNotes, setInspNotes] = useState(initialScoreObj?.inspectionData?.notes || '');
+  const [step, setStep] = useState(initFSM === 'AWAITING_SUBMISSION' ? 'inspection' : 'scoring');
 
   useEffect(() => {
     if (initialScoreObj) {
       setScoreVal(initialScoreObj.proposedScore || initialScoreObj.score || '');
+      setInspNotes(initialScoreObj.inspectionData?.notes || '');
       if (initialScoreObj.status === 'VALID') setFsmState('SUBMITTED');
       else if (initialScoreObj.status === 'PENDING') setFsmState('PENDING_ADMIN');
     }
   }, [initialScoreObj]);
 
   const handleAction = () => {
-    if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(scoreVal); }
+    if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(scoreVal, { notes: inspNotes }); }
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
-    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, scoreVal); setFsmState('PENDING_ADMIN'); } }
+    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, scoreVal, { notes: inspNotes }); setFsmState('PENDING_ADMIN'); } }
   };
 
+  const inspectionTouched = (inspNotes || '').trim().length > 0;
+
   return (
-    <div className="p-5 border-2 border-ink-200 rounded-2xl shadow-sm bg-white mb-4">
-      <h4 className="font-bold text-ink-800 mb-4">{title}</h4>
-      {fsmState === 'PENDING_ADMIN' ? (
-        <PendingBanner lang={lang} />
+    <div className="border-2 border-ink-200 rounded-2xl shadow-sm bg-white mb-4">
+      <div className="p-4 sm:p-5 pb-3">
+        <h4 className="font-bold text-ink-800">{title}</h4>
+        {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
+      </div>
+
+      {fsmState !== 'PENDING_ADMIN' && (
+        <InspectionScoringTabs step={step} onChange={setStep} hasInspection={inspectionTouched} isPassed={inspectionTouched} lang={lang} />
+      )}
+
+      {fsmState === 'PENDING_ADMIN' ? null : step === 'inspection' ? (
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+          <label className="block text-xs font-black uppercase tracking-widest text-ink-500 mb-2">
+            {lang === 'ar' ? 'ملاحظات الفحص (اختياري)' : 'Inspection notes (optional)'}
+          </label>
+          <textarea
+            value={inspNotes}
+            onChange={e => setInspNotes(e.target.value)}
+            disabled={fsmState === 'SUBMITTED'}
+            rows={4}
+            placeholder={lang === 'ar' ? 'سجّل أي ملاحظات حول العرض / الفريق / الإعداد...' : 'Record any notes about the presentation / team / setup...'}
+            className="w-full p-3 border-2 rounded-xl focus:ring-2 focus:ring-brand-500 disabled:bg-ink-100 outline-none text-sm resize-y"
+          />
+          <div className="mt-3 p-3 rounded-xl bg-ink-50 border border-ink-200 text-[11px] text-ink-600 leading-relaxed">
+            {lang === 'ar'
+              ? 'لا توجد معايير فحص فنّية لهذه الفئة. الملاحظات اختيارية وتنحفظ مع النتيجة.'
+              : 'No technical inspection criteria for this category. Notes are optional and saved alongside the score.'}
+          </div>
+        </div>
       ) : (
-        <>
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <div className="mb-4">
             <label className="block text-sm font-semibold text-ink-500 mb-1.5">{lang === 'ar' ? 'إدخال النتيجة الإجمالية' : 'Total Score Input'}</label>
             <input
@@ -911,7 +942,7 @@ export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest
             />
           </div>
           <FsmButton fsmState={fsmState} onAction={handleAction} showScore={true} lang={lang} />
-        </>
+        </div>
       )}
     </div>
   );

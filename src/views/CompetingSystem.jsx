@@ -1330,15 +1330,15 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
             <ScoringCard key={scoreObj.id} title={`${t(lang, 'presentationAttempt')} ${index + 1}: ${teamName}`}
               initialScoreObj={scoreObj}
               lang={lang}
-              onEditRequest={(id, newScore) => {
-                setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, status: 'PENDING' } : s));
+              onEditRequest={(id, newScore, newInsp) => {
+                setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, inspectionData: newInsp || s.inspectionData, status: 'PENDING' } : s));
                 setSelectedP('');
               }} />
           ))}
           <ScoringCard title={`${t(lang, 'presentationAttempt')} ${existingScores.length + 1}: ${teamName}`}
             lang={lang}
-            onSaveScore={s => {
-              setScores(prev => [...prev, { id: Date.now(), pId: selectedP, score: s, status: 'VALID' }]);
+            onSaveScore={(s, insp) => {
+              setScores(prev => [...prev, { id: Date.now(), pId: selectedP, score: s, inspectionData: insp || {}, status: 'VALID' }]);
               setSelectedP('');
               if (showToast) showToast(t(lang, 'toastScoreSubmit'));
             }} />
