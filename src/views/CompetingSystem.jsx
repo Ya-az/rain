@@ -39,13 +39,11 @@ function slotGridClass(count) {
 }
 
 function FastBotScheduleCell({ slot, scoreFormatter = formatFastBotScore }) {
-  const { timeLabel } = getFastBotCellDisplay(slot);
   const scoreLabel = scoreFormatter(getFastBotScoreValue(slot?.scoreObj));
   const hasScore = scoreLabel !== '--';
 
   return (
     <div className="min-w-[72px] text-center">
-      <p className="font-mono text-[11px] text-ink-500">{timeLabel}</p>
       <p className={`text-xs font-black ${hasScore ? 'text-brand-700' : 'text-ink-300'}`}>{scoreLabel}</p>
     </div>
   );
@@ -87,8 +85,8 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamName')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamNumber')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'divisionLabel')}</th>
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{t(lang, 'bestResult')}</th>
               {activeSlotKeys.map(slotKey => <th key={slotKey} className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{slotKey}</th>)}
-              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{`Best (R1-R${activeSlotKeys.filter(k => k.startsWith('R')).length})`}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-100">
@@ -125,16 +123,16 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                 <td className="px-3 py-3">
                   <span className="inline-flex items-center rounded-full bg-brand-50 border border-brand-200 px-2.5 py-1 text-[10px] font-black uppercase text-brand-700">{row.division}</span>
                 </td>
-                {activeSlotKeys.map(slotKey => (
-                  <td key={slotKey} className="px-3 py-3 align-middle">
-                    <FastBotScheduleCell slot={row.slots[slotKey]} scoreFormatter={scoreFormatter} />
-                  </td>
-                ))}
                 <td className="px-3 py-3 text-center">
                   <span className={`text-sm font-black ${row.bestOfficialScore !== null ? 'text-saudi-700' : 'text-ink-300'}`}>
                     {scoreFormatter(row.bestOfficialScore)}
                   </span>
                 </td>
+                {activeSlotKeys.map(slotKey => (
+                  <td key={slotKey} className="px-3 py-3 align-middle">
+                    <FastBotScheduleCell slot={row.slots[slotKey]} scoreFormatter={scoreFormatter} />
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -179,7 +177,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
       <div className={`grid gap-2 sm:gap-3 ${slotGridClass(activeSlotKeys.length)}`}>
         {activeSlotKeys.map(slotKey => {
           const slot = row.slots[slotKey];
-          const { timeLabel, scoreLabel } = getFastBotCellDisplay(slot);
+          const scoreLabel = formatFastBotScore(getFastBotScoreValue(slot?.scoreObj));
           const isActive = slotKey === activeSlotKey;
 
           return (
@@ -193,7 +191,6 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
               }`}
             >
               <p className={`text-sm font-black ${isActive ? 'text-brand-700' : 'text-ink-700'}`}>{slotKey}</p>
-              <p className="font-mono text-[10px] sm:text-[11px] text-ink-500 mt-1">{timeLabel}</p>
               <p className={`text-xs font-black mt-1.5 sm:mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
             </button>
           );
@@ -202,7 +199,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
 
       <FastBotAttemptCard
         key={`${row.participationId}_${activeSlotKey}`}
-        title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
+        title={`${activeSlotKey} • ${row.teamName}`}
         categoryId="c1_fastbot"
         teamDivision={row.division}
         attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, categoryId)}
@@ -256,7 +253,6 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
       <div className={`grid gap-2 sm:gap-3 ${slotGridClass(activeSlotKeys.length)}`}>
         {activeSlotKeys.map(slotKey => {
           const slot = row.slots[slotKey];
-          const { timeLabel } = getFastBotCellDisplay(slot);
           const scoreValue = getFastBotScoreValue(slot?.scoreObj);
           const scoreLabel = formatGroup1Score(scoreValue);
           const isActive = slotKey === activeSlotKey;
@@ -271,7 +267,6 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
               }`}
             >
               <p className={`text-sm font-black ${isActive ? 'text-brand-700' : 'text-ink-700'}`}>{slotKey}</p>
-              <p className="font-mono text-[10px] sm:text-[11px] text-ink-500 mt-1">{timeLabel}</p>
               <p className={`text-xs font-black mt-1.5 sm:mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
             </button>
           );
@@ -281,7 +276,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
       {category.id === 'c1_linefollow' && (
         <LineFollowingAttemptCard
           key={`${row.participationId}_${activeSlotKey}`}
-          title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
+          title={`${activeSlotKey} • ${row.teamName}`}
           categoryId={category.id}
           teamDivision={row.division}
           attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, category.id)}
@@ -297,7 +292,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
       {category.id === 'c1_amazeing' && (
         <AMazeIngAttemptCard
           key={`${row.participationId}_${activeSlotKey}`}
-          title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
+          title={`${activeSlotKey} • ${row.teamName}`}
           categoryId={category.id}
           teamDivision={row.division}
           attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, category.id)}
@@ -736,26 +731,6 @@ function generateRoundRobinMatches(teamEntries, categoryId, divisionTag, region)
   return ordered;
 }
 
-function minutesToTimeString(totalMinutes) {
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  const period = h >= 12 ? 'PM' : 'AM';
-  const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
-}
-
-function buildTimeMap(matchesByRegion, regions) {
-  const map = {};
-  let minutes = 11 * 60; // start 11:00 AM
-  regions.forEach(region => {
-    (matchesByRegion[region] || []).forEach(match => {
-      map[match.id] = minutesToTimeString(minutes);
-      minutes += 15;
-    });
-  });
-  return map;
-}
-
 // ─── Round-Robin buckets (FastBot-style grouping) ────────────────────────────
 // SoccerBot is bucketed as ES/MS together and HS/US together.
 const RR_BUCKETS = [
@@ -770,7 +745,7 @@ const SUMO_RR_BUCKETS = [
   { key: 'HS / US', divs: ['HS', 'US'] },
 ];
 
-function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets = RR_BUCKETS }) {
+function RoundRobinBucketsView({ categoryLabel, matchesByBucket, scores, onSelectMatch, lang, accent = 'orange', buckets = RR_BUCKETS }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const accentChip = accent === 'teal'
     ? 'bg-teal-50 border-teal-200 text-teal-700'
@@ -800,7 +775,6 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                   <thead className="bg-[#061a27] text-white">
                     <tr className="text-left">
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold w-12 text-center">#</th>
-                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Time', 'الوقت')}</th>
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Region', 'المنطقة')}</th>
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Team A', 'الفريق أ')}</th>
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center w-10">{tx('vs', 'ضد')}</th>
@@ -815,7 +789,7 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                       return (
                         <Fragment key={region}>
                           <tr className="bg-ink-50/80">
-                            <td colSpan={7} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
+                            <td colSpan={6} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
                               {tx('Region', 'منطقة')}: {region} · {list.length} {tx('matches', 'مباريات')}
                             </td>
                           </tr>
@@ -835,7 +809,6 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                                 className="cursor-pointer hover:bg-brand-50/60 focus:bg-brand-50 focus:outline-none transition-colors"
                               >
                                 <td className="px-3 py-2.5 text-center font-mono text-[11px] text-ink-500">{i + 1}</td>
-                                <td className="px-3 py-2.5 font-mono text-[11px] text-ink-500 whitespace-nowrap">{timeMap?.[m.id] || '--'}</td>
                                 <td className="px-3 py-2.5">
                                   <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${accentChip}`}>{region}</span>
                                 </td>
@@ -1087,21 +1060,15 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
     return result;
   }, [teamEntries, category.id]);
 
-  const { timeMap, allMatches } = useMemo(() => {
-    const flatByRegion = {};
-    const orderedKeys = [];
+  const allMatches = useMemo(() => {
+    const flat = [];
     SUMO_RR_BUCKETS.forEach(({ key }) => {
       const regionMap = matchesByBucket[key] || {};
       Object.keys(regionMap).sort().forEach(region => {
-        const composite = `${key}::${region}`;
-        flatByRegion[composite] = regionMap[region];
-        orderedKeys.push(composite);
+        flat.push(...(regionMap[region] || []));
       });
     });
-    return {
-      timeMap: buildTimeMap(flatByRegion, orderedKeys),
-      allMatches: orderedKeys.flatMap(k => flatByRegion[k]),
-    };
+    return flat;
   }, [matchesByBucket]);
 
   // Bracket matches for this category (skeletons in Firestore) + resolved view.
@@ -1145,13 +1112,6 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
         <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-300">{category.name}{selectedMatch.bracket ? ` — ${selectedMatch.round}` : ' — Round Robin'}</p>
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
-          {timeMap[selectedMatchId] && (
-            <div className="mt-3">
-              <span className="inline-flex items-center rounded-full border border-orange-400/40 bg-orange-500/20 px-2.5 py-1 text-[10px] font-black text-orange-300">
-                🕐 {timeMap[selectedMatchId]}
-              </span>
-            </div>
-          )}
         </div>
         {existingScores.map((scoreObj, index) => (
           <SumoMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
@@ -1177,7 +1137,6 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
       <RoundRobinBucketsView
         categoryLabel={category.name}
         matchesByBucket={matchesByBucket}
-        timeMap={timeMap}
         scores={scores}
         onSelectMatch={setSelectedMatchId}
         lang={lang}
@@ -1222,21 +1181,15 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
     return result;
   }, [teamEntries, category.id]);
 
-  const { timeMap, allMatches } = useMemo(() => {
-    const flatByRegion = {};
-    const orderedKeys = [];
+  const allMatches = useMemo(() => {
+    const flat = [];
     RR_BUCKETS.forEach(({ key }) => {
       const regionMap = matchesByBucket[key] || {};
       Object.keys(regionMap).sort().forEach(region => {
-        const composite = `${key}::${region}`;
-        flatByRegion[composite] = regionMap[region];
-        orderedKeys.push(composite);
+        flat.push(...(regionMap[region] || []));
       });
     });
-    return {
-      timeMap: buildTimeMap(flatByRegion, orderedKeys),
-      allMatches: orderedKeys.flatMap(k => flatByRegion[k]),
-    };
+    return flat;
   }, [matchesByBucket]);
 
   const bracketRaw = useMemo(
@@ -1279,13 +1232,6 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
         <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">{category.name}{selectedMatch.bracket ? ` — ${selectedMatch.round}` : ' — Round Robin'}</p>
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
-          {timeMap[selectedMatchId] && (
-            <div className="mt-3">
-              <span className="inline-flex items-center rounded-full border border-teal-400/40 bg-teal-500/20 px-2.5 py-1 text-[10px] font-black text-teal-300">
-                🕐 {timeMap[selectedMatchId]}
-              </span>
-            </div>
-          )}
         </div>
         {existingScores.map((scoreObj, index) => (
           <SoccerBotMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
@@ -1316,7 +1262,6 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
       <RoundRobinBucketsView
         categoryLabel={category.name}
         matchesByBucket={matchesByBucket}
-        timeMap={timeMap}
         scores={scores}
         onSelectMatch={setSelectedMatchId}
         lang={lang}

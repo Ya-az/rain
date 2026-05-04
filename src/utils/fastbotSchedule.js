@@ -22,17 +22,8 @@ export function getActiveOfficialSlotKeys(systemConfig, divisionGroup = 'es_ms',
   const numOfficial = resolveRounds(systemConfig, divisionGroup, categoryId, 'official');
   return Array.from({ length: numOfficial }, (_, i) => `R${i + 1}`);
 }
-export const FASTBOT_SLOT_DURATION_MINUTES = 5;
-export const FASTBOT_START_MINUTES = 8 * 60;
-export const FASTBOT_HS_US_START_MINUTES = 11 * 60;
 
 const EMPTY_SCORE_LABEL = '--';
-
-export function formatFastBotTime(totalMinutes) {
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours}:${String(minutes).padStart(2, '0')}`;
-}
 
 export function formatFastBotScore(scoreValue) {
   return Number.isFinite(scoreValue) ? `${scoreValue.toFixed(2)}s` : EMPTY_SCORE_LABEL;
@@ -44,19 +35,6 @@ export function getFastBotSlotIndex(slotKey) {
 
 export function getFastBotDivisionGroup(division) {
   return ['HS', 'US'].includes(division) ? 'hs_us' : 'es_ms';
-}
-
-export function getFastBotStartMinutesForDivision(division) {
-  return getFastBotDivisionGroup(division) === 'hs_us'
-    ? FASTBOT_HS_US_START_MINUTES
-    : FASTBOT_START_MINUTES;
-}
-
-export function getFastBotSlotTime(slotKey, rowIndex, totalRows, startMinutes = FASTBOT_START_MINUTES, activeSlotKeys = FASTBOT_SLOT_KEYS) {
-  const slotIndex = activeSlotKeys.indexOf(slotKey);
-  if (slotIndex === -1 || totalRows <= 0) return formatFastBotTime(startMinutes);
-  const slotOffset = (slotIndex * totalRows) + rowIndex;
-  return formatFastBotTime(startMinutes + (slotOffset * FASTBOT_SLOT_DURATION_MINUTES));
 }
 
 export function getFastBotSlotOrder(slotKey, systemConfig, divisionGroup = 'es_ms', categoryId) {
@@ -101,7 +79,6 @@ export function getGroup1BestOfficialScore(slots, systemConfig, divisionGroup = 
 
 export function getFastBotCellDisplay(slot) {
   return {
-    timeLabel: slot?.timeLabel ?? formatFastBotTime(FASTBOT_START_MINUTES),
     scoreLabel: formatFastBotScore(getFastBotScoreValue(slot?.scoreObj)),
   };
 }
@@ -116,29 +93,17 @@ export function getDefaultFastBotSlotKey(row, systemConfig, categoryId) {
 export function buildFastBotScheduleRows(participations, teams, scores, systemConfig, categoryId) {
   const teamLookup = new Map(teams.map(team => [team.id, team]));
   const scopedParticipations = participations.filter(participation => teamLookup.has(participation.teamId));
-  const groupedParticipations = scopedParticipations.reduce((groups, participation) => {
-    const team = teamLookup.get(participation.teamId);
-    const groupKey = getFastBotDivisionGroup(team?.division || '');
-
-    if (!groups[groupKey]) groups[groupKey] = [];
-    groups[groupKey].push(participation);
-    return groups;
-  }, {});
 
   return scopedParticipations.map((participation) => {
     const team = teamLookup.get(participation.teamId);
     const division = team?.division || '';
     const groupKey = getFastBotDivisionGroup(division);
     const activeSlotKeys = getActiveSlotKeys(systemConfig, groupKey, categoryId);
-    const groupParticipations = groupedParticipations[groupKey] || [];
-    const rowIndex = groupParticipations.findIndex(item => item.id === participation.id);
-    const startMinutes = getFastBotStartMinutesForDivision(division);
     const slots = Object.fromEntries(
       activeSlotKeys.map(slotKey => [
         slotKey,
         {
           key: slotKey,
-          timeLabel: getFastBotSlotTime(slotKey, rowIndex, groupParticipations.length, startMinutes, activeSlotKeys),
           scoreObj: getFastBotScoreObject(scores, participation.id, slotKey),
         },
       ]),

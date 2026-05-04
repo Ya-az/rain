@@ -689,7 +689,11 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
   const [inspA, setInspA] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionA || initialScoreObj.inspectionA || {}) : {});
   const [inspB, setInspB] = useState(initialScoreObj ? (initialScoreObj.proposedInspectionB || initialScoreObj.inspectionB || {}) : {});
   const [data, setData] = useState(initialScoreObj?.rawInput || { showA: false, showB: false, unableA: false, unableB: false, goalsA: 0, goalsB: 0, notes: '' });
-  const [step, setStep] = useState(initFSM !== 'AWAITING_SUBMISSION' ? 'scoring' : 'inspection');
+  // Inspection is now OPTIONAL and fully decoupled from scoring. Default to the
+  // Scoring tab so referees can record results immediately. They can switch to
+  // the Inspection tab at any time to fill it in (its data is saved alongside
+  // the score on submit, so an inspection-only or scoring-only flow both work).
+  const [step, setStep] = useState('scoring');
 
   useEffect(() => {
     if (initialScoreObj) {
@@ -740,7 +744,10 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
     else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, `${result.ptsA} - ${result.ptsB}`, inspA, inspB, data); setFsmState('PENDING_ADMIN'); } }
   };
-  const showScore = isInspectionPassed || fsmState !== 'AWAITING_SUBMISSION';
+
+  // Scoring is ALWAYS available regardless of inspection status (req. #3).
+  const showScore = true;
+  const inspectionTouched = Object.keys(inspA).length > 0 || Object.keys(inspB).length > 0;
 
   return (
     <div className={`scoring-card ${isInspectionPassed ? 'scoring-card-active' : 'border-ink-200'} animate-slide-up`}>
@@ -748,24 +755,57 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
         <CardHeader title={title} inspPassed={isInspectionPassed} matchReady lang={lang} />
         {fsmState === 'PENDING_ADMIN' && <PendingBanner lang={lang} />}
       </div>
+
+      {/* Tab switcher: Inspection (optional) | Scoring (always available) */}
+      <div className="px-4 sm:px-5 -mt-1 mb-3">
+        <div className="grid grid-cols-2 gap-2 p-1 bg-ink-100 rounded-xl">
+          <button
+            type="button"
+            onClick={() => setStep('inspection')}
+            className={`py-2 rounded-lg text-xs font-black transition-colors ${
+              step === 'inspection'
+                ? 'bg-white text-ink-800 shadow-sm border border-ink-200'
+                : 'bg-transparent text-ink-500 hover:text-ink-700'
+            }`}
+          >
+            🔍 {lang === 'ar' ? 'الفحص' : 'Inspection'}
+            {inspectionTouched && (
+              <span className={`ms-1.5 inline-block w-2 h-2 rounded-full ${isInspectionPassed ? 'bg-saudi-500' : 'bg-amber-500'}`} />
+            )}
+            <span className="ms-1 text-[9px] font-bold uppercase tracking-wider text-ink-400">
+              {lang === 'ar' ? 'اختياري' : 'Optional'}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setStep('scoring')}
+            className={`py-2 rounded-lg text-xs font-black transition-colors ${
+              step === 'scoring'
+                ? 'bg-white text-ink-800 shadow-sm border border-ink-200'
+                : 'bg-transparent text-ink-500 hover:text-ink-700'
+            }`}
+          >
+            🏆 {lang === 'ar' ? 'التسجيل' : 'Scoring'}
+          </button>
+        </div>
+      </div>
+
       {step === 'inspection' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
             <TeamInspPanel label={`${lang === 'ar' ? 'الفريق أ' : 'Team A'}: ${match.teamA}`} pass={passA} categoryId={categoryId} isInitial={isInitial} insp={inspA} setInsp={setInspA} disabled={disabled} lang={lang} />
             <TeamInspPanel label={`${lang === 'ar' ? 'الفريق ب' : 'Team B'}: ${match.teamB}`} pass={passB} categoryId={categoryId} isInitial={isInitial} insp={inspB} setInsp={setInspB} disabled={disabled} lang={lang} />
           </div>
-          {isInspectionPassed && (
-            <button onClick={() => setStep('scoring')} className="w-full mt-3 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-              {lang === 'ar' ? 'التالي: التسجيل ←' : 'Next: Scoring →'}
-            </button>
-          )}
+          <div className="mt-3 p-3 rounded-xl bg-ink-50 border border-ink-200 text-[11px] text-ink-600 leading-relaxed">
+            {lang === 'ar'
+              ? 'الفحص اختياري ولا يمنع تسجيل النتيجة. يتم حفظ نتيجة الفحص تلقائياً عند حفظ النتيجة.'
+              : 'Inspection is optional and does not block scoring. Results are saved alongside the match score when you submit.'}
+          </div>
         </div>
       )}
+
       {step === 'scoring' && (
         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
-          <button onClick={() => setStep('inspection')} className="w-full mb-4 py-2.5 bg-ink-100 hover:bg-ink-200 text-ink-700 font-semibold rounded-xl flex items-center justify-center gap-2 text-sm transition-colors border border-ink-200">
-            {lang === 'ar' ? '→' : '←'} {isInspectionPassed ? (lang === 'ar' ? 'الفحص ✓ — اضغط للمراجعة' : 'Inspection ✓ — tap to review') : (lang === 'ar' ? 'رجوع للفحص' : 'Back to Inspection')}
-          </button>
           {showScore && (
             <>
               <div className="space-y-3 mb-4 text-sm">
