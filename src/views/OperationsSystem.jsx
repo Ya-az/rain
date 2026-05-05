@@ -214,7 +214,7 @@ function RosterRow({ team, confirmAttendance, lang, participations = [], categor
 
 // ─── AddTeamCard ──────────────────────────────────────────────────────────────
 
-const REGION_OPTIONS = ['Western', 'Central', 'Eastern'];
+const REGION_OPTIONS = ['Western', 'Central', 'Eastern', 'FN'];
 const DIVISION_OPTIONS = ['ES', 'MS', 'HS', 'US'];
 
 function AddTeamCard({ lang, categories, addTeam, defaultRegion = 'Western' }) {
@@ -547,6 +547,56 @@ export default function OperationsSystem({ scores, setScores, teams, participati
     setImportState('idle');
     setImportResult(null);
     setImportError('');
+  };
+
+  // ─ FN-specific Excel import (forces region='FN' for every imported team)
+  const fnFileInputRef = useRef(null);
+  const [fnImportState, setFnImportState] = useState('idle');
+  const [fnImportResult, setFnImportResult] = useState(null);
+  const [fnImportError, setFnImportError] = useState('');
+
+  const handleFnFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFnImportState('parsing');
+    setFnImportError('');
+    setFnImportResult(null);
+    try {
+      const result = await parseExcelFile(file, teams, { forcedRegion: 'FN' });
+      setFnImportResult(result);
+      setFnImportState('preview');
+    } catch (err) {
+      const reason = err?.message || String(err || '');
+      const friendly = lang === 'ar'
+        ? `فشل قراءة الملف: ${reason}. تأكد من صيغة .xlsx/.csv ومن وجود الأعمدة المطلوبة.`
+        : `Failed to read file: ${reason}. Make sure it is a valid .xlsx/.csv with the required columns.`;
+      setFnImportError(friendly);
+      console.error('FN Excel import error:', err);
+      setFnImportState('idle');
+    }
+    e.target.value = '';
+  };
+
+  const handleConfirmFnImport = async () => {
+    if (!fnImportResult?.teams?.length) return;
+    setFnImportState('importing');
+    const ok = await importTeams({
+      teams:          fnImportResult.teams,
+      participations: fnImportResult.participations,
+      categories:     fnImportResult.categories,
+    });
+    if (ok) {
+      setFnImportState('done');
+      if (showToast) showToast(lang === 'ar' ? `تم استيراد ${fnImportResult.imported} فريق إلى منطقة FN` : `${fnImportResult.imported} FN teams imported successfully`);
+    } else {
+      setFnImportState('preview');
+    }
+  };
+
+  const handleFnReset = () => {
+    setFnImportState('idle');
+    setFnImportResult(null);
+    setFnImportError('');
   };
 
   const filteredRoster = teams.filter(t =>
@@ -891,6 +941,342 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   </p>
                 </div>
                 <button onClick={handleReset} className="text-xs text-saudi-600 font-bold hover:underline">
+                  {lang === 'ar' ? 'استيراد جديد' : 'Import again'}
+                </button>
+              </div>
+            )}
+
+          </div>
+        </CollapsibleCard>
+      )}
+
+      {/* ─ FN-only Import — admin only */}
+      {activeTab === 'teams' && currentUser?.role === 'admin' && (
+        <CollapsibleCard
+          title={<><FileSpreadsheet size={18} className="text-purple-300 me-2" />{lang === 'ar' ? 'استيراد بيانات فرق منطقة FN' : 'Import FN Team Data (Excel)'}</>}
+          badge={lang === 'ar' ? `${teams.filter(t => t.region === 'FN').length} فريق` : `${teams.filter(t => t.region === 'FN').length} teams`}
+          badgeColor="bg-purple-600"
+          headerClass="bg-purple-800"
+        >
+          <div className="p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+              <div>
+                <p className="text-sm font-bold text-purple-800">
+                  {lang === 'ar' ? 'استيراد خاص بمنطقة FN — كل الفرق ستُحفظ بمنطقة FN تلقائياً' : 'FN-only import — every imported team is assigned region FN automatically'}
+                </p>
+                <p className="text-xs text-purple-600 mt-1">
+                  {lang === 'ar'
+                    ? 'يمكنك ترك عمود المنطقة فارغاً أو حذفه. الأعمدة المطلوبة: اسم الفريق · المرحلة · المسارات · المدرب · الأعضاء'
+                    : 'Region column is optional/ignored. Required: Team Name · Division · Categories · Coach · Members'}
+                </p>
+              </div>
+            </div>
+
+            {fnImportState === 'idle' && (
+              <div>
+                <input
+                  ref={fnFileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleFnFileChange}
+                />
+                <button
+                  onClick={() => fnFileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-purple-300 hover:border-purple-500 hover:bg-purple-50/40 rounded-xl transition-colors group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center transition-colors">
+                    <Upload size={22} className="text-purple-600" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-ink-700 text-sm">
+                      {lang === 'ar' ? 'اضغط لاختيار ملف Excel لمنطقة FN' : 'Click to select FN Excel file'}
+                    </p>
+                    <p className="text-xs text-ink-400 mt-1">.xlsx · .xls · .csv</p>
+                  </div>
+                </button>
+                {fnImportError && (
+                  <div className="mt-3 flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold">
+                    <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                    {fnImportError}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {fnImportState === 'parsing' && (
+              <div className="flex items-center justify-center gap-3 py-8">
+                <span className="w-5 h-5 border-2 border-purple-500/40 border-t-purple-500 rounded-full animate-spin" />
+                <span className="text-sm font-bold text-ink-500">{lang === 'ar' ? 'جاري قراءة الملف...' : 'Reading file...'}</span>
+              </div>
+            )}
+
+            {fnImportState === 'preview' && fnImportResult && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                  <CheckCircle2 size={20} className="text-purple-600 shrink-0" />
+                  <div>
+                    <p className="font-black text-purple-800 text-sm">
+                      {lang === 'ar'
+                        ? `تم قراءة ${fnImportResult.imported} فريق (سيتم تعيينها لمنطقة FN)`
+                        : `${fnImportResult.imported} teams parsed — will be assigned to FN`}
+                    </p>
+                    {fnImportResult.warnings.length > 0 && (
+                      <p className="text-xs text-purple-700 font-semibold mt-0.5">
+                        {fnImportResult.warnings.length} {lang === 'ar' ? 'تحذير' : 'warning(s)'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {fnImportResult.warnings.length > 0 && (
+                  <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl space-y-1">
+                    {fnImportResult.warnings.slice(0, 5).map((w, i) => (
+                      <p key={i} className="text-xs text-purple-700 font-semibold flex items-start gap-2">
+                        <AlertTriangle size={12} className="shrink-0 mt-0.5" /> {w}
+                      </p>
+                    ))}
+                    {fnImportResult.warnings.length > 5 && (
+                      <p className="text-xs text-purple-500 font-semibold">+{fnImportResult.warnings.length - 5} more...</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-start gap-2.5 p-3.5 bg-saudi-50 border border-saudi-300 rounded-xl">
+                  <AlertTriangle size={15} className="text-saudi-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-saudi-800 font-semibold">
+                    {lang === 'ar'
+                      ? 'تحذير: سيؤدي الاستيراد إلى استبدال الفرق الحالية بنفس الأسماء وحذف بيانات الحضور والنتائج السابقة.'
+                      : 'Warning: Importing replaces matching existing teams and clears check-in & score data.'}
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleFnReset}
+                    className="flex-none px-5 py-3 bg-ink-100 hover:bg-ink-200 text-ink-700 font-bold rounded-xl text-sm transition-colors border border-ink-200"
+                  >
+                    {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button
+                    onClick={handleConfirmFnImport}
+                    disabled={!fnImportResult.imported}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-purple-500 to-purple-700 hover:from-purple-400 hover:to-purple-600 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-purple-500/20 press-effect disabled:opacity-50"
+                  >
+                    <Upload size={15} />
+                    {lang === 'ar'
+                      ? `تأكيد استيراد ${fnImportResult.imported} فريق إلى FN`
+                      : `Confirm Import to FN (${fnImportResult.imported} teams)`}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {fnImportState === 'done' && (
+              <div className="flex items-center justify-between p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 size={20} className="text-purple-600" />
+                  <p className="font-bold text-purple-800 text-sm">
+                    {lang === 'ar'
+                      ? `تم استيراد ${fnImportResult?.imported} فريق إلى منطقة FN بنجاح`
+                      : `${fnImportResult?.imported} teams imported to FN successfully`}
+                  </p>
+                </div>
+                <button onClick={handleFnReset} className="text-xs text-purple-600 font-bold hover:underline">
+                  {lang === 'ar' ? 'استيراد جديد' : 'Import again'}
+                </button>
+              </div>
+            )}
+          </div>
+        </CollapsibleCard>
+      )}
+
+      {/* ─ Import Team Data — FN region (admin only) */}
+      {activeTab === 'teams' && currentUser?.role === 'admin' && (
+        <CollapsibleCard
+          title={<><FileSpreadsheet size={18} className="text-teal-300 me-2" />{lang === 'ar' ? 'استيراد بيانات فرق المنطقة الشمالية (FN)' : 'Import FN Team Data (Excel)'}</>}
+          badge={lang === 'ar' ? `منطقة FN فقط` : `FN region only`}
+          badgeColor="bg-teal-600"
+          headerClass="bg-navy-800"
+        >
+          <div className="p-5 space-y-4">
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-teal-50 border border-teal-200 rounded-xl">
+              <div>
+                <p className="text-sm font-bold text-teal-800">
+                  {lang === 'ar' ? 'استيراد مخصّص لمنطقة FN — جميع الفرق المستوردة ستُسجَّل تحت منطقة FN تلقائياً.' : 'Dedicated FN import — every imported team will be assigned to the FN region automatically.'}
+                </p>
+                <p className="text-xs text-teal-700 mt-1">
+                  {lang === 'ar'
+                    ? 'يتم تجاهل قيمة عمود المنطقة في الملف. باقي الأعمدة (الاسم، المرحلة، المسارات، المدرب، الأعضاء) تُقرأ كالمعتاد.'
+                    : 'The Region column in the file is ignored. All other columns (Name, Division, Categories, Coach, Members) are read as usual.'}
+                </p>
+              </div>
+              <button
+                onClick={downloadTemplate}
+                className="flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm rounded-xl transition-colors shrink-0 press-effect"
+              >
+                <Download size={15} />
+                {lang === 'ar' ? 'تنزيل القالب' : 'Download Template'}
+              </button>
+            </div>
+
+            {fnImportState === 'idle' && (
+              <div>
+                <input
+                  ref={fnFileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleFnFileChange}
+                />
+                <button
+                  onClick={() => fnFileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-teal-300 hover:border-teal-500 hover:bg-teal-50/40 rounded-xl transition-colors group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-teal-100 group-hover:bg-teal-200 flex items-center justify-center transition-colors">
+                    <Upload size={22} className="text-teal-600 group-hover:text-teal-800" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-ink-700 text-sm">
+                      {lang === 'ar' ? 'اضغط لاختيار ملف Excel لمنطقة FN' : 'Click to select FN Excel file'}
+                    </p>
+                    <p className="text-xs text-ink-400 mt-1">.xlsx · .xls · .csv</p>
+                  </div>
+                </button>
+                {fnImportError && (
+                  <div className="mt-3 flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold">
+                    <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                    {fnImportError}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {fnImportState === 'parsing' && (
+              <div className="flex items-center justify-center gap-3 py-8">
+                <span className="w-5 h-5 border-2 border-teal-500/40 border-t-teal-500 rounded-full animate-spin" />
+                <span className="text-sm font-bold text-ink-500">{lang === 'ar' ? 'جاري قراءة الملف...' : 'Reading file...'}</span>
+              </div>
+            )}
+
+            {fnImportState === 'preview' && fnImportResult && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-4 bg-teal-50 border border-teal-200 rounded-xl">
+                  <CheckCircle2 size={20} className="text-teal-600 shrink-0" />
+                  <div>
+                    <p className="font-black text-teal-800 text-sm">
+                      {lang === 'ar'
+                        ? `تم قراءة ${fnImportResult.imported} فريق لمنطقة FN`
+                        : `${fnImportResult.imported} FN teams parsed successfully`}
+                    </p>
+                    {fnImportResult.warnings.length > 0 && (
+                      <p className="text-xs text-teal-700 font-semibold mt-0.5">
+                        {fnImportResult.warnings.length} {lang === 'ar' ? 'تحذير' : 'warning(s)'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {fnImportResult.warnings.length > 0 && (
+                  <div className="p-3.5 bg-saudi-50 border border-saudi-200 rounded-xl space-y-1">
+                    {fnImportResult.warnings.slice(0, 5).map((w, i) => (
+                      <p key={i} className="text-xs text-saudi-700 font-semibold flex items-start gap-2">
+                        <AlertTriangle size={12} className="shrink-0 mt-0.5" /> {w}
+                      </p>
+                    ))}
+                    {fnImportResult.warnings.length > 5 && (
+                      <p className="text-xs text-saudi-500 font-semibold">+{fnImportResult.warnings.length - 5} more...</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="overflow-x-auto rounded-xl border border-ink-200">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-ink-100 text-ink-500 font-bold uppercase tracking-wide">
+                      <tr>
+                        <th className="px-3 py-2">{lang === 'ar' ? 'اسم الفريق' : 'Team'}</th>
+                        <th className="px-3 py-2">{lang === 'ar' ? 'المرحلة' : 'Div'}</th>
+                        <th className="px-3 py-2">{lang === 'ar' ? 'المنطقة' : 'Region'}</th>
+                        <th className="px-3 py-2">{lang === 'ar' ? 'المسارات' : 'Categories'}</th>
+                        <th className="px-3 py-2">{lang === 'ar' ? 'الأعضاء' : 'Members'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ink-100">
+                      {fnImportResult.teams.slice(0, 8).map(team => (
+                        <tr key={team.id} className="bg-white hover:bg-ink-50">
+                          <td className="px-3 py-2 font-semibold text-ink-800">{team.name}</td>
+                          <td className="px-3 py-2 font-mono text-ink-600">{team.division}</td>
+                          <td className="px-3 py-2">
+                            <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-200 px-2 py-0.5 text-[10px] font-black text-teal-700">{team.region}</span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <div className="flex flex-wrap gap-1">
+                              {fnImportResult.participations
+                                .filter(p => p.teamId === team.id)
+                                .map(p => {
+                                  const cat = fnImportResult.categories?.find(c => c.id === p.categoryId);
+                                  return (
+                                    <span key={p.id} className="bg-brand-50 text-brand-700 border border-brand-200 px-1.5 py-0.5 rounded font-mono text-[10px]">
+                                      {cat?.name || p.categoryId}
+                                    </span>
+                                  );
+                                })}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-ink-500">{team.members.length + 1}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {fnImportResult.teams.length > 8 && (
+                    <p className="px-3 py-2 text-xs text-ink-400 font-semibold bg-ink-50">
+                      +{fnImportResult.teams.length - 8} {lang === 'ar' ? 'فريق إضافي' : 'more teams'}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-start gap-2.5 p-3.5 bg-saudi-50 border border-saudi-300 rounded-xl">
+                  <AlertTriangle size={15} className="text-saudi-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-saudi-800 font-semibold">
+                    {lang === 'ar'
+                      ? 'تحذير: سيؤدي الاستيراد إلى حذف بيانات الحضور والنتائج السابقة لكل الفرق.'
+                      : 'Warning: Importing will clear all existing check-in data and scores. This cannot be undone.'}
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleFnReset}
+                    className="flex-none px-5 py-3 bg-ink-100 hover:bg-ink-200 text-ink-700 font-bold rounded-xl text-sm transition-colors border border-ink-200"
+                  >
+                    {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                  </button>
+                  <button
+                    onClick={handleConfirmFnImport}
+                    disabled={!fnImportResult.imported}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-bold rounded-xl text-sm transition-all shadow-md shadow-teal-500/20 press-effect disabled:opacity-50"
+                  >
+                    <Upload size={15} />
+                    {lang === 'ar'
+                      ? `تأكيد استيراد ${fnImportResult.imported} فريق FN (${fnImportResult.participations?.length ?? 0} مشاركة)`
+                      : `Confirm Import (${fnImportResult.imported} FN teams · ${fnImportResult.participations?.length ?? 0} participations)`}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {fnImportState === 'done' && (
+              <div className="flex items-center justify-between p-4 bg-teal-50 border border-teal-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 size={20} className="text-teal-600" />
+                  <p className="font-bold text-teal-800 text-sm">
+                    {lang === 'ar'
+                      ? `تم استيراد ${fnImportResult?.imported} فريق إلى منطقة FN بنجاح`
+                      : `${fnImportResult?.imported} FN teams imported successfully`}
+                  </p>
+                </div>
+                <button onClick={handleFnReset} className="text-xs text-teal-600 font-bold hover:underline">
                   {lang === 'ar' ? 'استيراد جديد' : 'Import again'}
                 </button>
               </div>

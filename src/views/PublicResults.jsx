@@ -7,6 +7,7 @@ const REGION_COLORS = {
   Western: { dot: 'bg-brand-500', chip: 'bg-brand-500/15 text-brand-200 border-brand-400/40' },
   Central: { dot: 'bg-saudi-500', chip: 'bg-saudi-500/15 text-saudi-200 border-saudi-400/40' },
   Eastern: { dot: 'bg-orange-500', chip: 'bg-orange-500/15 text-orange-200 border-orange-400/40' },
+  FN:      { dot: 'bg-teal-500',   chip: 'bg-teal-500/15 text-teal-200 border-teal-400/40' },
 };
 
 export default function PublicResults({ teams, getTeamStatus, scores, lang, participations = [], categories = [], group2Matches = [] }) {
@@ -530,6 +531,7 @@ function RegionBoard({ tally, tx }) {
     Eastern: tx('Eastern', 'الشرقية'),
     Western: tx('Western', 'الغربية'),
     Central: tx('Central', 'الوسطى'),
+    FN:      tx('FN', 'الشمالية'),
   };
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5">
@@ -629,6 +631,7 @@ function RegionChip({ region, tx }) {
     Eastern: tx('Eastern', 'الشرقية'),
     Western: tx('Western', 'الغربية'),
     Central: tx('Central', 'الوسطى'),
+    FN:      tx('FN', 'الشمالية'),
   };
   const c = REGION_COLORS[region] || { chip: 'bg-white/10 text-white/70 border-white/20', dot: 'bg-white/30' };
   return (
@@ -660,6 +663,7 @@ function Filters({ filterRegion, setFilterRegion, filterDivision, setFilterDivis
     { val: 'Eastern', label: tx('Eastern', 'الشرقية') },
     { val: 'Western', label: tx('Western', 'الغربية') },
     { val: 'Central', label: tx('Central', 'الوسطى') },
+    { val: 'FN',      label: tx('FN', 'الشمالية') },
   ];
   const baseBtn = 'px-3 py-1.5 rounded-lg text-[11px] font-black border transition whitespace-nowrap';
   const active = 'bg-white text-[#03101b] border-white';

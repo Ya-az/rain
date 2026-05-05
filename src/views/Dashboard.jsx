@@ -42,7 +42,7 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
     return group2Matches.filter(m => !scores.some(s => s.pId === m.id && s.status === 'VALID'));
   }, [group2Matches, scores]);
 
-  const REGION_COLORS = { Western: 'bg-brand-400', Central: 'bg-saudi-400', Eastern: 'bg-orange-400' };
+  const REGION_COLORS = { Western: 'bg-brand-400', Central: 'bg-saudi-400', Eastern: 'bg-orange-400', FN: 'bg-purple-400' };
 
   return (
     <div className="space-y-5" dir={dir}>

@@ -20,6 +20,8 @@ const REGION_MAP = {
   'وسط': 'Central', 'وسطى': 'Central', 'وسطي': 'Central', 'المنطقة الوسطى': 'Central',
   'eastern': 'Eastern', 'east': 'Eastern',
   'شرق': 'Eastern', 'شرقي': 'Eastern', 'شرقية': 'Eastern', 'المنطقة الشرقية': 'Eastern',
+  'fn': 'FN', 'northern': 'FN', 'north': 'FN',
+  'شمال': 'FN', 'شمالي': 'FN', 'شمالية': 'FN', 'المنطقة الشمالية': 'FN', 'حدود الشمال': 'FN',
 };
 
 // ─── Arabic column keys (trimmed) ────────────────────────────────────────────
@@ -74,9 +76,12 @@ function makeParticipationId(region, existing) {
 /**
  * @param {File} file
  * @param {Array}  existingTeams  — current teams in state (for check-in preservation)
+ * @param {Object} [opts]
+ * @param {string} [opts.forcedRegion] — if set, ignore the Region column and assign this region to every team
  * @returns {Promise<{ teams, participations, categories, total, imported, warnings }>}
  */
-export function parseExcelFile(file, existingTeams = []) {
+export function parseExcelFile(file, existingTeams = [], opts = {}) {
+  const { forcedRegion = null } = opts;
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -98,7 +103,7 @@ export function parseExcelFile(file, existingTeams = []) {
           { col: COL_TEAM,     label: 'Team Name' },
           { col: COL_CATEGORY, label: 'Category' },
           { col: COL_DIVISION, label: 'Division' },
-          { col: COL_REGION,   label: 'Region' },
+          ...(forcedRegion ? [] : [{ col: COL_REGION, label: 'Region' }]),
         ];
         const missing = required.filter(r => !headerKeys.has(r.col));
         if (missing.length) {
@@ -154,10 +159,15 @@ export function parseExcelFile(file, existingTeams = []) {
               warnings.push(`Row ${humanRow}: Unknown division "${cell(row, COL_DIVISION)}" for team "${teamNameRaw}"`);
             }
 
-            const regionRaw = normalize(cell(row, COL_REGION));
-            const region    = REGION_MAP[regionRaw] || null;
-            if (!region) {
-              warnings.push(`Row ${humanRow}: Unknown region "${cell(row, COL_REGION)}" for team "${teamNameRaw}"`);
+            let region;
+            if (forcedRegion) {
+              region = forcedRegion;
+            } else {
+              const regionRaw = normalize(cell(row, COL_REGION));
+              region = REGION_MAP[regionRaw] || null;
+              if (!region) {
+                warnings.push(`Row ${humanRow}: Unknown region "${cell(row, COL_REGION)}" for team "${teamNameRaw}"`);
+              }
             }
 
             const coachName = cell(row, COL_COACH) || 'TBD';
@@ -188,7 +198,7 @@ export function parseExcelFile(file, existingTeams = []) {
               id:       `t_${teamKey.replace(/\s+/g, '_')}_${Date.now()}`,
               name:     teamNameRaw,
               division: division || 'MS',
-              region:   region   || 'Western',
+              region:   region   || forcedRegion || 'Western',
               coach:    { name: coachName, present: prev?.coach.present || false },
               members:  preservedMembers,
             });
