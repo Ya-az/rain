@@ -101,6 +101,24 @@ export default function App() {
           INITIAL_PARTICIPATIONS.forEach(p => batch.set(doc(db, 'participations', p.id), p));
           MOCK_CATEGORIES.forEach(c => batch.set(doc(db, 'categories', c.id), c));
           await batch.commit();
+        } else {
+          // Backfill any INITIAL_TEAMS / INITIAL_PARTICIPATIONS that aren't in
+          // Firestore yet (e.g. Central roster added after the first deploy).
+          const existingTeamIds = new Set(teamsSnap.docs.map(d => d.id));
+          const missingTeams = INITIAL_TEAMS.filter(tm => !existingTeamIds.has(tm.id));
+          const partsSnap = await getDocs(collection(db, 'participations'));
+          const existingPartIds = new Set(partsSnap.docs.map(d => d.id));
+          const missingParts = INITIAL_PARTICIPATIONS.filter(p => !existingPartIds.has(p.id));
+          const catsSnap = await getDocs(collection(db, 'categories'));
+          const existingCatIds = new Set(catsSnap.docs.map(d => d.id));
+          const missingCats = MOCK_CATEGORIES.filter(c => !existingCatIds.has(c.id));
+          if (missingTeams.length || missingParts.length || missingCats.length) {
+            const batch = writeBatch(db);
+            missingTeams.forEach(tm => batch.set(doc(db, 'teams', tm.id), tm));
+            missingParts.forEach(p => batch.set(doc(db, 'participations', p.id), p));
+            missingCats.forEach(c => batch.set(doc(db, 'categories', c.id), c));
+            await batch.commit();
+          }
         }
         const usersSnap = await getDocs(collection(db, 'users'));
         if (usersSnap.empty) {

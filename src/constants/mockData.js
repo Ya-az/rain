@@ -74,6 +74,7 @@ const CENTRAL_ROSTER = [
   [113, 'Falcons',                  'HS', 'c1_fastbot'],
   [114, 'فالكون',                   'HS', 'c1_fastbot'],
   [115, 'Digital Stars',            'US', 'c1_fastbot'],
+  [116, 'Digital Stars (HS)',       'HS', 'c1_fastbot'],
   // ⚡ Fast (c1_fastbot) — ابتدائي + متوسط
   [121, 'CodeStorm',                'ES', 'c1_fastbot'],
   [122, 'Noble coders',             'ES', 'c1_fastbot'],

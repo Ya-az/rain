@@ -742,13 +742,23 @@ function buildTimeMap(matchesByRegion, regions) {
 }
 
 // ─── Round-Robin buckets (FastBot-style grouping) ────────────────────────────
-// Sumo & SoccerBot are bucketed as ES/MS together and HS/US together.
-const RR_BUCKETS = [
+// Default: Sumo & most categories use ES/MS together and HS/US together.
+// Per-category overrides allow split tables (e.g. Soccer: ES alone + MS/HS).
+const RR_BUCKETS_DEFAULT = [
   { key: 'ES / MS', divs: ['ES', 'MS'] },
   { key: 'HS / US', divs: ['HS', 'US'] },
 ];
+const RR_BUCKETS_BY_CATEGORY = {
+  c2_soccer: [
+    { key: 'ES',      divs: ['ES'] },
+    { key: 'MS / HS', divs: ['MS', 'HS'] },
+  ],
+};
+function getRrBuckets(categoryId) {
+  return RR_BUCKETS_BY_CATEGORY[categoryId] || RR_BUCKETS_DEFAULT;
+}
 
-function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange' }) {
+function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets = RR_BUCKETS_DEFAULT }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const accentChip = accent === 'teal'
     ? 'bg-teal-50 border-teal-200 text-teal-700'
@@ -757,7 +767,7 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
 
   return (
     <div className="space-y-4">
-      {RR_BUCKETS.map(({ key: bucketKey }) => {
+      {buckets.map(({ key: bucketKey }) => {
         const regionMap = matchesByBucket[bucketKey] || {};
         const regions = Object.keys(regionMap).sort();
         const allBucketMatches = regions.flatMap(r => regionMap[r] || []);
@@ -1052,7 +1062,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
   // R.R matches grouped first by bucket (ES/MS, HS/US) then by region.
   const matchesByBucket = useMemo(() => {
     const result = {};
-    RR_BUCKETS.forEach(({ key, divs }) => {
+    getRrBuckets(category.id).forEach(({ key, divs }) => {
       const bucketEntries = teamEntries.filter(e => divs.includes(e.division));
       const regionsInBucket = [...new Set(bucketEntries.map(e => e.region))].sort();
       result[key] = Object.fromEntries(
@@ -1068,7 +1078,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
   const { timeMap, allMatches } = useMemo(() => {
     const flatByRegion = {};
     const orderedKeys = [];
-    RR_BUCKETS.forEach(({ key }) => {
+    getRrBuckets(category.id).forEach(({ key }) => {
       const regionMap = matchesByBucket[key] || {};
       Object.keys(regionMap).sort().forEach(region => {
         const composite = `${key}::${region}`;
@@ -1160,6 +1170,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
         onSelectMatch={setSelectedMatchId}
         lang={lang}
         accent="orange"
+        buckets={getRrBuckets(category.id)}
       />
     </div>
   );
@@ -1186,7 +1197,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
   // R.R matches grouped first by bucket (ES/MS, HS/US) then by region.
   const matchesByBucket = useMemo(() => {
     const result = {};
-    RR_BUCKETS.forEach(({ key, divs }) => {
+    getRrBuckets(category.id).forEach(({ key, divs }) => {
       const bucketEntries = teamEntries.filter(e => divs.includes(e.division));
       const regionsInBucket = [...new Set(bucketEntries.map(e => e.region))].sort();
       result[key] = Object.fromEntries(
@@ -1202,7 +1213,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
   const { timeMap, allMatches } = useMemo(() => {
     const flatByRegion = {};
     const orderedKeys = [];
-    RR_BUCKETS.forEach(({ key }) => {
+    getRrBuckets(category.id).forEach(({ key }) => {
       const regionMap = matchesByBucket[key] || {};
       Object.keys(regionMap).sort().forEach(region => {
         const composite = `${key}::${region}`;
@@ -1298,6 +1309,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
         onSelectMatch={setSelectedMatchId}
         lang={lang}
         accent="teal"
+        buckets={getRrBuckets(category.id)}
       />
     </div>
   );
