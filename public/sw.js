@@ -4,7 +4,7 @@
 
    Static assets (Vite hashes them) → cache-first (immutable). */
 
-const VERSION = 'v11';
+const VERSION = 'v12';
 const SHELL_CACHE = `roborave-shell-${VERSION}`;
 const ASSET_CACHE = `roborave-assets-${VERSION}`;
 const SHELL_URLS = ['/', '/manifest.webmanifest', '/img/rain-o.png'];

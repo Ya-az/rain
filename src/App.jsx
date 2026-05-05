@@ -188,6 +188,44 @@ export default function App() {
             console.warn('Roster reconcile skipped:', e);
           }
         }
+
+        // ─── One-time dedupe of participations (v1) ────────────────────
+        // Drops duplicate (teamId, categoryId) participations that
+        // accumulated from manual Add-Team / earlier seeds.
+        const DEDUPE_KEY = 'participationsDedupe_v1';
+        if (typeof window !== 'undefined' && !localStorage.getItem(DEDUPE_KEY)) {
+          try {
+            const partsAll = await getDocs(collection(db, 'participations'));
+            const seen = new Map(); // key=teamId|categoryId → keeper id (prefer non-random short ids)
+            const toDelete = [];
+            partsAll.docs.forEach(d => {
+              const data = d.data();
+              if (!data.teamId || !data.categoryId) return;
+              const key = `${data.teamId}|${data.categoryId}`;
+              if (!seen.has(key)) {
+                seen.set(key, d.id);
+                return;
+              }
+              const keeperId = seen.get(key);
+              // Prefer the shorter / seed-style id (e.g. 26001C) over long generated ones
+              if (d.id.length < keeperId.length) {
+                toDelete.push(keeperId);
+                seen.set(key, d.id);
+              } else {
+                toDelete.push(d.id);
+              }
+            });
+            if (toDelete.length > 0) {
+              const batch = writeBatch(db);
+              toDelete.forEach(id => batch.delete(doc(db, 'participations', id)));
+              await batch.commit();
+              console.log(`Removed ${toDelete.length} duplicate participation(s)`);
+            }
+            localStorage.setItem(DEDUPE_KEY, '1');
+          } catch (e) {
+            console.warn('Participation dedupe skipped:', e);
+          }
+        }
       } catch (err) {
         console.error('Firestore seed error:', err);
       }
