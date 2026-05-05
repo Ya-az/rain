@@ -7,6 +7,12 @@ const REGION_DOTS = {
   Western: 'bg-brand-400',
   Central: 'bg-saudi-400',
   Eastern: 'bg-orange-400',
+  FN: 'bg-teal-400',
+};
+
+const REGION_LABELS = {
+  ar: { Western: 'الغربية', Central: 'الوسطى', Eastern: 'الشرقية', FN: 'النهائيات العالمية' },
+  en: { Western: 'Western', Central: 'Central', Eastern: 'Eastern', FN: 'Finals' },
 };
 
 export default function Header({ currentUser, lang, setLang, onLogout, adminRegion, setAdminRegion }) {
@@ -138,7 +144,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
               {t(lang, 'regionFilter')}
             </span>
             <div className="flex items-center gap-1.5 flex-nowrap">
-              {['All', 'Western', 'Central', 'Eastern'].map(r => (
+              {['All', 'Western', 'Central', 'Eastern', 'FN'].map(r => (
                 <button
                   key={r}
                   onClick={() => setAdminRegion(r)}
@@ -151,7 +157,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
                   {r !== 'All' && (
                     <span className={`w-1.5 h-1.5 rounded-full ${REGION_DOTS[r] || 'bg-white/40'}`} />
                   )}
-                  {r === 'All' ? t(lang, 'allRegions') : r}
+                    {r === 'All' ? t(lang, 'allRegions') : (REGION_LABELS[lang]?.[r] || r)}
                 </button>
               ))}
             </div>

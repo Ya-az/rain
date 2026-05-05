@@ -9,6 +9,7 @@ const REGION_COLORS = {
   Western: 'bg-brand-500',
   Central: 'bg-saudi-500',
   Eastern: 'bg-orange-500',
+  FN: 'bg-teal-500',
 };
 
 function CopyIdButton({ id, lang }) {
@@ -285,6 +286,7 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
             { name: 'Western', cls: 'bg-brand-500',  ar: 'الغربية' },
             { name: 'Central', cls: 'bg-saudi-500',  ar: 'الوسطى' },
             { name: 'Eastern', cls: 'bg-orange-500', ar: 'الشرقية' },
+            { name: 'FN',      cls: 'bg-teal-500',   ar: 'النهائيات العالمية' },
           ].map(r => (
             <span key={r.name} className="inline-flex items-center gap-1.5">
               <span className={`inline-block w-2.5 h-2.5 rounded-full ${r.cls}`} />
