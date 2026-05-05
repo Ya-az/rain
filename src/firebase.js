@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -13,7 +13,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// `ignoreUndefinedProperties: true` lets us pass partial objects (with
+// `undefined` fields, e.g. when clearing proposedScore on approve/reject)
+// without Firestore throwing. Undefined fields are simply omitted from the
+// write — and because we use setDoc (not merge), the Firestore doc is fully
+// replaced, so omitted fields are effectively deleted.
+export const db = initializeFirestore(app, { ignoreUndefinedProperties: true });
 export const auth = getAuth(app);
 
 // ─── Anonymous sign-in (Phase 1 — transitional) ────────────────────────────
