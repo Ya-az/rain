@@ -71,13 +71,34 @@ function FastBotCheckInBadge({ status, lang }) {
   );
 }
 
-function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = true, scoreFormatter = formatFastBotScore, activeSlotKeys = [] }) {
+function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = true, scoreFormatter = formatFastBotScore, activeSlotKeys = [], editable = false, onRemoveRow }) {
+  const [editMode, setEditMode] = useState(false);
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const showActions = editable && editMode;
+
   return (
     <div className="rounded-2xl border border-ink-200 overflow-hidden bg-white shadow-sm">
-      {showHeader && (
+      {(showHeader || editable) && (
         <div className="px-4 py-3 border-b border-ink-100 flex items-center justify-between gap-3 bg-ink-50/70">
-          <h4 className="font-bold text-ink-800 text-sm">{title}</h4>
-          <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">{rows.length} {t(lang, 'teamLabel')}</span>
+          {showHeader ? (
+            <h4 className="font-bold text-ink-800 text-sm">{title}</h4>
+          ) : <span />}
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">{rows.length} {t(lang, 'teamLabel')}</span>
+            {editable && (
+              <button
+                type="button"
+                onClick={() => setEditMode(m => !m)}
+                className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md border transition-colors ${
+                  editMode
+                    ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100'
+                    : 'bg-white border-brand-300 text-brand-700 hover:bg-brand-50'
+                }`}
+              >
+                <Pencil size={11} /> {editMode ? tx('Done', 'انتهيت') : tx('Edit', 'تعديل')}
+              </button>
+            )}
+          </div>
         </div>
       )}
       <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
@@ -89,12 +110,13 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'divisionLabel')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap bg-saudi-600/20">{`Best (R1-R${activeSlotKeys.filter(k => k.startsWith('R')).length})`}</th>
               {activeSlotKeys.map(slotKey => <th key={slotKey} className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{slotKey}</th>)}
+              {showActions && <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center w-12">{tx('Remove', 'حذف')}</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-100">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={3 + activeSlotKeys.length + 1} className="px-4 py-8 text-center text-sm text-ink-400 font-medium">
+                <td colSpan={4 + activeSlotKeys.length + (showActions ? 1 : 0)} className="px-4 py-8 text-center text-sm text-ink-400 font-medium">
                   {t(lang, 'fastbotNoTeamsForGroup')}
                 </td>
               </tr>
@@ -102,15 +124,20 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
             {rows.map(row => (
               <tr
                 key={row.participationId}
-                tabIndex={0}
-                onClick={() => onSelectRow(row)}
+                tabIndex={showActions ? -1 : 0}
+                onClick={() => { if (!showActions) onSelectRow(row); }}
                 onKeyDown={(event) => {
+                  if (showActions) return;
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     onSelectRow(row);
                   }
                 }}
-                className="cursor-pointer transition-colors hover:bg-brand-50/60 focus:outline-none focus:bg-brand-50"
+                className={`transition-colors focus:outline-none ${
+                  showActions
+                    ? 'bg-rose-50/30 hover:bg-rose-50/60'
+                    : 'cursor-pointer hover:bg-brand-50/60 focus:bg-brand-50'
+                }`}
               >
                 <td className="px-3 py-3">
                   <div className="space-y-1">
@@ -118,7 +145,9 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                       <p className="font-bold text-ink-800">{row.teamName}</p>
                       <FastBotCheckInBadge status={row.checkInStatus} lang={lang} />
                     </div>
-                    <p className="text-[10px] text-brand-500 font-black uppercase tracking-wider">{t(lang, 'openFastBotTeam')}</p>
+                    {!showActions && (
+                      <p className="text-[10px] text-brand-500 font-black uppercase tracking-wider">{t(lang, 'openFastBotTeam')}</p>
+                    )}
                   </div>
                 </td>
                 <td className="px-3 py-3 font-mono text-xs text-ink-500">{row.participationId}</td>
@@ -135,6 +164,24 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                     <FastBotScheduleCell slot={row.slots[slotKey]} scoreFormatter={scoreFormatter} />
                   </td>
                 ))}
+                {showActions && (
+                  <td className="px-2 py-3 text-center">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const ok = window.confirm(lang === 'ar'
+                          ? `إزالة "${row.teamName}" من هذا الجدول؟`
+                          : `Remove "${row.teamName}" from this table?`);
+                        if (ok) onRemoveRow?.(row);
+                      }}
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300"
+                      aria-label={tx('Remove', 'حذف')}
+                    >
+                      <X size={13} />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -572,14 +619,17 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
         ) : (
           <div className="space-y-4">
             <CollapsibleCard title={t(lang, 'fastbotEsMsTable')} badge={esMsRows.length} badgeColor="bg-brand-500">
-              <FastBotScheduleTable title={t(lang, 'fastbotEsMsTable')} rows={esMsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={esMsSlotKeys} />
+              <FastBotScheduleTable title={t(lang, 'fastbotEsMsTable')} rows={esMsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={esMsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} />
             </CollapsibleCard>
             <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsRows.length} badgeColor="bg-brand-500">
-              <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
+              <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} />
             </CollapsibleCard>
             {customGroupCards.map(({ id, name, rows, slotKeys }) => (
               <CollapsibleCard key={id} title={`${category.name} — ${name}`} badge={rows.length} badgeColor="bg-saudi-500">
-                <FastBotScheduleTable title={name} rows={rows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={slotKeys} />
+                <FastBotScheduleTable title={name} rows={rows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={slotKeys} editable={isAdmin && !!updateCustomGroup} onRemoveRow={(row) => {
+                  const grp = customGroups.find(g => g.id === id);
+                  if (grp) updateCustomGroup?.(id, { teamIds: grp.teamIds.filter(tid => tid !== row.teamId) });
+                }} />
               </CollapsibleCard>
             ))}
           </div>
@@ -605,7 +655,7 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
   const customGroup1Buckets = customGroups.map(g => {
     const rows = visibleGroup1Rows.filter(row => g.teamIds.includes(row.teamId));
     const slotKeys = rows.length > 0 && rows.every(r => ['HS','US'].includes(r.division)) ? hsUsSlotKeys : esMsSlotKeys;
-    return { key: g.name, custom: true, rows, slotKeys };
+    return { id: g.id, key: g.name, custom: true, rows, slotKeys };
   });
 
   return (
@@ -659,17 +709,20 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
               badge={rows.length}
               badgeColor="bg-brand-500"
             >
-              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} />
+              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} />
             </CollapsibleCard>
           ))}
-          {customGroup1Buckets.map(({ key, rows, slotKeys }) => (
+          {customGroup1Buckets.map(({ id, key, rows, slotKeys }) => (
             <CollapsibleCard
-              key={`custom_${key}`}
+              key={`custom_${id}`}
               title={`${category.name} — ${key}`}
               badge={rows.length}
               badgeColor="bg-saudi-500"
             >
-              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} />
+              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} editable={isAdmin && !!updateCustomGroup} onRemoveRow={(row) => {
+                const grp = customGroups.find(g => g.id === id);
+                if (grp) updateCustomGroup?.(id, { teamIds: grp.teamIds.filter(tid => tid !== row.teamId) });
+              }} />
             </CollapsibleCard>
           ))}
         </div>
