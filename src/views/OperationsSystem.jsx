@@ -554,7 +554,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
     t.id.toLowerCase().includes(rosterSearch.toLowerCase())
   );
 
-  const selectOptions = Array.from({ length: 51 }, (_, i) => i); // 0–50
+  const selectOptions = Array.from({ length: 201 }, (_, i) => i); // 0–200
 
   return (
     <div className="space-y-6 pb-24 sm:pb-6" dir={dir}>

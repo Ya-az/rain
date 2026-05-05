@@ -115,10 +115,10 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
   const disabled = fsmState === 'SUBMITTED' || fsmState === 'PENDING_ADMIN';
 
   const calculateScore = () => {
-    if (data.touched) return { score: 200.00, reason: 'Robot was touched' };
-    if (data.exceeded180) return { score: 200.00, reason: 'Exceeded 200 seconds' };
-    if (!data.finishedLaps) return { score: 200.00, reason: 'Did not finish required laps' };
-    return { score: parseFloat(elapsedFromTimer || data.elapsedTime || 200.00), reason: null };
+    if (data.touched) return { score: 180.00, reason: 'Robot was touched' };
+    if (data.exceeded180) return { score: 180.00, reason: 'Exceeded 180 seconds' };
+    if (!data.finishedLaps) return { score: 180.00, reason: 'Did not finish required laps' };
+    return { score: parseFloat(elapsedFromTimer || data.elapsedTime || 180.00), reason: null };
   };
   const result = calculateScore();
 
@@ -268,14 +268,15 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 <SectionLabel>{lang === 'ar' ? 'تسجيل FastBot' : 'FastBot Scoring'}</SectionLabel>
                 <div className="flex justify-between bg-ink-50 p-2.5 rounded-xl font-semibold text-ink-700 text-sm"><span>{lang === 'ar' ? 'الدورات المطلوبة:' : 'Required laps:'}</span><span>{minLaps}</span></div>
                 <PrecisionTimer
-                  initialSeconds={200.00}
+                  initialSeconds={180.00}
                   onStop={(elapsed) => { setElapsedFromTimer(elapsed); setData(d => ({ ...d, elapsedTime: elapsed })); }}
                   disabled={disabled}
+                  disableControls={!disabled}
                   lang={lang}
                 />
                 <Check label={lang === 'ar' ? 'هل أكمل الروبوت الدورات المطلوبة؟' : 'Did robot finish required laps?'} checked={data.finishedLaps} onChange={v => setData(d => ({ ...d, finishedLaps: v }))} disabled={disabled} />
                 <Check label={lang === 'ar' ? 'هل لمس أحد أعضاء الفريق الروبوت؟' : 'Was robot touched by any team member?'} checked={data.touched} onChange={v => setData(d => ({ ...d, touched: v }))} disabled={disabled} danger />
-                <Check label={lang === 'ar' ? 'هل تجاوز الروبوت 200 ثانية؟' : 'Did robot exceed 200 seconds?'} checked={data.exceeded180} onChange={v => setData(d => ({ ...d, exceeded180: v }))} disabled={disabled} danger />
+                <Check label={lang === 'ar' ? 'هل تجاوز الروبوت 180 ثانية؟' : 'Did robot exceed 180 seconds?'} checked={data.exceeded180} onChange={v => setData(d => ({ ...d, exceeded180: v }))} disabled={disabled} danger />
                 <div>
                   <label className="block text-xs text-ink-400 mb-1">{lang === 'ar' ? 'الوقت المنقضي (ثانية):' : 'Elapsed time (seconds):'}</label>
                   <input type="text" inputMode="decimal" value={data.elapsedTime} onChange={e => setData(d => ({ ...d, elapsedTime: e.target.value }))} disabled={disabled} className="w-full p-2.5 border-2 rounded-xl disabled:bg-ink-100 focus:ring-2 focus:ring-brand-500 outline-none" />
@@ -285,7 +286,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 {!disabled && (
                   <div className={`rounded-xl border-2 p-4 transition-all ${photo ? 'border-saudi-300 bg-saudi-50/40' : 'border-ink-200 bg-ink-50/40'}`}>
                     <p className={`text-[10px] font-black uppercase tracking-widest mb-2.5 ${photo ? 'text-saudi-700' : 'text-ink-500'}`}>
-                      📷 {lang === 'ar' ? 'صورة النتيجة — اختياري' : 'Result Photo — Optional'}
+                      📷 {lang === 'ar' ? 'صورة النتيجة — اختيارية' : 'Result Photo — Optional'}
                     </p>
                     {photo ? (
                       <div className="flex items-center gap-3">
@@ -314,7 +315,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
 
                 <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} lang={lang} />
               </div>
-              <ScoreResult label={lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'} value={`${result.score.toFixed(2)}s`} warning={result.reason ? `${lang === 'ar' ? 'التغيير لـ200.00' : 'Forced to 200.00'}: ${result.reason}` : null} />
+              <ScoreResult label={lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'} value={`${result.score.toFixed(2)}s`} warning={result.reason ? `${lang === 'ar' ? 'التغيير لـ180.00' : 'Forced to 180.00'}: ${result.reason}` : null} />
             </>
           )}
 
@@ -328,7 +329,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
             </button>
           )}
 
-          {/* EDIT_REQUESTED scoring: back + photo-gated submit */}
+          {/* EDIT_REQUESTED scoring: back + submit (photo optional) */}
           {fsmState === 'EDIT_REQUESTED' && showScore && (
             <div className="flex gap-3 mt-2">
               <button
@@ -457,7 +458,11 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
               <div className="space-y-2 mb-4 text-sm">
                 <SectionLabel>{lang === 'ar' ? 'تسجيل LineFollowing' : 'LineFollowing Scoring'}</SectionLabel>
                 <div className="flex justify-between bg-ink-50 p-2.5 rounded-xl font-semibold text-ink-700"><span>{lang === 'ar' ? 'الكرات المطلوبة:' : 'Required balls:'}</span><span>{maxBalls}</span></div>
-                <PrecisionTimer initialSeconds={180.00} onStop={() => {}} disabled={disabled} lang={lang} />
+                <PrecisionTimer initialSeconds={180.00} onStop={(elapsed) => setData(d => ({ ...d, elapsedTime: elapsed }))} disabled={disabled} lang={lang} />
+                <div>
+                  <label className="block text-xs text-ink-400 mb-1">{lang === 'ar' ? 'الوقت المنقضي (ثانية):' : 'Elapsed time (seconds):'}</label>
+                  <input type="text" inputMode="decimal" value={data.elapsedTime || ''} onChange={e => setData(d => ({ ...d, elapsedTime: e.target.value }))} disabled={disabled} className="w-full p-2.5 border-2 rounded-xl disabled:bg-ink-100 focus:ring-2 focus:ring-brand-500 outline-none" />
+                </div>
                 <SectionLabel sub>{lang === 'ar' ? 'الجولة الأساسية' : 'Base Run'}</SectionLabel>
                 <Check label={lang === 'ar' ? 'هل غادر الروبوت البداية؟' : 'Did robot leaves home?'} checked={data.leavesHome} onChange={v => setData(d => ({ ...d, leavesHome: v }))} disabled={disabled} />
                 <Check label={`${lang === 'ar' ? 'دوران عند "T" الأولى؟' : 'Turns at 1st "T"?'} ${isNAt1 ? '(N/A)' : ''}`} checked={effTurns1stT} onChange={v => setData(d => ({ ...d, turns1stT: v }))} disabled={disabled || isNAt1} />
