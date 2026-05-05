@@ -531,7 +531,7 @@ function RegionBoard({ tally, tx }) {
     Eastern: tx('Eastern', 'الشرقية'),
     Western: tx('Western', 'الغربية'),
     Central: tx('Central', 'الوسطى'),
-    FN:      tx('FN', 'الشمالية'),
+    FN:      tx('Finals', 'النهائيات العالمية'),
   };
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5">
@@ -631,7 +631,7 @@ function RegionChip({ region, tx }) {
     Eastern: tx('Eastern', 'الشرقية'),
     Western: tx('Western', 'الغربية'),
     Central: tx('Central', 'الوسطى'),
-    FN:      tx('FN', 'الشمالية'),
+    FN:      tx('Finals', 'النهائيات العالمية'),
   };
   const c = REGION_COLORS[region] || { chip: 'bg-white/10 text-white/70 border-white/20', dot: 'bg-white/30' };
   return (
@@ -663,7 +663,7 @@ function Filters({ filterRegion, setFilterRegion, filterDivision, setFilterDivis
     { val: 'Eastern', label: tx('Eastern', 'الشرقية') },
     { val: 'Western', label: tx('Western', 'الغربية') },
     { val: 'Central', label: tx('Central', 'الوسطى') },
-    { val: 'FN',      label: tx('FN', 'الشمالية') },
+    { val: 'FN',      label: tx('Finals', 'النهائيات العالمية') },
   ];
   const baseBtn = 'px-3 py-1.5 rounded-lg text-[11px] font-black border transition whitespace-nowrap';
   const active = 'bg-white text-[#03101b] border-white';

@@ -20,8 +20,9 @@ const REGION_MAP = {
   'وسط': 'Central', 'وسطى': 'Central', 'وسطي': 'Central', 'المنطقة الوسطى': 'Central',
   'eastern': 'Eastern', 'east': 'Eastern',
   'شرق': 'Eastern', 'شرقي': 'Eastern', 'شرقية': 'Eastern', 'المنطقة الشرقية': 'Eastern',
-  'fn': 'FN', 'northern': 'FN', 'north': 'FN',
-  'شمال': 'FN', 'شمالي': 'FN', 'شمالية': 'FN', 'المنطقة الشمالية': 'FN', 'حدود الشمال': 'FN',
+  'fn': 'FN', 'final': 'FN', 'finals': 'FN', 'world final': 'FN', 'world finals': 'FN',
+  'نهائي': 'FN', 'النهائي': 'FN', 'نهائيات': 'FN', 'النهائيات': 'FN',
+  'النهائيات العالمية': 'FN', 'المباريات النهائية': 'FN', 'المباريات النهائية العالمية': 'FN',
 };
 
 // ─── Arabic column keys (trimmed) ────────────────────────────────────────────

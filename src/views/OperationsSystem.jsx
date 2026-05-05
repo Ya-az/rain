@@ -587,7 +587,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
     });
     if (ok) {
       setFnImportState('done');
-      if (showToast) showToast(lang === 'ar' ? `تم استيراد ${fnImportResult.imported} فريق إلى منطقة FN` : `${fnImportResult.imported} FN teams imported successfully`);
+      if (showToast) showToast(lang === 'ar' ? `تم استيراد ${fnImportResult.imported} فريق إلى النهائيات العالمية` : `${fnImportResult.imported} World Finals teams imported successfully`);
     } else {
       setFnImportState('preview');
     }
@@ -990,7 +990,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   </div>
                   <div className="text-center">
                     <p className="font-bold text-ink-700 text-sm">
-                      {lang === 'ar' ? 'اضغط لاختيار ملف Excel لمنطقة FN' : 'Click to select FN Excel file'}
+                      {lang === 'ar' ? 'اضغط لاختيار ملف Excel للنهائيات العالمية' : 'Click to select World Finals Excel file'}
                     </p>
                     <p className="text-xs text-ink-400 mt-1">.xlsx · .xls · .csv</p>
                   </div>
@@ -1078,7 +1078,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   <CheckCircle2 size={20} className="text-purple-600" />
                   <p className="font-bold text-purple-800 text-sm">
                     {lang === 'ar'
-                      ? `تم استيراد ${fnImportResult?.imported} فريق إلى منطقة FN بنجاح`
+                      ? `تم استيراد ${fnImportResult?.imported} فريق إلى النهائيات العالمية (FN) بنجاح`
                       : `${fnImportResult?.imported} teams imported to FN successfully`}
                   </p>
                 </div>
@@ -1094,8 +1094,8 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       {/* ─ Import Team Data — FN region (admin only) */}
       {activeTab === 'teams' && currentUser?.role === 'admin' && (
         <CollapsibleCard
-          title={<><FileSpreadsheet size={18} className="text-teal-300 me-2" />{lang === 'ar' ? 'استيراد بيانات فرق المنطقة الشمالية (FN)' : 'Import FN Team Data (Excel)'}</>}
-          badge={lang === 'ar' ? `منطقة FN فقط` : `FN region only`}
+          title={<><FileSpreadsheet size={18} className="text-teal-300 me-2" />{lang === 'ar' ? 'استيراد بيانات فرق النهائيات العالمية (FN)' : 'Import FN Team Data (Excel)'}</>}
+          badge={lang === 'ar' ? `النهائيات العالمية (FN)` : `World Finals (FN)`}
           badgeColor="bg-teal-600"
           headerClass="bg-navy-800"
         >
@@ -1104,7 +1104,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-teal-50 border border-teal-200 rounded-xl">
               <div>
                 <p className="text-sm font-bold text-teal-800">
-                  {lang === 'ar' ? 'استيراد مخصّص لمنطقة FN — جميع الفرق المستوردة ستُسجَّل تحت منطقة FN تلقائياً.' : 'Dedicated FN import — every imported team will be assigned to the FN region automatically.'}
+                  {lang === 'ar' ? 'استيراد مخصّص للنهائيات العالمية (FN) — جميع الفرق المستوردة ستُسجَّل تحت FN (النهائيات العالمية) تلقائياً.' : 'Dedicated World Finals (FN) import — every imported team will be assigned to FN automatically.'}
                 </p>
                 <p className="text-xs text-teal-700 mt-1">
                   {lang === 'ar'
@@ -1139,7 +1139,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   </div>
                   <div className="text-center">
                     <p className="font-bold text-ink-700 text-sm">
-                      {lang === 'ar' ? 'اضغط لاختيار ملف Excel لمنطقة FN' : 'Click to select FN Excel file'}
+                      {lang === 'ar' ? 'اضغط لاختيار ملف Excel للنهائيات العالمية' : 'Click to select World Finals Excel file'}
                     </p>
                     <p className="text-xs text-ink-400 mt-1">.xlsx · .xls · .csv</p>
                   </div>
@@ -1167,8 +1167,8 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   <div>
                     <p className="font-black text-teal-800 text-sm">
                       {lang === 'ar'
-                        ? `تم قراءة ${fnImportResult.imported} فريق لمنطقة FN`
-                        : `${fnImportResult.imported} FN teams parsed successfully`}
+                        ? `تم قراءة ${fnImportResult.imported} فريق للنهائيات العالمية`
+                        : `${fnImportResult.imported} World Finals teams parsed successfully`}
                     </p>
                     {fnImportResult.warnings.length > 0 && (
                       <p className="text-xs text-teal-700 font-semibold mt-0.5">
@@ -1259,7 +1259,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   >
                     <Upload size={15} />
                     {lang === 'ar'
-                      ? `تأكيد استيراد ${fnImportResult.imported} فريق FN (${fnImportResult.participations?.length ?? 0} مشاركة)`
+                      ? `تأكيد استيراد ${fnImportResult.imported} فريق نهائيات (${fnImportResult.participations?.length ?? 0} مشاركة)`
                       : `Confirm Import (${fnImportResult.imported} FN teams · ${fnImportResult.participations?.length ?? 0} participations)`}
                   </button>
                 </div>
@@ -1272,8 +1272,8 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                   <CheckCircle2 size={20} className="text-teal-600" />
                   <p className="font-bold text-teal-800 text-sm">
                     {lang === 'ar'
-                      ? `تم استيراد ${fnImportResult?.imported} فريق إلى منطقة FN بنجاح`
-                      : `${fnImportResult?.imported} FN teams imported successfully`}
+                      ? `تم استيراد ${fnImportResult?.imported} فريق إلى النهائيات العالمية (FN) بنجاح`
+                      : `${fnImportResult?.imported} World Finals teams imported successfully`}
                   </p>
                 </div>
                 <button onClick={handleFnReset} className="text-xs text-teal-600 font-bold hover:underline">
