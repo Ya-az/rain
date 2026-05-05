@@ -621,10 +621,11 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
   const forfeitWinner = forfeitWinA ? match.teamA : forfeitWinB ? match.teamB : null;
   const disabled = fsmState === 'SUBMITTED' || fsmState === 'PENDING_ADMIN';
 
-  const scoreA = [data.r1, data.r2, data.r3].reduce((acc, v) => acc + (v === 'A' ? 3 : v === 'Draw' ? 1 : 0), 0);
-  const scoreB = [data.r1, data.r2, data.r3].reduce((acc, v) => acc + (v === 'B' ? 3 : v === 'Draw' ? 1 : 0), 0);
+  // Sumo scoring: 1 point per round won; draws give 0. Match score = wins-to-wins.
   const winsA = [data.r1, data.r2, data.r3].filter(v => v === 'A').length;
   const winsB = [data.r1, data.r2, data.r3].filter(v => v === 'B').length;
+  const scoreA = winsA;
+  const scoreB = winsB;
 
   let matchWinner = lang === 'ar' ? 'قيد اللعب' : 'Ongoing';
   if (!data.showA && data.showB) matchWinner = match.teamB;
