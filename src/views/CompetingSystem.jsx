@@ -972,7 +972,12 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange', scoring
                 {badge.label}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-ink-800 truncate">{r.teamName}</p>
+                <p className="text-sm font-black text-ink-800 truncate flex items-center gap-1.5">
+                  <span className="truncate">{r.teamName}</span>
+                  {!isSumo && (
+                    <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{r.gf}</span>
+                  )}
+                </p>
                 <p className="text-[10px] font-semibold text-ink-500 mt-0.5">
                   <span className="text-saudi-700">{r.wins}{tx('W', 'ف')}</span>
                   <span className="text-ink-400"> · </span>
@@ -1017,7 +1022,14 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange', scoring
                       {badge.label}
                     </span>
                   </td>
-                  <td className="px-3 py-2 font-bold text-ink-800 truncate max-w-[200px]">{r.teamName}</td>
+                  <td className="px-3 py-2 font-bold text-ink-800 max-w-[220px]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="truncate">{r.teamName}</span>
+                      {!isSumo && (
+                        <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{r.gf}</span>
+                      )}
+                    </span>
+                  </td>
                   <td className="px-2 py-2 text-center text-ink-600">{r.played}</td>
                   <td className="px-2 py-2 text-center text-saudi-700 font-black">{r.wins}</td>
                   <td className="px-2 py-2 text-center text-ink-600">{r.draws}</td>
