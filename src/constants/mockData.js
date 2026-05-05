@@ -74,7 +74,6 @@ const CENTRAL_ROSTER = [
   [113, 'Falcons',                  'HS', 'c1_fastbot'],
   [114, 'فالكون',                   'HS', 'c1_fastbot'],
   [115, 'Digital Stars',            'US', 'c1_fastbot'],
-  [116, 'Digital Stars (HS)',       'HS', 'c1_fastbot'],
   // ⚡ Fast (c1_fastbot) — ابتدائي + متوسط
   [121, 'CodeStorm',                'ES', 'c1_fastbot'],
   [122, 'Noble coders',             'ES', 'c1_fastbot'],
@@ -102,11 +101,11 @@ const CENTRAL_ROSTER = [
   [155, 'RNS-TECHNOBOTS',           'MS', 'c2_sumo'],
   // 🤼 Sumo (c2_sumo) — كبار (ثانوي + جامعي/أكاديمية)
   [161, 'RoboAlGhad',               'HS', 'c2_sumo'],
-  [162, 'عبدالله بن أبي أوفى',      'HS', 'c2_sumo'],
+  [162, 'عبد الله بن أبي أوفى',     'HS', 'c2_sumo'],
   [163, 'RCT',                      'US', 'c2_sumo'],
-  [164, '966 واحد',                 'US', 'c2_sumo'],
-  [165, '966 اثنين',                'US', 'c2_sumo'],
-  [166, '966 ثلاثة',                'US', 'c2_sumo'],
+  [164, '٩٦٦ واحد',                 'US', 'c2_sumo'],
+  [165, '٩٦٦ اثنين',                 'US', 'c2_sumo'],
+  [166, '٩٦٦ ثلاثة',                 'US', 'c2_sumo'],
   // ⬤ Ball Carrier → LineFollowing (c1_linefollow) — صغار
   [171, 'ربورت الإبداع',            'ES', 'c1_linefollow'],
   [172, 'Thunder',                  'MS', 'c1_linefollow'],
@@ -131,7 +130,7 @@ const CENTRAL_ROSTER = [
   [222, 'Gamatrix',                 'ES', 'c3_gaming'],
   [223, 'Quantum Designers',        'ES', 'c3_gaming'],
   [224, 'Stars of knowledge - مياسين','ES', 'c3_gaming'],
-  [225, 'اااا',                     'MS', 'c3_gaming'],
+  [225, '1111',                     'MS', 'c3_gaming'],
   [226, 'فاندرلاند',                'MS', 'c3_gaming'],
   [227, 'Scratch Masters',          'ES', 'c3_gaming'],
   [228, 'Robopower',                'ES', 'c3_gaming'],
@@ -139,7 +138,7 @@ const CENTRAL_ROSTER = [
   // 🤖 AI Challenge (c3_ai) — متوسط + ثانوي
   [231, 'IQ builders بناة الذكاء',  'MS', 'c3_ai'],
   [232, 'tuwaq apex',               'HS', 'c3_ai'],
-  [233, 'عبدالله بن أبي أوفى',      'HS', 'c3_ai'],
+  [233, 'عبد الله بن أبي أوفى',     'HS', 'c3_ai'],
   [234, 'الربوت السريع',            'HS', 'c3_ai'],
   // 🌐 Web Design (c3_webdesign) — متوسط (per actual division in roster)
   [241, 'YouthDreams',              'MS', 'c3_webdesign'],
@@ -149,13 +148,13 @@ const CENTRAL_ROSTER = [
   [253, 'Nobala programmers',       'HS', 'c3_ai'],
   [254, 'viperX',                   'HS', 'c3_ai'],
   [255, 'رواد الابتكار',            'HS', 'c3_ai'],
-  [256, 'The Next Step',            'HS', 'c3_ai'],
-  [257, 'The Next Step',            'HS', 'c3_ai'],
+  [256, 'The Next Step (256)',      'HS', 'c3_ai'],
+  [257, 'The Next Step (257)',      'HS', 'c3_ai'],
   // 🤖 الابتكار وريادة الأعمال → AI Innovation (c3_ai) — ابتدائي + متوسط
   [261, 'Kingdom Stars',            'ES', 'c3_ai'],
   [262, 'AlFaris Olympians',        'ES', 'c3_ai'],
   [263, 'Player#13',                'ES', 'c3_ai'],
-  [264, 'الأرقم روبوت ١',           'ES', 'c3_ai'],
+  [264, 'الأرقم روبوت 1',           'ES', 'c3_ai'],
   [265, 'الأرقم روبوت ٢',           'MS', 'c3_ai'],
 ];
 

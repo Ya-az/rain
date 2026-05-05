@@ -141,6 +141,53 @@ export default function App() {
         if (!cfgSnap.exists()) {
           await setDoc(doc(db, 'config', 'system'), DEFAULT_SYSTEM_CONFIG);
         }
+
+        // ─── One-time roster reconcile (Central region cleanup, May 2026) ──
+        // Renames a few teams to match the official source list, drops one
+        // duplicate. Runs once per browser, gated by the version key below.
+        const RECONCILE_KEY = 'rosterReconcile_v2';
+        if (typeof window !== 'undefined' && !localStorage.getItem(RECONCILE_KEY)) {
+          try {
+            const renames = [
+              ['t_central_162', { name: 'عبد الله بن أبي أوفى' }],
+              ['t_central_164', { name: '٩٦٦ واحد' }],
+              ['t_central_165', { name: '٩٦٦ اثنين' }],
+              ['t_central_166', { name: '٩٦٦ ثلاثة' }],
+              ['t_central_225', { name: '1111' }],
+              ['t_central_233', { name: 'عبد الله بن أبي أوفى' }],
+              ['t_central_256', { name: 'The Next Step (256)' }],
+              ['t_central_257', { name: 'The Next Step (257)' }],
+              ['t_central_264', { name: 'الأرقم روبوت 1' }],
+            ];
+            const teamsNow = await getDocs(collection(db, 'teams'));
+            const byId = new Map(teamsNow.docs.map(d => [d.id, d.data()]));
+            const batch = writeBatch(db);
+            let touched = 0;
+            renames.forEach(([id, patch]) => {
+              const cur = byId.get(id);
+              if (cur && cur.name !== patch.name) {
+                batch.set(doc(db, 'teams', id), { ...cur, ...patch });
+                touched++;
+              }
+            });
+            // Drop the obsolete "Digital Stars (HS)" duplicate + its participation.
+            if (byId.has('t_central_116')) {
+              batch.delete(doc(db, 'teams', 't_central_116'));
+              touched++;
+            }
+            const partsAll = await getDocs(collection(db, 'participations'));
+            partsAll.docs.forEach(d => {
+              if (d.data().teamId === 't_central_116') {
+                batch.delete(doc(db, 'participations', d.id));
+                touched++;
+              }
+            });
+            if (touched > 0) await batch.commit();
+            localStorage.setItem(RECONCILE_KEY, '1');
+          } catch (e) {
+            console.warn('Roster reconcile skipped:', e);
+          }
+        }
       } catch (err) {
         console.error('Firestore seed error:', err);
       }
