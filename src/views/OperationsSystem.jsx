@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet, X, Trash2, Shield, MapPin, UserPlus, Plus } from 'lucide-react';
+import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet, X, Trash2, Shield, MapPin, UserPlus, Plus, QrCode } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import CollapsibleCard from '../components/ui/CollapsibleCard';
 import CustomSelect from '../components/ui/CustomSelect';
@@ -7,6 +7,7 @@ import Toggle from '../components/ui/Toggle';
 import { t } from '../constants/translations';
 import { parseExcelFile, downloadTemplate } from '../utils/excelImport';
 import { exportResultsToExcel } from '../utils/exportResults';
+import { printTeamQrSheet } from '../utils/printQrSheet';
 import { exportBackupJson, importBackupJson } from '../utils/backup';
 
 // ─── RosterMobileCard ─────────────────────────────────────────────────────── 
@@ -554,6 +555,38 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       {/* ─ Backup / Restore — admin only */}
       {currentUser?.role === 'admin' && (
         <BackupRestoreCard lang={lang} showToast={showToast} />
+      )}
+
+      {/* ─ QR Sheet — admin only */}
+      {currentUser?.role === 'admin' && (
+        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-brand-200 bg-brand-50">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center shrink-0">
+              <QrCode size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-ink-800 text-sm truncate">
+                {lang === 'ar' ? 'طباعة رموز QR للفِرَق' : 'Print Team QR Sheets'}
+              </p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                {lang === 'ar' ? 'بطاقة لكل فريق — امسحها في Check-In للوصول السريع.' : 'One card per team — scan in Check-In for instant lookup.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                await printTeamQrSheet({ teams, participations, categories, lang });
+              } catch (err) {
+                console.error('qr sheet error', err);
+                if (showToast) showToast(lang === 'ar' ? 'فشل توليد الرموز' : 'Failed to generate QR sheet', 'error');
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs sm:text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0"
+          >
+            <QrCode size={14} /> {lang === 'ar' ? 'توليد وطباعة' : 'Generate'}
+          </button>
+        </div>
       )}
 
       {/* ─ Import Team Data — admin only */}

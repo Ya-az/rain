@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { MapPin, Search, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MapPin, Search, CheckCircle2, Clock, XCircle, Camera } from 'lucide-react';
 import { t } from '../constants/translations';
 import CustomSelect from '../components/ui/CustomSelect';
 import Toggle from '../components/ui/Toggle';
+import QrScannerModal from '../components/ui/QrScannerModal';
 
 const REGION_COLORS = {
   Western: 'bg-brand-500',
@@ -10,10 +11,23 @@ const REGION_COLORS = {
   Eastern: 'bg-amber-500',
 };
 
-function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participations, categories, lang }) {
+function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participations, categories, lang, highlight }) {
   const [draftCoachPresent, setDraftCoachPresent] = useState(team.coach.present);
   const [draftMembers, setDraftMembers] = useState(team.members.map(m => ({ ...m })));
   const [collapsed, setCollapsed] = useState(true);
+  const cardRef = useRef(null);
+
+  // When this card is the QR-scan target, expand + scroll into view + flash.
+  useEffect(() => {
+    if (highlight) {
+      setCollapsed(false);
+      const id = setTimeout(() => {
+        cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [highlight]);
 
   useEffect(() => {
     setDraftCoachPresent(team.coach.present);
@@ -48,7 +62,7 @@ function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participat
     .join(', ');
 
   return (
-    <div className={`rounded-2xl border-2 transition-all overflow-hidden shadow-card ${ss.border} ${ss.bg}`}>
+    <div ref={cardRef} className={`rounded-2xl border-2 transition-all overflow-hidden shadow-card ${ss.border} ${ss.bg} ${highlight ? 'ring-4 ring-brand-400 ring-offset-2 animate-pulse' : ''}`}>
       <button
         className="w-full flex items-center gap-3 p-4 text-start hover:bg-black/3 transition-colors"
         onClick={() => setCollapsed(c => !c)}
@@ -142,7 +156,37 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [highlightTeamId, setHighlightTeamId] = useState(null);
+  const [scanError, setScanError] = useState('');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+  // Resolve a scanned QR payload (team.id OR participation.id) to a team,
+  // switch to the right tab, expand its card and clear the highlight after a
+  // few seconds so it doesn't pulse forever.
+  const handleScan = (raw) => {
+    setScannerOpen(false);
+    setScanError('');
+    const text = String(raw || '').trim();
+    if (!text) return;
+    let team = teams.find(tm => tm.id === text);
+    if (!team) {
+      const part = participations.find(p => p.id === text);
+      if (part) team = teams.find(tm => tm.id === part.teamId);
+    }
+    if (!team) {
+      setScanError(lang === 'ar' ? `لم يُعثر على فريق للرمز: ${text}` : `No team found for code: ${text}`);
+      setTimeout(() => setScanError(''), 4000);
+      return;
+    }
+    const status = getTeamStatus(team);
+    setActiveTab(status === 'No-Show' ? 'No-Show' : status === 'Partially Arrived' ? 'Partially Arrived' : 'Fully Arrived');
+    setSearchQuery('');
+    setLevelFilter('');
+    setCategoryFilter('');
+    setHighlightTeamId(team.id);
+    setTimeout(() => setHighlightTeamId(null), 3500);
+  };
 
   const totalTeams = teams.length;
   const checkedInTeams = teams.filter(t => getTeamStatus(t) === 'Fully Arrived').length;
@@ -210,15 +254,26 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
             </span>
           ))}
         </div>
-        <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder={t(lang, 'searchTeam')}
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="input-base pl-10 h-12 text-base"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder={t(lang, 'searchTeam')}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="input-base pl-10 h-12 text-base"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            title={lang === 'ar' ? 'مسح رمز QR' : 'Scan QR'}
+            aria-label={lang === 'ar' ? 'مسح رمز QR' : 'Scan QR'}
+            className="shrink-0 h-12 w-12 rounded-xl border-2 border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 active:bg-brand-200 transition-colors flex items-center justify-center press-effect"
+          >
+            <Camera size={20} />
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)} size="sm">
@@ -285,10 +340,24 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
               participations={participations}
               categories={categories}
               lang={lang}
+              highlight={highlightTeamId === team.id}
             />
           ))}
         </div>
       )}
+
+      {scanError && (
+        <div className="fixed bottom-24 sm:bottom-6 inset-x-4 sm:inset-x-auto sm:right-6 z-[120] max-w-md mx-auto sm:mx-0 px-4 py-3 bg-rose-50 border-2 border-rose-200 rounded-xl text-rose-700 text-sm font-bold shadow-lg">
+          ⚠ {scanError}
+        </div>
+      )}
+
+      <QrScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleScan}
+        lang={lang}
+      />
     </div>
   );
 }
