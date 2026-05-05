@@ -162,6 +162,25 @@ export default function App() {
   }, [authReady]);
 
   // ─── Firestore-aware setters ─────────────────────────────────────────────
+  // Firestore rejects values it can't serialize (class instances, functions,
+  // File/Blob, BigInt, etc.) with a vague "invalid nested entity" error. This
+  // sanitizer round-trips through JSON to keep only plain primitives, arrays,
+  // and plain objects — and silently drops the rest.
+  const sanitizeForFirestore = (value) => {
+    if (value === null || value === undefined) return value;
+    try {
+      return JSON.parse(JSON.stringify(value, (_k, v) => {
+        if (typeof v === 'function') return undefined;
+        if (typeof v === 'bigint') return v.toString();
+        if (typeof v === 'undefined') return undefined;
+        if (v instanceof Date) return v.toISOString();
+        return v;
+      }));
+    } catch {
+      return null;
+    }
+  };
+
   const setScoresFB = (updater) => {
     setScores(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
@@ -177,7 +196,8 @@ export default function App() {
             // Reflect the stamp back into the in-memory list as well.
             next[next.indexOf(s)] = stamped;
           }
-          setDoc(doc(db, 'scores', id), stamped).catch(err => reportError('save score', err));
+          const safe = sanitizeForFirestore(stamped);
+          setDoc(doc(db, 'scores', id), safe).catch(err => reportError('save score', err));
         }
       });
       // Delete removed

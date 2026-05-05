@@ -126,7 +126,30 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setPhoto(ev.target.result);
+    reader.onload = ev => {
+      // Compress before storing — phone camera shots are typically 2–5 MB
+      // which exceeds Firestore's 1 MiB document limit. Resize to max
+      // 1024px on the longest edge and re-encode as JPEG q=0.7.
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1024;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        try {
+          setPhoto(canvas.toDataURL('image/jpeg', 0.7));
+        } catch {
+          setPhoto(ev.target.result); // fallback to original
+        }
+      };
+      img.onerror = () => setPhoto(ev.target.result);
+      img.src = ev.target.result;
+    };
     reader.readAsDataURL(file);
   };
 
