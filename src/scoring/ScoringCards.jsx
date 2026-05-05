@@ -115,10 +115,10 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
   const disabled = fsmState === 'SUBMITTED' || fsmState === 'PENDING_ADMIN';
 
   const calculateScore = () => {
-    if (data.touched) return { score: 180.00, reason: 'Robot was touched' };
-    if (data.exceeded180) return { score: 180.00, reason: 'Exceeded 180 seconds' };
-    if (!data.finishedLaps) return { score: 180.00, reason: 'Did not finish required laps' };
-    return { score: parseFloat(elapsedFromTimer || data.elapsedTime || 180.00), reason: null };
+    if (data.touched) return { score: 200.00, reason: 'Robot was touched' };
+    if (data.exceeded180) return { score: 200.00, reason: 'Exceeded 200 seconds' };
+    if (!data.finishedLaps) return { score: 200.00, reason: 'Did not finish required laps' };
+    return { score: parseFloat(elapsedFromTimer || data.elapsedTime || 200.00), reason: null };
   };
   const result = calculateScore();
 
@@ -268,25 +268,24 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 <SectionLabel>{lang === 'ar' ? 'تسجيل FastBot' : 'FastBot Scoring'}</SectionLabel>
                 <div className="flex justify-between bg-ink-50 p-2.5 rounded-xl font-semibold text-ink-700 text-sm"><span>{lang === 'ar' ? 'الدورات المطلوبة:' : 'Required laps:'}</span><span>{minLaps}</span></div>
                 <PrecisionTimer
-                  initialSeconds={180.00}
+                  initialSeconds={200.00}
                   onStop={(elapsed) => { setElapsedFromTimer(elapsed); setData(d => ({ ...d, elapsedTime: elapsed })); }}
                   disabled={disabled}
-                  disableControls={!disabled}
                   lang={lang}
                 />
                 <Check label={lang === 'ar' ? 'هل أكمل الروبوت الدورات المطلوبة؟' : 'Did robot finish required laps?'} checked={data.finishedLaps} onChange={v => setData(d => ({ ...d, finishedLaps: v }))} disabled={disabled} />
                 <Check label={lang === 'ar' ? 'هل لمس أحد أعضاء الفريق الروبوت؟' : 'Was robot touched by any team member?'} checked={data.touched} onChange={v => setData(d => ({ ...d, touched: v }))} disabled={disabled} danger />
-                <Check label={lang === 'ar' ? 'هل تجاوز الروبوت 180 ثانية؟' : 'Did robot exceed 180 seconds?'} checked={data.exceeded180} onChange={v => setData(d => ({ ...d, exceeded180: v }))} disabled={disabled} danger />
+                <Check label={lang === 'ar' ? 'هل تجاوز الروبوت 200 ثانية؟' : 'Did robot exceed 200 seconds?'} checked={data.exceeded180} onChange={v => setData(d => ({ ...d, exceeded180: v }))} disabled={disabled} danger />
                 <div>
                   <label className="block text-xs text-ink-400 mb-1">{lang === 'ar' ? 'الوقت المنقضي (ثانية):' : 'Elapsed time (seconds):'}</label>
                   <input type="text" inputMode="decimal" value={data.elapsedTime} onChange={e => setData(d => ({ ...d, elapsedTime: e.target.value }))} disabled={disabled} className="w-full p-2.5 border-2 rounded-xl disabled:bg-ink-100 focus:ring-2 focus:ring-brand-500 outline-none" />
                 </div>
 
-                {/* Photo capture — required for submission */}
+                {/* Photo capture — optional */}
                 {!disabled && (
-                  <div className={`rounded-xl border-2 p-4 transition-all ${photo ? 'border-saudi-300 bg-saudi-50/40' : 'border-rose-200 bg-rose-50/40'}`}>
-                    <p className={`text-[10px] font-black uppercase tracking-widest mb-2.5 ${photo ? 'text-saudi-700' : 'text-rose-600'}`}>
-                      📷 {lang === 'ar' ? 'صورة النتيجة — مطلوبة' : 'Result Photo — Required'}
+                  <div className={`rounded-xl border-2 p-4 transition-all ${photo ? 'border-saudi-300 bg-saudi-50/40' : 'border-ink-200 bg-ink-50/40'}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-widest mb-2.5 ${photo ? 'text-saudi-700' : 'text-ink-500'}`}>
+                      📷 {lang === 'ar' ? 'صورة النتيجة — اختياري' : 'Result Photo — Optional'}
                     </p>
                     {photo ? (
                       <div className="flex items-center gap-3">
@@ -297,8 +296,8 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                         </div>
                       </div>
                     ) : (
-                      <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-rose-300 rounded-xl cursor-pointer hover:bg-rose-100/50 transition-colors">
-                        <span className="text-sm font-bold text-rose-600">📷 {lang === 'ar' ? 'التقط صورة' : 'Take Photo'}</span>
+                      <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-ink-300 rounded-xl cursor-pointer hover:bg-ink-100/50 transition-colors">
+                        <span className="text-sm font-bold text-ink-600">📷 {lang === 'ar' ? 'التقط صورة (اختياري)' : 'Take Photo (optional)'}</span>
                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoChange} />
                       </label>
                     )}
@@ -315,18 +314,17 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
 
                 <NotesField value={data.notes} onChange={v => setData(d => ({ ...d, notes: v }))} disabled={disabled} lang={lang} />
               </div>
-              <ScoreResult label={lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'} value={`${result.score.toFixed(2)}s`} warning={result.reason ? `${lang === 'ar' ? 'التغيير لـ180.00' : 'Forced to 180.00'}: ${result.reason}` : null} />
+              <ScoreResult label={lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'} value={`${result.score.toFixed(2)}s`} warning={result.reason ? `${lang === 'ar' ? 'التغيير لـ200.00' : 'Forced to 200.00'}: ${result.reason}` : null} />
             </>
           )}
 
-          {/* AWAITING_SUBMISSION: photo-gated submit */}
+          {/* AWAITING_SUBMISSION: submit (photo optional) */}
           {fsmState === 'AWAITING_SUBMISSION' && showScore && (
             <button
               onClick={() => { if (onSaveScore) onSaveScore(result.score, insp, { ...data, photo }); }}
-              disabled={!photo}
-              className="w-full font-bold py-4 px-4 rounded-2xl transition-all text-white flex items-center justify-center gap-2.5 press-effect text-sm tracking-wide bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 shadow-lg shadow-brand-600/25 disabled:from-ink-200 disabled:to-ink-300 disabled:text-ink-400 disabled:cursor-not-allowed disabled:shadow-none"
+              className="w-full font-bold py-4 px-4 rounded-2xl transition-all text-white flex items-center justify-center gap-2.5 press-effect text-sm tracking-wide bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 shadow-lg shadow-brand-600/25"
             >
-              {!photo ? (lang === 'ar' ? '📷 التقط صورة النتيجة أولاً' : '📷 Capture result photo first') : (lang === 'ar' ? 'إرسال النتيجة' : 'Submit Score')}
+              {lang === 'ar' ? 'إرسال النتيجة' : 'Submit Score'}
             </button>
           )}
 
@@ -341,10 +339,9 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
               </button>
               <button
                 onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo }); setFsmState('PENDING_ADMIN'); setEditMode(null); } }}
-                disabled={!photo}
-                className="flex-1 py-3.5 bg-saudi-500 hover:bg-saudi-600 active:bg-saudi-700 disabled:bg-ink-200 disabled:text-ink-400 text-white font-bold rounded-xl text-sm transition-colors disabled:cursor-not-allowed"
+                className="flex-1 py-3.5 bg-saudi-500 hover:bg-saudi-600 active:bg-saudi-700 text-white font-bold rounded-xl text-sm transition-colors"
               >
-                {!photo ? (lang === 'ar' ? '📷 أضف صورة إثبات أولاً' : '📷 Add evidence photo first') : (lang === 'ar' ? 'إرسال التعديل للموافقة' : 'Submit Edit for Approval')}
+                {lang === 'ar' ? 'إرسال التعديل للموافقة' : 'Submit Edit for Approval'}
               </button>
             </div>
           )}
