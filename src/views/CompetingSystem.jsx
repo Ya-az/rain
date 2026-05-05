@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment } from 'react';
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
 import { CheckCircle2, Search, Camera } from 'lucide-react';
 import QrScannerModal from '../components/ui/QrScannerModal';
 import { CATEGORY_STYLES } from '../constants/mockData';
@@ -382,6 +382,21 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const [levelFilter, setLevelFilter] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanError, setScanError] = useState('');
+  // Double-submit guard: holds keys (e.g. "pId|slot") that fired in the last 1.5s
+  const recentSavesRef = useRef(new Map());
+  const guardSave = (key) => {
+    const now = Date.now();
+    const last = recentSavesRef.current.get(key) || 0;
+    if (now - last < 1500) return false;
+    recentSavesRef.current.set(key, now);
+    // Garbage-collect old entries to keep the map small.
+    if (recentSavesRef.current.size > 50) {
+      for (const [k, t] of recentSavesRef.current) {
+        if (now - t > 5000) recentSavesRef.current.delete(k);
+      }
+    }
+    return true;
+  };
 
   // Resolve a scanned QR (team.id or participation.id) → jump straight into
   // that team's scoring detail view.
@@ -503,6 +518,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   };
 
   const onSaveFastBotScore = (participationId, slotKey, scoreValue, insp, rawData) => {
+    if (!guardSave(`fb|${participationId}|${slotKey}`)) return;
     setScores(prev => {
       const existingScore = prev.find(score => score.pId === participationId && score.slotKey === slotKey);
       if (existingScore) {
@@ -554,6 +570,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   };
 
   const onSaveGroup1Score = (participationId, slotKey, scoreValue, insp, rawData) => {
+    if (!guardSave(`g1|${participationId}|${slotKey}`)) return;
     setScores(prev => {
       const existingScore = prev.find(score => score.pId === participationId && score.slotKey === slotKey);
       if (existingScore) {

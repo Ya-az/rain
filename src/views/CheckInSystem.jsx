@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Search, CheckCircle2, Clock, XCircle, Camera } from 'lucide-react';
+import { MapPin, Search, CheckCircle2, Clock, XCircle, Camera, Copy, Check } from 'lucide-react';
 import { t } from '../constants/translations';
 import CustomSelect from '../components/ui/CustomSelect';
 import Toggle from '../components/ui/Toggle';
@@ -10,6 +10,43 @@ const REGION_COLORS = {
   Central: 'bg-saudi-500',
   Eastern: 'bg-amber-500',
 };
+
+function CopyIdButton({ id, lang }) {
+  const [copied, setCopied] = useState(false);
+  const handle = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!id) return;
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = id;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch { /* ignore */ }
+    };
+    try {
+      navigator.clipboard?.writeText(id).catch(fallback) || fallback();
+    } catch { fallback(); }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      title={lang === 'ar' ? `نسخ ID: ${id}` : `Copy ID: ${id}`}
+      className="ms-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-white/70 border border-ink-200 text-ink-500 hover:text-brand-700 hover:border-brand-300 transition-colors"
+    >
+      {copied ? <Check size={10} className="text-saudi-600" /> : <Copy size={10} />}
+      {copied ? (lang === 'ar' ? 'نُسخ' : 'Copied') : id.slice(-6)}
+    </button>
+  );
+}
 
 function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participations, categories, lang, highlight }) {
   const [draftCoachPresent, setDraftCoachPresent] = useState(team.coach.present);
@@ -83,6 +120,7 @@ function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participat
           <p className="text-xs text-ink-400 mt-0.5 font-medium flex items-center gap-1.5">
             <span className={`inline-block w-2 h-2 rounded-full ${regionColor}`} />
             {team.region} · {t(lang, 'divisionLabel')} {team.division}
+            <CopyIdButton id={team.id} lang={lang} />
           </p>
           <p className="text-xs text-ink-300 mt-0.5 truncate">
             {teamCategoryNames}
