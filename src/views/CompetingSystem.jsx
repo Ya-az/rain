@@ -71,14 +71,17 @@ function FastBotCheckInBadge({ status, lang }) {
   );
 }
 
-function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = true, scoreFormatter = formatFastBotScore, activeSlotKeys = [], editable = false, onRemoveRow }) {
+function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = true, scoreFormatter = formatFastBotScore, activeSlotKeys = [], editable = false, onRemoveRow, addPool = null, onAddTeam }) {
   const [editMode, setEditMode] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [pickedAddId, setPickedAddId] = useState('');
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const showActions = editable && editMode;
+  const canAdd = !!onAddTeam && Array.isArray(addPool);
 
   return (
     <div className="rounded-2xl border border-ink-200 overflow-hidden bg-white shadow-sm">
-      {(showHeader || editable) && (
+      {(showHeader || editable || canAdd) && (
         <div className="px-4 py-3 border-b border-ink-100 flex items-center justify-between gap-3 bg-ink-50/70">
           {showHeader ? (
             <h4 className="font-bold text-ink-800 text-sm">{title}</h4>
@@ -98,7 +101,52 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                 <Pencil size={11} /> {editMode ? tx('Done', 'انتهيت') : tx('Edit', 'تعديل')}
               </button>
             )}
+            {canAdd && (
+              <button
+                type="button"
+                onClick={() => { setAddOpen(o => !o); setPickedAddId(''); }}
+                className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md border transition-colors ${
+                  addOpen
+                    ? 'bg-teal-50 border-teal-300 text-teal-700 hover:bg-teal-100'
+                    : 'bg-white border-teal-300 text-teal-700 hover:bg-teal-50'
+                }`}
+              >
+                <Plus size={11} /> {tx('Add Team', 'اضف فريق')}
+              </button>
+            )}
           </div>
+        </div>
+      )}
+      {canAdd && addOpen && (
+        <div className="px-4 py-3 border-b border-teal-100 bg-teal-50/40 flex flex-wrap items-center gap-2">
+          <select
+            value={pickedAddId}
+            onChange={(e) => setPickedAddId(e.target.value)}
+            className="flex-1 min-w-[200px] text-xs px-2 py-1.5 rounded-md border border-ink-300 bg-white"
+          >
+            <option value="">{tx('Select a team…', 'اختر فريق…')}</option>
+            {addPool.map(tm => (
+              <option key={tm.id} value={tm.id}>{tm.name}{tm.division ? ` — ${tm.division}` : ''}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={!pickedAddId}
+            onClick={() => { if (pickedAddId) { onAddTeam(pickedAddId); setPickedAddId(''); setAddOpen(false); } }}
+            className="inline-flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Plus size={12} /> {tx('Add', 'اضف')}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setAddOpen(false); setPickedAddId(''); }}
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-md bg-white border border-ink-300 text-ink-600 hover:bg-ink-50"
+          >
+            {tx('Cancel', 'إلغاء')}
+          </button>
+          {addPool.length === 0 && (
+            <span className="text-[10px] font-bold text-ink-400">{tx('No more teams available', 'لا توجد فرق متاحة')}</span>
+          )}
         </div>
       )}
       <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
@@ -561,6 +609,12 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
     );
   }
 
+  const inCategoryTeamIds = new Set(participations.filter(p => p.categoryId === category.id).map(p => p.teamId));
+  const teamsForCategory = (allTeams || teams).filter(tm => !category.levels || category.levels.includes(tm.division));
+  const esMsAddPool = teamsForCategory.filter(tm => !inCategoryTeamIds.has(tm.id) && ['ES','MS'].includes(tm.division));
+  const hsUsAddPool = teamsForCategory.filter(tm => !inCategoryTeamIds.has(tm.id) && ['HS','US'].includes(tm.division));
+  const customGroupAddPool = (g) => (allTeams || teams).filter(tm => !g.teamIds.includes(tm.id));
+
   if (isFastBot) {
     const esMsRows = visibleFastBotRows.filter(row => ['ES', 'MS'].includes(row.division));
     const hsUsRows = visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division));
@@ -619,16 +673,19 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
         ) : (
           <div className="space-y-4">
             <CollapsibleCard title={t(lang, 'fastbotEsMsTable')} badge={esMsRows.length} badgeColor="bg-brand-500">
-              <FastBotScheduleTable title={t(lang, 'fastbotEsMsTable')} rows={esMsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={esMsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} />
+              <FastBotScheduleTable title={t(lang, 'fastbotEsMsTable')} rows={esMsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={esMsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} addPool={isAdmin && addParticipation ? esMsAddPool : null} onAddTeam={(teamId) => addParticipation?.({ teamId, categoryId: category.id })} />
             </CollapsibleCard>
             <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsRows.length} badgeColor="bg-brand-500">
-              <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} />
+              <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} addPool={isAdmin && addParticipation ? hsUsAddPool : null} onAddTeam={(teamId) => addParticipation?.({ teamId, categoryId: category.id })} />
             </CollapsibleCard>
             {customGroupCards.map(({ id, name, rows, slotKeys }) => (
               <CollapsibleCard key={id} title={`${category.name} — ${name}`} badge={rows.length} badgeColor="bg-saudi-500">
                 <FastBotScheduleTable title={name} rows={rows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={slotKeys} editable={isAdmin && !!updateCustomGroup} onRemoveRow={(row) => {
                   const grp = customGroups.find(g => g.id === id);
                   if (grp) updateCustomGroup?.(id, { teamIds: grp.teamIds.filter(tid => tid !== row.teamId) });
+                }} addPool={isAdmin && updateCustomGroup ? customGroupAddPool(customGroups.find(g => g.id === id) || { teamIds: [] }) : null} onAddTeam={(teamId) => {
+                  const grp = customGroups.find(g => g.id === id);
+                  if (grp && !grp.teamIds.includes(teamId)) updateCustomGroup?.(id, { teamIds: [...grp.teamIds, teamId] });
                 }} />
               </CollapsibleCard>
             ))}
@@ -702,14 +759,14 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
         />
       ) : (
         <div className="space-y-4">
-          {group1Buckets.map(({ key, rows, slotKeys }) => (
+          {group1Buckets.map(({ key, divs, rows, slotKeys }) => (
             <CollapsibleCard
               key={key}
               title={`${category.name} — ${key}`}
               badge={rows.length}
               badgeColor="bg-brand-500"
             >
-              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} />
+              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} addPool={isAdmin && addParticipation ? teamsForCategory.filter(tm => !inCategoryTeamIds.has(tm.id) && divs.includes(tm.division)) : null} onAddTeam={(teamId) => addParticipation?.({ teamId, categoryId: category.id })} />
             </CollapsibleCard>
           ))}
           {customGroup1Buckets.map(({ id, key, rows, slotKeys }) => (
@@ -722,6 +779,9 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
               <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} editable={isAdmin && !!updateCustomGroup} onRemoveRow={(row) => {
                 const grp = customGroups.find(g => g.id === id);
                 if (grp) updateCustomGroup?.(id, { teamIds: grp.teamIds.filter(tid => tid !== row.teamId) });
+              }} addPool={isAdmin && updateCustomGroup ? customGroupAddPool(customGroups.find(g => g.id === id) || { teamIds: [] }) : null} onAddTeam={(teamId) => {
+                const grp = customGroups.find(g => g.id === id);
+                if (grp && !grp.teamIds.includes(teamId)) updateCustomGroup?.(id, { teamIds: [...grp.teamIds, teamId] });
               }} />
             </CollapsibleCard>
           ))}
