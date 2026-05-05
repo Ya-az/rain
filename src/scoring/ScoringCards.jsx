@@ -271,7 +271,6 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                   initialSeconds={180.00}
                   onStop={(elapsed) => { setElapsedFromTimer(elapsed); setData(d => ({ ...d, elapsedTime: elapsed })); }}
                   disabled={disabled}
-                  disableControls={!disabled}
                   lang={lang}
                 />
                 <Check label={lang === 'ar' ? 'هل أكمل الروبوت الدورات المطلوبة؟' : 'Did robot finish required laps?'} checked={data.finishedLaps} onChange={v => setData(d => ({ ...d, finishedLaps: v }))} disabled={disabled} />
