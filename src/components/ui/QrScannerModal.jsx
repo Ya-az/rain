@@ -18,6 +18,21 @@ export default function QrScannerModal({ open, onScan, onClose, lang = 'en' }) {
   const [starting, setStarting] = useState(true);
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
 
+  // html5-qrcode throws SYNCHRONOUSLY when stop() is called while not
+  // running/paused, so .catch() alone won't shield us. Wrap with try and
+  // fall back to a resolved promise so .finally() still runs.
+  const safeStop = (scanner) => {
+    if (!scanner) return Promise.resolve();
+    try {
+      const state = typeof scanner.getState === 'function' ? scanner.getState() : null;
+      // Html5QrcodeScannerState: NOT_STARTED=1, SCANNING=2, PAUSED=3
+      if (state != null && state !== 2 && state !== 3) return Promise.resolve();
+      return scanner.stop().catch(() => {});
+    } catch {
+      return Promise.resolve();
+    }
+  };
+
   useEffect(() => {
     if (!open) return undefined;
     let cancelled = false;
@@ -38,7 +53,7 @@ export default function QrScannerModal({ open, onScan, onClose, lang = 'en' }) {
           { fps: 10, qrbox: { width: 240, height: 240 } },
           (decodedText) => {
             // Stop immediately on first hit to avoid duplicate triggers.
-            scanner.stop().catch(() => {}).finally(() => {
+            safeStop(scanner).finally(() => {
               try { scanner.clear(); } catch { /* ignore */ }
             });
             onScan?.(decodedText);
@@ -46,7 +61,7 @@ export default function QrScannerModal({ open, onScan, onClose, lang = 'en' }) {
           () => { /* per-frame errors are noise — ignore */ }
         );
         if (cancelled) {
-          scanner.stop().catch(() => {});
+          safeStop(scanner);
         }
         setStarting(false);
       } catch (err) {
@@ -62,7 +77,7 @@ export default function QrScannerModal({ open, onScan, onClose, lang = 'en' }) {
       cancelled = true;
       const s = scannerRef.current;
       if (s) {
-        s.stop().catch(() => {}).finally(() => {
+        safeStop(s).finally(() => {
           try { s.clear(); } catch { /* ignore */ }
         });
         scannerRef.current = null;
