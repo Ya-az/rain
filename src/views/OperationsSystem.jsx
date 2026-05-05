@@ -14,7 +14,7 @@ import AuditLogViewer from '../components/audit/AuditLogViewer';
 
 // ─── RosterMobileCard ─────────────────────────────────────────────────────── 
 
-function RosterMobileCard({ team, confirmAttendance, lang, participations = [], categories = [] }) {
+function RosterMobileCard({ team, confirmAttendance, lang, participations = [], categories = [], deleteTeam }) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftCoach, setDraftCoach] = useState(team.coach.present);
   const [draftMembers, setDraftMembers] = useState(team.members.map(m => ({ ...m })));
@@ -69,6 +69,20 @@ function RosterMobileCard({ team, confirmAttendance, lang, participations = [], 
           >
             {isEditing ? t(lang, 'cancel') : t(lang, 'edit')}
           </button>
+          {deleteTeam && (
+            <button
+              onClick={() => {
+                const ok = window.confirm(lang === 'ar'
+                  ? `هل تريد حذف الفريق "${team.name}"؟ ستحذف كل مشاركاته ونتائجه أيضاً.`
+                  : `Delete team "${team.name}"? All participations and scores will be removed.`);
+                if (ok) deleteTeam(team.id);
+              }}
+              className="shrink-0 text-rose-600 font-bold text-xs bg-rose-50 active:bg-rose-100 px-2.5 py-1.5 rounded-lg transition-colors press-effect"
+              aria-label={lang === 'ar' ? 'حذف الفريق' : 'Delete team'}
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
       {isEditing && (
@@ -101,7 +115,7 @@ function RosterMobileCard({ team, confirmAttendance, lang, participations = [], 
 // ─── RosterRow ───────────────────────────────────────────────────────────────
 
 
-function RosterRow({ team, confirmAttendance, lang, participations = [], categories = [] }) {
+function RosterRow({ team, confirmAttendance, lang, participations = [], categories = [], deleteTeam }) {
   const pIds = participations.filter(p => p.teamId === team.id).map(p => p.id);
   const [isEditing, setIsEditing] = useState(false);
   const [draftCoach, setDraftCoach] = useState(team.coach.present);
@@ -146,9 +160,25 @@ function RosterRow({ team, confirmAttendance, lang, participations = [], categor
           <span className={`px-2 py-0.5 rounded text-xs font-bold ${statusBadge[draftStatus]}`}>{draftStatus}</span>
         </td>
         <td className="p-3">
-          <button onClick={() => setIsEditing(!isEditing)} className="text-brand-600 hover:text-brand-800 font-bold text-xs bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors">
-            {isEditing ? t(lang, 'cancel') : t(lang, 'edit')}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setIsEditing(!isEditing)} className="text-brand-600 hover:text-brand-800 font-bold text-xs bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors">
+              {isEditing ? t(lang, 'cancel') : t(lang, 'edit')}
+            </button>
+            {deleteTeam && (
+              <button
+                onClick={() => {
+                  const ok = window.confirm(lang === 'ar'
+                    ? `هل تريد حذف الفريق "${team.name}"؟ ستحذف كل مشاركاته ونتائجه أيضاً.`
+                    : `Delete team "${team.name}"? All participations and scores will be removed.`);
+                  if (ok) deleteTeam(team.id);
+                }}
+                className="text-rose-600 hover:text-rose-800 font-bold text-xs bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg transition-colors"
+                aria-label={lang === 'ar' ? 'حذف الفريق' : 'Delete team'}
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
         </td>
       </tr>
       {isEditing && (
@@ -451,7 +481,7 @@ function BackupRestoreCard({ lang, showToast }) {
 
 // ─── OperationsSystem ────────────────────────────────────────────────────────
 
-export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, addTeam, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [], busyImport = false, busyMatches = false }) {
+export default function OperationsSystem({ scores, setScores, teams, participations = [], categories = [], confirmAttendance, generateMatches, importTeams, addTeam, deleteTeam, currentUser, systemConfig, setSystemConfig, lang, showToast, users = [], addUser, deleteUser, group2Matches = [], busyImport = false, busyMatches = false }) {
   const pendingScores = scores.filter(s => s.status === 'PENDING');
   const [rosterSearch, setRosterSearch] = useState('');
   const [usersOpen, setUsersOpen] = useState(false);
@@ -1035,7 +1065,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
             <>
               {/* Mobile: card list */}
               <div className="sm:hidden space-y-2">
-                {filteredRoster.map(team => <RosterMobileCard key={team.id} team={team} confirmAttendance={confirmAttendance} lang={lang} participations={participations} categories={categories} />)}
+                {filteredRoster.map(team => <RosterMobileCard key={team.id} team={team} confirmAttendance={confirmAttendance} lang={lang} participations={participations} categories={categories} deleteTeam={currentUser?.role === 'admin' ? deleteTeam : undefined} />)}
               </div>
               {/* Desktop: table */}
               <div className="hidden sm:block overflow-x-auto bg-white rounded-xl border border-ink-200 shadow-sm">
@@ -1051,7 +1081,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRoster.map(team => <RosterRow key={team.id} team={team} confirmAttendance={confirmAttendance} lang={lang} participations={participations} categories={categories} />)}
+                    {filteredRoster.map(team => <RosterRow key={team.id} team={team} confirmAttendance={confirmAttendance} lang={lang} participations={participations} categories={categories} deleteTeam={currentUser?.role === 'admin' ? deleteTeam : undefined} />)}
                   </tbody>
                 </table>
               </div>

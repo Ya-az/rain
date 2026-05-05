@@ -666,6 +666,41 @@ export default function App() {
     return true;
   };
 
+  // ─── Delete a team (admin-only UI) ─────────────────────────────────────
+  // Removes team doc, all of its participations, and any scores tied to those
+  // participations. Cascades both locally and in Firestore.
+  const deleteTeam = (teamId) => {
+    if (!teamId) return false;
+    const team = teams.find(t => t.id === teamId);
+    const teamParts = participations.filter(p => p.teamId === teamId);
+    const partIds = new Set(teamParts.map(p => p.id));
+    const teamScores = scores.filter(s => partIds.has(s.pId));
+
+    setTeams(prev => prev.filter(t => t.id !== teamId));
+    setParticipations(prev => prev.filter(p => p.teamId !== teamId));
+    setScores(prev => prev.filter(s => !partIds.has(s.pId)));
+
+    (async () => {
+      try {
+        const b = writeBatch(db);
+        b.delete(doc(db, 'teams', teamId));
+        teamParts.forEach(p => b.delete(doc(db, 'participations', p.id)));
+        teamScores.forEach(s => b.delete(doc(db, 'scores', String(s.id))));
+        await b.commit();
+        logAudit({ user: currentUser, action: 'team.delete', target: `teams/${teamId}`, payload: { name: team?.name, removedParts: teamParts.length, removedScores: teamScores.length } });
+      } catch (err) {
+        reportError(lang === 'ar' ? 'حذف الفريق' : 'delete team', err);
+      }
+    })();
+
+    showToast(lang === 'ar'
+      ? `تم حذف "${team?.name || teamId}" (${teamParts.length} مشاركة، ${teamScores.length} نتيجة)`
+      : `Removed "${team?.name || teamId}" (${teamParts.length} parts, ${teamScores.length} scores)`,
+      'info'
+    );
+    return true;
+  };
+
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   // ─── Access control ───────────────────────────────────────────────────────
@@ -799,6 +834,7 @@ export default function App() {
             addUser={addUser}
             deleteUser={deleteUser}
             addTeam={addTeam}
+            deleteTeam={deleteTeam}
             group2Matches={group2Matches}
             busyImport={busyImport}
             busyMatches={busyMatches}
