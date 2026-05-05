@@ -565,6 +565,17 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const esMsGroup1Rows = visibleGroup1Rows.filter(row => ['ES', 'MS'].includes(row.division));
   const hsUsGroup1Rows = visibleGroup1Rows.filter(row => ['HS', 'US'].includes(row.division));
 
+  // Per-category bucket override (e.g. a-Maze-ing: ES alone + MS alone).
+  const group1Buckets = (category.id === 'c1_amazeing')
+    ? [
+        { key: 'ES', divs: ['ES'], rows: visibleGroup1Rows.filter(r => r.division === 'ES'), slotKeys: esMsSlotKeys },
+        { key: 'MS', divs: ['MS'], rows: visibleGroup1Rows.filter(r => r.division === 'MS'), slotKeys: esMsSlotKeys },
+      ]
+    : [
+        { key: 'ES / MS', divs: ['ES', 'MS'], rows: esMsGroup1Rows, slotKeys: esMsSlotKeys },
+        { key: 'HS / US', divs: ['HS', 'US'], rows: hsUsGroup1Rows, slotKeys: hsUsSlotKeys },
+      ];
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-3">
@@ -594,20 +605,16 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
         />
       ) : (
         <div className="space-y-4">
-          <CollapsibleCard
-            title={`${category.name} — ES / MS`}
-            badge={esMsGroup1Rows.length}
-            badgeColor="bg-brand-500"
-          >
-            <FastBotScheduleTable title="" rows={esMsGroup1Rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={esMsSlotKeys} />
-          </CollapsibleCard>
-          <CollapsibleCard
-            title={`${category.name} — HS / US`}
-            badge={hsUsGroup1Rows.length}
-            badgeColor="bg-brand-500"
-          >
-            <FastBotScheduleTable title="" rows={hsUsGroup1Rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={hsUsSlotKeys} />
-          </CollapsibleCard>
+          {group1Buckets.map(({ key, rows, slotKeys }) => (
+            <CollapsibleCard
+              key={key}
+              title={`${category.name} — ${key}`}
+              badge={rows.length}
+              badgeColor="bg-brand-500"
+            >
+              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} />
+            </CollapsibleCard>
+          ))}
         </div>
       )}
     </div>
