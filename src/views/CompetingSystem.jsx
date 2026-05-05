@@ -453,12 +453,23 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const visibleFastBotRows = useMemo(() => {
     if (!isFastBot) return [];
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    return fastBotRows.filter(row => {
+    const filtered = fastBotRows.filter(row => {
       const matchSearch = !normalizedQuery
         || row.participationId.toLowerCase().includes(normalizedQuery)
         || row.teamName.toLowerCase().includes(normalizedQuery);
       const matchLevel = levelFilter ? row.division === levelFilter : true;
       return matchSearch && matchLevel;
+    });
+    // Rank by best official time (ascending — lower is better). Teams without
+    // a recorded best go to the bottom. Alphabetical tiebreak by team name.
+    return filtered.slice().sort((a, b) => {
+      const aHas = Number.isFinite(a.bestOfficialScore);
+      const bHas = Number.isFinite(b.bestOfficialScore);
+      if (aHas && bHas && a.bestOfficialScore !== b.bestOfficialScore) {
+        return a.bestOfficialScore - b.bestOfficialScore;
+      }
+      if (aHas !== bHas) return aHas ? -1 : 1;
+      return (a.teamName || '').localeCompare(b.teamName || '', undefined, { sensitivity: 'base' });
     });
   }, [isFastBot, fastBotRows, searchQuery, levelFilter]);
 
@@ -483,12 +494,23 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const visibleGroup1Rows = useMemo(() => {
     if (isFastBot) return [];
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    return group1Rows.filter(row => {
+    const filtered = group1Rows.filter(row => {
       const matchSearch = !normalizedQuery
         || row.participationId.toLowerCase().includes(normalizedQuery)
         || row.teamName.toLowerCase().includes(normalizedQuery);
       const matchLevel = levelFilter ? row.division === levelFilter : true;
       return matchSearch && matchLevel;
+    });
+    // Rank by best official points (descending — higher is better). Teams
+    // without a recorded best go to the bottom. Alphabetical tiebreak.
+    return filtered.slice().sort((a, b) => {
+      const aHas = Number.isFinite(a.bestOfficialScore);
+      const bHas = Number.isFinite(b.bestOfficialScore);
+      if (aHas && bHas && a.bestOfficialScore !== b.bestOfficialScore) {
+        return b.bestOfficialScore - a.bestOfficialScore;
+      }
+      if (aHas !== bHas) return aHas ? -1 : 1;
+      return (a.teamName || '').localeCompare(b.teamName || '', undefined, { sensitivity: 'base' });
     });
   }, [isFastBot, group1Rows, searchQuery, levelFilter]);
 
