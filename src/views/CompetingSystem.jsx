@@ -708,14 +708,24 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
     );
   }
 
-  const esMsGroup1Rows = visibleGroup1Rows.filter(row => ['ES', 'MS'].includes(row.division));
-  const hsUsGroup1Rows = visibleGroup1Rows.filter(row => ['HS', 'US'].includes(row.division));
+  // LineFollowing standings: best (lowest) time first; no-score → bottom; alphabetical tiebreak.
+  const sortGroup1Rows = (rows) => {
+    if (category.id !== 'c1_linefollow') return rows;
+    return [...rows].sort((a, b) => {
+      const aVal = a.bestOfficialScore == null ? Infinity : Number(a.bestOfficialScore);
+      const bVal = b.bestOfficialScore == null ? Infinity : Number(b.bestOfficialScore);
+      if (aVal !== bVal) return aVal - bVal;
+      return (a.teamName || '').localeCompare(b.teamName || '');
+    });
+  };
+  const esMsGroup1Rows = sortGroup1Rows(visibleGroup1Rows.filter(row => ['ES', 'MS'].includes(row.division)));
+  const hsUsGroup1Rows = sortGroup1Rows(visibleGroup1Rows.filter(row => ['HS', 'US'].includes(row.division)));
 
   // Per-category bucket override (e.g. a-Maze-ing: ES alone + MS alone).
   const group1Buckets = (category.id === 'c1_amazeing')
     ? [
-        { key: 'ES', divs: ['ES'], rows: visibleGroup1Rows.filter(r => r.division === 'ES'), slotKeys: esMsSlotKeys },
-        { key: 'MS', divs: ['MS'], rows: visibleGroup1Rows.filter(r => r.division === 'MS'), slotKeys: esMsSlotKeys },
+        { key: 'ES', divs: ['ES'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'ES')), slotKeys: esMsSlotKeys },
+        { key: 'MS', divs: ['MS'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'MS')), slotKeys: esMsSlotKeys },
       ]
     : [
         { key: 'ES / MS', divs: ['ES', 'MS'], rows: esMsGroup1Rows, slotKeys: esMsSlotKeys },
@@ -723,7 +733,7 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
       ];
 
   const customGroup1Buckets = customGroups.map(g => {
-    const rows = visibleGroup1Rows.filter(row => g.teamIds.includes(row.teamId));
+    const rows = sortGroup1Rows(visibleGroup1Rows.filter(row => g.teamIds.includes(row.teamId)));
     const slotKeys = rows.length > 0 && rows.every(r => ['HS','US'].includes(r.division)) ? hsUsSlotKeys : esMsSlotKeys;
     return { id: g.id, key: g.name, custom: true, rows, slotKeys };
   });
@@ -880,8 +890,9 @@ function buildTimeMap(matchesByRegion, regions) {
   return map;
 }
 
-function RoundRobinStandings({ matches, scores, lang, accent = 'orange' }) {
+function RoundRobinStandings({ matches, scores, lang, accent = 'orange', scoringMode = 'soccer' }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const isSumo = scoringMode === 'sumo';
   const rows = useMemo(() => {
     const stats = new Map();
     const ensure = (id, name) => {
@@ -908,13 +919,24 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange' }) {
       else { a.draws += 1; b.draws += 1; }
     });
     return [...stats.values()]
-      .map(r => ({ ...r, points: r.wins * 3 + r.draws, gd: r.gf - r.ga }))
-      .sort((x, y) =>
-        y.points - x.points
-        || y.gd - x.gd
-        || y.gf - x.gf
-        || (x.teamName || '').localeCompare(y.teamName || ''));
-  }, [matches, scores]);
+      .map(r => ({
+        ...r,
+        // Sumo: 1 point per win (per round). Soccer: 3-1-0 standard.
+        points: isSumo ? r.wins : (r.wins * 3 + r.draws),
+        gd: r.gf - r.ga,
+      }))
+      .sort((x, y) => {
+        if (isSumo) {
+          // Sumo tiebreaker: more wins → alphabetical
+          return y.points - x.points
+            || (x.teamName || '').localeCompare(y.teamName || '');
+        }
+        return y.points - x.points
+          || y.gd - x.gd
+          || y.gf - x.gf
+          || (x.teamName || '').localeCompare(y.teamName || '');
+      });
+  }, [matches, scores, isSumo]);
 
   if (rows.length === 0) return null;
   const accentChipSolid = accent === 'teal'
@@ -1013,7 +1035,7 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange' }) {
   );
 }
 
-function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets }) {
+function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets, scoringMode = 'soccer', showGoalsBesideTeams = false }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const accentChip = accent === 'teal'
     ? 'bg-teal-50 border-teal-200 text-teal-700'
@@ -1064,6 +1086,13 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                           </tr>
                           {list.map((m, i) => {
                             const sc = scores.find(s => s.pId === m.id && s.status === 'VALID');
+                            let goalsA = null;
+                            let goalsB = null;
+                            if (showGoalsBesideTeams && sc) {
+                              const parts = String(sc.score || '').split('-').map(p => parseInt(p.trim(), 10));
+                              if (Number.isFinite(parts[0])) goalsA = parts[0];
+                              if (Number.isFinite(parts[1])) goalsB = parts[1];
+                            }
                             return (
                               <tr
                                 key={m.id}
@@ -1082,9 +1111,23 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                                 <td className="px-3 py-2.5">
                                   <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${accentChip}`}>{region}</span>
                                 </td>
-                                <td className="px-3 py-2.5 font-bold text-ink-700 truncate max-w-[160px]">{m.teamA}</td>
+                                <td className="px-3 py-2.5 font-bold text-ink-700 max-w-[180px]">
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <span className="truncate">{m.teamA}</span>
+                                    {goalsA != null && (
+                                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{goalsA}</span>
+                                    )}
+                                  </span>
+                                </td>
                                 <td className="px-2 py-2.5 text-center text-[10px] font-black text-ink-400">vs</td>
-                                <td className="px-3 py-2.5 font-bold text-ink-700 truncate max-w-[160px]">{m.teamB}</td>
+                                <td className="px-3 py-2.5 font-bold text-ink-700 max-w-[180px]">
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <span className="truncate">{m.teamB}</span>
+                                    {goalsB != null && (
+                                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{goalsB}</span>
+                                    )}
+                                  </span>
+                                </td>
                                 <td className="px-3 py-2.5 text-center font-black">
                                   {sc ? (
                                     <span className="inline-flex items-center rounded-full bg-saudi-50 border border-saudi-200 px-2.5 py-1 text-[10px] font-black text-saudi-700">{sc.score}</span>
@@ -1101,7 +1144,7 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                   </tbody>
                 </table>
                 <div className="px-3 pb-3 pt-1 bg-white">
-                  <RoundRobinStandings matches={allBucketMatches} scores={scores} lang={lang} accent={accent} />
+                  <RoundRobinStandings matches={allBucketMatches} scores={scores} lang={lang} accent={accent} scoringMode={scoringMode} />
                 </div>
               </div>
             )}
@@ -1910,6 +1953,7 @@ function SumoWorkflow({ category, participations, teams, allTeams, scores, setSc
         lang={lang}
         accent="orange"
         buckets={getRrBuckets(category.id)}
+        scoringMode="sumo"
       />
     </div>
   );
@@ -2121,6 +2165,8 @@ function SoccerWorkflow({ category, participations, teams, allTeams, scores, set
         lang={lang}
         accent="teal"
         buckets={getRrBuckets(category.id)}
+        scoringMode="soccer"
+        showGoalsBesideTeams
       />
     </div>
   );
