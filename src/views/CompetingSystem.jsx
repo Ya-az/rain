@@ -315,7 +315,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
 
 // ─── Group1Workflow ──────────────────────────────────────────────────────────
 
-function Group1Workflow({ category, participations, teams, getTeamStatus, scores, setScores, systemConfig, lang, showToast }) {
+function Group1Workflow({ category, participations, teams, allTeams, getTeamStatus, scores, setScores, systemConfig, lang, showToast, isAdmin = false, removeParticipation, addParticipation, customGroups = [], addCustomGroup, updateCustomGroup, deleteCustomGroup }) {
   const isFastBot = category.id === 'c1_fastbot';
   const activeParticipations = participations.filter(p => p.categoryId === category.id && teams.some(tm => tm.id === p.teamId));
   const [selectedP, setSelectedP] = useState('');
@@ -517,9 +517,30 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   if (isFastBot) {
     const esMsRows = visibleFastBotRows.filter(row => ['ES', 'MS'].includes(row.division));
     const hsUsRows = visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division));
+    const customGroupCards = customGroups.map(g => {
+      const rows = visibleFastBotRows.filter(row => g.teamIds.includes(row.teamId));
+      // Decide which slot keys to use — if all rows are HS/US use that schedule.
+      const slotKeys = rows.length > 0 && rows.every(r => ['HS','US'].includes(r.division)) ? hsUsSlotKeys : esMsSlotKeys;
+      return { id: g.id, name: g.name, rows, slotKeys };
+    });
 
     return (
       <div className="space-y-5">
+        {isAdmin && removeParticipation && addParticipation && (
+          <CategoryRosterAdmin
+            category={category}
+            participations={participations}
+            teams={teams}
+            allTeams={allTeams}
+            removeParticipation={removeParticipation}
+            addParticipation={addParticipation}
+            lang={lang}
+            customGroups={customGroups}
+            addCustomGroup={addCustomGroup}
+            updateCustomGroup={updateCustomGroup}
+            deleteCustomGroup={deleteCustomGroup}
+          />
+        )}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
@@ -556,6 +577,11 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
             <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsRows.length} badgeColor="bg-brand-500">
               <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
             </CollapsibleCard>
+            {customGroupCards.map(({ id, name, rows, slotKeys }) => (
+              <CollapsibleCard key={id} title={`${category.name} — ${name}`} badge={rows.length} badgeColor="bg-saudi-500">
+                <FastBotScheduleTable title={name} rows={rows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={slotKeys} />
+              </CollapsibleCard>
+            ))}
           </div>
         )}
       </div>
@@ -576,8 +602,29 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
         { key: 'HS / US', divs: ['HS', 'US'], rows: hsUsGroup1Rows, slotKeys: hsUsSlotKeys },
       ];
 
+  const customGroup1Buckets = customGroups.map(g => {
+    const rows = visibleGroup1Rows.filter(row => g.teamIds.includes(row.teamId));
+    const slotKeys = rows.length > 0 && rows.every(r => ['HS','US'].includes(r.division)) ? hsUsSlotKeys : esMsSlotKeys;
+    return { key: g.name, custom: true, rows, slotKeys };
+  });
+
   return (
     <div className="space-y-5">
+      {isAdmin && removeParticipation && addParticipation && (
+        <CategoryRosterAdmin
+          category={category}
+          participations={participations}
+          teams={teams}
+          allTeams={allTeams}
+          removeParticipation={removeParticipation}
+          addParticipation={addParticipation}
+          lang={lang}
+          customGroups={customGroups}
+          addCustomGroup={addCustomGroup}
+          updateCustomGroup={updateCustomGroup}
+          deleteCustomGroup={deleteCustomGroup}
+        />
+      )}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
@@ -611,6 +658,16 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
               title={`${category.name} — ${key}`}
               badge={rows.length}
               badgeColor="bg-brand-500"
+            >
+              <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} />
+            </CollapsibleCard>
+          ))}
+          {customGroup1Buckets.map(({ key, rows, slotKeys }) => (
+            <CollapsibleCard
+              key={`custom_${key}`}
+              title={`${category.name} — ${key}`}
+              badge={rows.length}
+              badgeColor="bg-saudi-500"
             >
               <FastBotScheduleTable title="" rows={rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={slotKeys} />
             </CollapsibleCard>
@@ -1078,10 +1135,16 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
 // existing team that's not yet participating. Compact panel rendered above
 // each Group-2/3 workflow's tables when role==='admin'.
 
-function CategoryRosterAdmin({ category, participations, teams, allTeams, removeParticipation, addParticipation, lang }) {
+function CategoryRosterAdmin({ category, participations, teams, allTeams, removeParticipation, addParticipation, lang, customGroups = [], addCustomGroup, updateCustomGroup, deleteCustomGroup }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickedTeamId, setPickedTeamId] = useState('');
+  const [newGroupName, setNewGroupName] = useState('');
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState(null);
+  const [groupNameDraft, setGroupNameDraft] = useState('');
+  const [groupTeamPickerId, setGroupTeamPickerId] = useState(null);
+  const [groupTeamPicked, setGroupTeamPicked] = useState('');
 
   // Teams currently in this category
   const myParts = participations.filter(p => p.categoryId === category.id);
@@ -1195,6 +1258,195 @@ function CategoryRosterAdmin({ category, participations, teams, allTeams, remove
             </div>
           )}
         </div>
+
+        {/* ─── Custom tables ─── */}
+        {addCustomGroup && (
+          <div className="pt-3 border-t border-ink-200 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h5 className="text-[11px] font-black uppercase tracking-wider text-ink-500">
+                {tx('Custom Tables', 'جداول مخصّصة')}
+              </h5>
+              {!creatingGroup && (
+                <button
+                  type="button"
+                  onClick={() => setCreatingGroup(true)}
+                  className="inline-flex items-center gap-1 text-[10px] font-black text-brand-700 bg-white border border-brand-200 hover:border-brand-400 px-2 py-1 rounded-md"
+                >
+                  <Plus size={11} /> {tx('New table', 'جدول جديد')}
+                </button>
+              )}
+            </div>
+
+            {creatingGroup && (
+              <div className="flex flex-wrap items-center gap-2 bg-white border border-ink-200 rounded-lg p-2">
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={e => setNewGroupName(e.target.value)}
+                  placeholder={tx('Table name (e.g. Demo Pool A)', 'اسم الجدول (مثلاً مجموعة أ)')}
+                  className="flex-1 min-w-[180px] p-2 border-2 border-ink-200 rounded-lg text-xs font-medium text-ink-700 focus:ring-2 focus:ring-brand-500 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newGroupName.trim()) return;
+                    addCustomGroup({ categoryId: category.id, name: newGroupName.trim(), teamIds: [] });
+                    setNewGroupName('');
+                    setCreatingGroup(false);
+                  }}
+                  disabled={!newGroupName.trim()}
+                  className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-40 px-3 py-1.5 rounded-lg"
+                >
+                  <Plus size={12} /> {tx('Create', 'إنشاء')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setCreatingGroup(false); setNewGroupName(''); }}
+                  className="text-[11px] font-bold text-ink-500 hover:text-ink-700 px-2 py-1.5"
+                >
+                  {tx('Cancel', 'إلغاء')}
+                </button>
+              </div>
+            )}
+
+            {customGroups.length === 0 && !creatingGroup && (
+              <p className="text-[11px] text-ink-400 italic">
+                {tx('No custom tables yet. Use "New table" to split this category into named pools.', 'لا توجد جداول مخصصة. استخدم "جدول جديد" لتقسيم هذه الفئة إلى مجموعات مسماة.')}
+              </p>
+            )}
+
+            {customGroups.map(g => {
+              const groupTeams = g.teamIds
+                .map(id => (allTeams || teams).find(t => t.id === id))
+                .filter(Boolean);
+              const inGroupIds = new Set(g.teamIds);
+              const groupPool = (allTeams || teams).filter(t => !inGroupIds.has(t.id) && (!category.levels || category.levels.includes(t.division)));
+              const isEditing = editingGroupId === g.id;
+              const isPicking = groupTeamPickerId === g.id;
+              return (
+                <div key={g.id} className="bg-white border border-ink-200 rounded-lg p-2.5 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    {isEditing ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={groupNameDraft}
+                          onChange={e => setGroupNameDraft(e.target.value)}
+                          className="p-1.5 border-2 border-ink-200 rounded text-xs font-bold text-ink-700 focus:ring-2 focus:ring-brand-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (groupNameDraft.trim()) updateCustomGroup(g.id, { name: groupNameDraft.trim() });
+                            setEditingGroupId(null);
+                          }}
+                          className="text-saudi-700 hover:text-saudi-900"
+                          aria-label={tx('Save', 'حفظ')}
+                        >
+                          <Save size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingGroupId(null)}
+                          className="text-ink-400 hover:text-ink-700"
+                          aria-label={tx('Cancel', 'إلغاء')}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-ink-800">{g.name}</span>
+                        <span className="text-[10px] font-bold text-ink-400">({groupTeams.length})</span>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingGroupId(g.id); setGroupNameDraft(g.name); }}
+                          className="text-ink-400 hover:text-brand-600"
+                          aria-label={tx('Rename', 'إعادة تسمية')}
+                        >
+                          <Pencil size={11} />
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ok = window.confirm(lang === 'ar' ? `حذف الجدول "${g.name}"؟` : `Delete table "${g.name}"?`);
+                        if (ok) deleteCustomGroup(g.id);
+                      }}
+                      className="inline-flex items-center gap-0.5 text-[10px] font-black text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded"
+                    >
+                      <X size={10} /> {tx('Delete', 'حذف')}
+                    </button>
+                  </div>
+
+                  {/* Team chips */}
+                  <div className="flex flex-wrap gap-1">
+                    {groupTeams.length === 0 ? (
+                      <span className="text-[10px] text-ink-400 italic">{tx('No teams in this table.', 'لا توجد فرق في هذا الجدول.')}</span>
+                    ) : groupTeams.map(team => (
+                      <span
+                        key={team.id}
+                        className="inline-flex items-center gap-1 rounded-full border border-ink-200 bg-ink-50 px-2 py-0.5 text-[10px] font-bold text-ink-700"
+                      >
+                        <span className="text-ink-400 font-mono text-[9px]">{team.region?.[0] || '—'}·{team.division}</span>
+                        <span>{team.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateCustomGroup(g.id, { teamIds: g.teamIds.filter(id => id !== team.id) })}
+                          className="text-rose-500 hover:text-rose-700"
+                          aria-label={tx('Remove from table', 'إزالة من الجدول')}
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Add team to this group */}
+                  {isPicking ? (
+                    <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-ink-100">
+                      <CustomSelect value={groupTeamPicked} onChange={e => setGroupTeamPicked(e.target.value)}>
+                        <option value="">{tx('— pick a team —', '— اختر فريقاً —')}</option>
+                        {groupPool.map(t => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.region}/{t.division})</option>
+                        ))}
+                      </CustomSelect>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!groupTeamPicked) return;
+                          updateCustomGroup(g.id, { teamIds: [...g.teamIds, groupTeamPicked] });
+                          setGroupTeamPicked('');
+                          setGroupTeamPickerId(null);
+                        }}
+                        disabled={!groupTeamPicked}
+                        className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-40 px-2 py-1 rounded"
+                      >
+                        <Plus size={10} /> {tx('Add', 'أضف')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setGroupTeamPickerId(null); setGroupTeamPicked(''); }}
+                        className="text-[10px] font-bold text-ink-500 hover:text-ink-700"
+                      >
+                        {tx('Cancel', 'إلغاء')}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setGroupTeamPickerId(g.id); setGroupTeamPicked(''); }}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2 py-0.5 rounded"
+                    >
+                      <Plus size={10} /> {tx('Add team to this table', 'إضافة فريق لهذا الجدول')}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </CollapsibleCard>
   );
@@ -1263,7 +1515,7 @@ function BracketEditorRow({ match, teamPool, onSave, onCancel, lang }) {
 
 // ─── SumoWorkflow ─────────────────────────────────────────────────────────────
 
-function SumoWorkflow({ category, participations, teams, allTeams, scores, setScores, group2Matches = [], lang, showToast, isAdmin = false, removeParticipation, addParticipation, updateBracketMatch }) {
+function SumoWorkflow({ category, participations, teams, allTeams, scores, setScores, group2Matches = [], lang, showToast, isAdmin = false, removeParticipation, addParticipation, updateBracketMatch, customGroups = [], addCustomGroup, updateCustomGroup, deleteCustomGroup }) {
   const [mode, setMode] = useState('bracket'); // 'bracket' | 'roundrobin'
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [editingMatchId, setEditingMatchId] = useState(null);
@@ -1383,6 +1635,10 @@ function SumoWorkflow({ category, participations, teams, allTeams, scores, setSc
             removeParticipation={removeParticipation}
             addParticipation={addParticipation}
             lang={lang}
+            customGroups={customGroups}
+            addCustomGroup={addCustomGroup}
+            updateCustomGroup={updateCustomGroup}
+            deleteCustomGroup={deleteCustomGroup}
           />
         )}
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
@@ -1415,6 +1671,10 @@ function SumoWorkflow({ category, participations, teams, allTeams, scores, setSc
           removeParticipation={removeParticipation}
           addParticipation={addParticipation}
           lang={lang}
+            customGroups={customGroups}
+            addCustomGroup={addCustomGroup}
+            updateCustomGroup={updateCustomGroup}
+            deleteCustomGroup={deleteCustomGroup}
         />
       )}
       <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
@@ -1434,7 +1694,7 @@ function SumoWorkflow({ category, participations, teams, allTeams, scores, setSc
 
 // ─── SoccerWorkflow ──────────────────────────────────────────────────────────
 
-function SoccerWorkflow({ category, participations, teams, allTeams, scores, setScores, group2Matches = [], lang, showToast, isAdmin = false, removeParticipation, addParticipation, updateBracketMatch }) {
+function SoccerWorkflow({ category, participations, teams, allTeams, scores, setScores, group2Matches = [], lang, showToast, isAdmin = false, removeParticipation, addParticipation, updateBracketMatch, customGroups = [], addCustomGroup, updateCustomGroup, deleteCustomGroup }) {
   const [mode, setMode] = useState('bracket');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const [editingMatchId, setEditingMatchId] = useState(null);
@@ -1555,6 +1815,10 @@ function SoccerWorkflow({ category, participations, teams, allTeams, scores, set
             removeParticipation={removeParticipation}
             addParticipation={addParticipation}
             lang={lang}
+            customGroups={customGroups}
+            addCustomGroup={addCustomGroup}
+            updateCustomGroup={updateCustomGroup}
+            deleteCustomGroup={deleteCustomGroup}
           />
         )}
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
@@ -1587,6 +1851,10 @@ function SoccerWorkflow({ category, participations, teams, allTeams, scores, set
           removeParticipation={removeParticipation}
           addParticipation={addParticipation}
           lang={lang}
+            customGroups={customGroups}
+            addCustomGroup={addCustomGroup}
+            updateCustomGroup={updateCustomGroup}
+            deleteCustomGroup={deleteCustomGroup}
         />
       )}
       <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
@@ -1686,7 +1954,7 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
 
 // ─── CompetingSystem ─────────────────────────────────────────────────────────
 
-export default function CompetingSystem({ categories, participations, teams, allTeams, getTeamStatus, scores, setScores, currentUser, group2Matches, systemConfig, lang, showToast, removeParticipation, addParticipation, updateBracketMatch }) {
+export default function CompetingSystem({ categories, participations, teams, allTeams, getTeamStatus, scores, setScores, currentUser, group2Matches, systemConfig, lang, showToast, removeParticipation, addParticipation, updateBracketMatch, customGroups = [], addCustomGroup, updateCustomGroup, deleteCustomGroup }) {
   const isRef = currentUser?.role === 'ref';
   const isAdmin = currentUser?.role === 'admin';
   // Allowed categories for refs: prefer `categories` array, fall back to legacy single `category`
@@ -1786,13 +2054,13 @@ export default function CompetingSystem({ categories, participations, teams, all
           </div>
           <div className="p-3 sm:p-5 min-h-[200px] sm:min-h-[400px]">
             {selectedCategory.group === 1 && (
-              <Group1Workflow category={selectedCategory} participations={participations} teams={teams} getTeamStatus={getTeamStatus} scores={scores} setScores={setScores} systemConfig={systemConfig} lang={lang} showToast={showToast} />
+              <Group1Workflow category={selectedCategory} participations={participations} teams={teams} allTeams={allTeams} getTeamStatus={getTeamStatus} scores={scores} setScores={setScores} systemConfig={systemConfig} lang={lang} showToast={showToast} isAdmin={isAdmin} removeParticipation={removeParticipation} addParticipation={addParticipation} customGroups={customGroups.filter(g => g.categoryId === selectedCategory.id)} addCustomGroup={addCustomGroup} updateCustomGroup={updateCustomGroup} deleteCustomGroup={deleteCustomGroup} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_sumo' && (
-              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} allTeams={allTeams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} isAdmin={isAdmin} removeParticipation={removeParticipation} addParticipation={addParticipation} updateBracketMatch={updateBracketMatch} />
+              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} allTeams={allTeams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} isAdmin={isAdmin} removeParticipation={removeParticipation} addParticipation={addParticipation} updateBracketMatch={updateBracketMatch} customGroups={customGroups.filter(g => g.categoryId === selectedCategory.id)} addCustomGroup={addCustomGroup} updateCustomGroup={updateCustomGroup} deleteCustomGroup={deleteCustomGroup} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_soccer' && (
-              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} allTeams={allTeams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} isAdmin={isAdmin} removeParticipation={removeParticipation} addParticipation={addParticipation} updateBracketMatch={updateBracketMatch} />
+              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} allTeams={allTeams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} isAdmin={isAdmin} removeParticipation={removeParticipation} addParticipation={addParticipation} updateBracketMatch={updateBracketMatch} customGroups={customGroups.filter(g => g.categoryId === selectedCategory.id)} addCustomGroup={addCustomGroup} updateCustomGroup={updateCustomGroup} deleteCustomGroup={deleteCustomGroup} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id !== 'c2_sumo' && selectedCategory.id !== 'c2_soccer' && (
               <Group2Workflow category={selectedCategory} matches={group2Matches.filter(m => m.categoryId === selectedCategory.id)} scores={scores} setScores={setScores} lang={lang} showToast={showToast} />

@@ -30,6 +30,7 @@ service cloud.firestore {
     match /categories/{id}   { allow read, write: if isSignedIn(); }
     match /scores/{id}       { allow read, write: if isSignedIn(); }
     match /group2Matches/{id} { allow read, write: if isSignedIn(); }
+    match /customGroups/{id} { allow read, write: if isSignedIn(); }
     match /config/{id}       { allow read, write: if isSignedIn(); }
 
     // Users collection: signed-in app may read for login lookup,

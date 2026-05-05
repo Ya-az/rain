@@ -73,6 +73,7 @@ export default function App() {
   const [categories, setCategories] = useState(MOCK_CATEGORIES);
   const [scores, setScores] = useState([]);
   const [group2Matches, setGroup2Matches] = useState([]);
+  const [customGroups, setCustomGroups] = useState([]);
   const [adminRegion, setAdminRegion] = useState('All');
   const [systemConfig, setSystemConfig] = useState(DEFAULT_SYSTEM_CONFIG);
   const [users, setUsers] = useState(MOCK_USERS);
@@ -168,6 +169,9 @@ export default function App() {
     const unsubMatches = onSnapshot(collection(db, 'group2Matches'), snap => {
       setGroup2Matches(snap.docs.map(d => d.data()));
     });
+    const unsubCustomGroups = onSnapshot(collection(db, 'customGroups'), snap => {
+      setCustomGroups(snap.docs.map(d => d.data()));
+    });
     const unsubCfg = onSnapshot(doc(db, 'config', 'system'), snap => {
       if (snap.exists()) setSystemConfig(snap.data());
     });
@@ -176,7 +180,7 @@ export default function App() {
       if (data.length > 0) setUsers(data);
     });
     return () => {
-      unsubTeams(); unsubParts(); unsubCats(); unsubScores(); unsubMatches(); unsubCfg(); unsubUsers();
+      unsubTeams(); unsubParts(); unsubCats(); unsubScores(); unsubMatches(); unsubCustomGroups(); unsubCfg(); unsubUsers();
     };
   }, [authReady]);
 
@@ -787,6 +791,50 @@ export default function App() {
     return true;
   };
 
+  // ─── Custom Groups (admin-defined sub-tables per category) ─────────────
+  // Admin can create a named bucket of teams inside a category — useful when
+  // the auto ES/MS/HS/US split doesn't fit (e.g. a special demo group, or
+  // splitting Sumo HS into two pools). Stored under collection 'customGroups'.
+  // shape: { id, categoryId, name, teamIds: [string], createdAt }
+  const addCustomGroup = ({ categoryId, name, teamIds = [] }) => {
+    if (!categoryId || !name?.trim()) {
+      showToast(lang === 'ar' ? 'الاسم والفئة مطلوبان' : 'Name and category required', 'error');
+      return false;
+    }
+    const id = `cg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    const group = { id, categoryId, name: name.trim(), teamIds: Array.from(new Set(teamIds)), createdAt: Date.now() };
+    setCustomGroups(prev => [...prev, group]);
+    setDoc(doc(db, 'customGroups', id), group)
+      .then(() => logAudit({ user: currentUser, action: 'customGroup.add', target: `customGroups/${id}`, payload: { categoryId, name: group.name, count: group.teamIds.length } }))
+      .catch(err => reportError(lang === 'ar' ? 'إضافة جدول مخصص' : 'add custom group', err));
+    showToast(lang === 'ar' ? `تم إنشاء "${group.name}"` : `Created "${group.name}"`);
+    return id;
+  };
+
+  const updateCustomGroup = (id, patch) => {
+    if (!id || !patch) return false;
+    const existing = customGroups.find(g => g.id === id);
+    if (!existing) return false;
+    const next = { ...existing, ...patch };
+    if (Array.isArray(next.teamIds)) next.teamIds = Array.from(new Set(next.teamIds));
+    setCustomGroups(prev => prev.map(g => g.id === id ? next : g));
+    setDoc(doc(db, 'customGroups', id), next)
+      .then(() => logAudit({ user: currentUser, action: 'customGroup.update', target: `customGroups/${id}`, payload: patch }))
+      .catch(err => reportError(lang === 'ar' ? 'تحديث الجدول المخصص' : 'update custom group', err));
+    return true;
+  };
+
+  const deleteCustomGroup = (id) => {
+    if (!id) return false;
+    const existing = customGroups.find(g => g.id === id);
+    setCustomGroups(prev => prev.filter(g => g.id !== id));
+    deleteDoc(doc(db, 'customGroups', id))
+      .then(() => logAudit({ user: currentUser, action: 'customGroup.delete', target: `customGroups/${id}`, payload: { name: existing?.name } }))
+      .catch(err => reportError(lang === 'ar' ? 'حذف الجدول المخصص' : 'delete custom group', err));
+    showToast(lang === 'ar' ? `تم حذف "${existing?.name || id}"` : `Removed "${existing?.name || id}"`, 'info');
+    return true;
+  };
+
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   // ─── Access control ───────────────────────────────────────────────────────
@@ -903,6 +951,10 @@ export default function App() {
             removeParticipation={removeParticipation}
             addParticipation={addParticipation}
             updateBracketMatch={updateBracketMatch}
+            customGroups={customGroups}
+            addCustomGroup={addCustomGroup}
+            updateCustomGroup={updateCustomGroup}
+            deleteCustomGroup={deleteCustomGroup}
           />
         )}
         {currentView === 'operations' && allowedViews.includes('operations') && (
