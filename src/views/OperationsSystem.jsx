@@ -7,6 +7,7 @@ import Toggle from '../components/ui/Toggle';
 import { t } from '../constants/translations';
 import { parseExcelFile, downloadTemplate } from '../utils/excelImport';
 import { exportResultsToExcel } from '../utils/exportResults';
+import { printResultsPdf } from '../utils/printResults';
 import { printTeamQrSheet } from '../utils/printQrSheet';
 import { exportBackupJson, importBackupJson } from '../utils/backup';
 import AuditLogViewer from '../components/audit/AuditLogViewer';
@@ -550,6 +551,35 @@ export default function OperationsSystem({ scores, setScores, teams, participati
             className="px-4 py-2.5 rounded-xl bg-saudi-500 hover:bg-saudi-600 text-white font-bold text-xs sm:text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0"
           >
             <Download size={14} /> {lang === 'ar' ? 'تنزيل' : 'Download'}
+          </button>
+        </div>
+      )}
+      {currentUser?.role === 'admin' && (
+        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-rose-200 bg-rose-50">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0">
+              <FileSpreadsheet size={18} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-ink-800 text-sm truncate">
+                {lang === 'ar' ? 'طباعة النتائج (PDF)' : 'Print Results (PDF)'}
+              </p>
+              <p className="text-xs text-ink-500 mt-0.5">
+                {lang === 'ar' ? 'صفحة مطبوعة جاهزة لكل فئة مع الترتيب والميداليات.' : 'Print-ready leaderboard per category with medals.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              try { printResultsPdf({ categories, participations, teams, scores, lang }); }
+              catch (err) {
+                console.error('pdf error', err);
+                if (showToast) showToast(lang === 'ar' ? 'فشل توليد PDF' : 'PDF failed', 'error');
+              }
+            }}
+            className="px-4 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs sm:text-sm whitespace-nowrap transition-colors flex items-center gap-2 shrink-0"
+          >
+            <FileSpreadsheet size={14} /> {lang === 'ar' ? 'طباعة' : 'Print'}
           </button>
         </div>
       )}

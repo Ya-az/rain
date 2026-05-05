@@ -106,6 +106,34 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
       });
   }, [scores, participations, categories, teams]);
 
+  // ─── Track newly-arrived score IDs for live highlight pulse ─────────────
+  const seenScoreIdsRef = useRef(new Set());
+  const [pulseIds, setPulseIds] = useState(new Set());
+  useEffect(() => {
+    const seen = seenScoreIdsRef.current;
+    const fresh = [];
+    scores.forEach(s => {
+      if (s.status === 'VALID' && !seen.has(s.id)) {
+        if (seen.size > 0) fresh.push(s.id); // skip first hydration burst
+        seen.add(s.id);
+      }
+    });
+    if (fresh.length === 0) return undefined;
+    setPulseIds(prev => {
+      const next = new Set(prev);
+      fresh.forEach(id => next.add(id));
+      return next;
+    });
+    const tid = setTimeout(() => {
+      setPulseIds(prev => {
+        const next = new Set(prev);
+        fresh.forEach(id => next.delete(id));
+        return next;
+      });
+    }, 6000);
+    return () => clearTimeout(tid);
+  }, [scores]);
+
   // ─── Region medal counts (from #1 finishes) ─────────────────────────────
   const regionMedals = useMemo(() => {
     const tally = { Eastern: 0, Western: 0, Central: 0 };
@@ -307,7 +335,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
         {/* Region medal board + Recent results */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <RegionBoard tally={regionMedals} tx={tx} />
-          <RecentResults recent={recent} tx={tx} lang={lang} />
+          <RecentResults recent={recent} tx={tx} lang={lang} pulseIds={pulseIds} />
         </div>
       </main>
 
@@ -544,7 +572,7 @@ function formatAgo(ts, lang) {
   return lang === 'ar' ? `قبل ${d} ي` : `${d}d ago`;
 }
 
-function RecentResults({ recent, tx, lang }) {
+function RecentResults({ recent, tx, lang, pulseIds }) {
   return (
     <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5">
       <SectionHeader inline title={tx('Recent Results', 'آخر النتائج')} subtitle={tx('Latest verified scores', 'أحدث النتائج المعتمدة')} />
@@ -554,8 +582,16 @@ function RecentResults({ recent, tx, lang }) {
         <div className="mt-4 space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
           {recent.map(r => {
             const style = CATEGORY_STYLES[r.catId] || { from: '#334155', to: '#0f172a', icon: '🤖' };
+            const isFresh = pulseIds?.has(r.id);
             return (
-              <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
+              <div
+                key={r.id}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+                  isFresh
+                    ? 'bg-saudi-500/20 border-saudi-400/60 ring-2 ring-saudi-400/40 animate-pulse shadow-lg shadow-saudi-500/30'
+                    : 'bg-white/5 border-white/10'
+                }`}
+              >
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0"
                   style={{ background: `linear-gradient(135deg, ${style.from}, ${style.to})` }}>
                   {style.icon}

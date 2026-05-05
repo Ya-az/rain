@@ -515,6 +515,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const handleOpenFastBotRow = (row) => {
     setSelectedFastBotPId(row.participationId);
     setActiveFastBotSlot(getDefaultFastBotSlotKey(row, systemConfig, category.id));
+    try { localStorage.setItem(`roborave.lastTeam.${category.id}`, row.participationId); } catch { /* ignore */ }
   };
 
   const onSaveFastBotScore = (participationId, slotKey, scoreValue, insp, rawData) => {
@@ -567,6 +568,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const handleOpenGroup1Row = (row) => {
     setSelectedP(row.participationId);
     setActiveGroup1Slot(getDefaultFastBotSlotKey(row, systemConfig, category.id));
+    try { localStorage.setItem(`roborave.lastTeam.${category.id}`, row.participationId); } catch { /* ignore */ }
   };
 
   const onSaveGroup1Score = (participationId, slotKey, scoreValue, insp, rawData) => {
@@ -617,6 +619,15 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
     const hsWesternRows = visibleFastBotRows.filter(row => row.division === 'HS' && row.region === 'Western');
     const usWesternRows = visibleFastBotRows.filter(row => row.division === 'US' && row.region === 'Western');
 
+    // ─ Last team this device worked on for this category ─
+    let lastTeamRow = null;
+    try {
+      const lastPid = localStorage.getItem(`roborave.lastTeam.${category.id}`);
+      if (lastPid && !selectedFastBotRow) {
+        lastTeamRow = visibleFastBotRows.find(r => r.participationId === lastPid) || null;
+      }
+    } catch { /* ignore */ }
+
     return (
       <div className="space-y-5">
         <div className="flex flex-col sm:flex-row gap-3">
@@ -638,6 +649,20 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
             {category.levels.map(l => <option key={l} value={l}>{l}</option>)}
           </CustomSelect>
         </div>
+
+        {lastTeamRow && (
+          <button
+            type="button"
+            onClick={() => handleOpenFastBotRow(lastTeamRow)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-brand-50 border border-brand-200 hover:bg-brand-100 transition-colors text-start press-effect"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand-600">{lang === 'ar' ? 'آخر فريق' : 'Last Team'}</p>
+              <p className="text-sm font-bold text-ink-800 truncate">{lastTeamRow.teamName} · {lastTeamRow.division}</p>
+            </div>
+            <span className="shrink-0 text-xs font-bold text-brand-700">{lang === 'ar' ? 'متابعة ←' : 'Resume →'}</span>
+          </button>
+        )}
 
         {selectedFastBotRow ? (
           <FastBotDetailView
