@@ -17,6 +17,7 @@ import { hashPassword, verifyPassword, looksHashed, generateSalt } from './utils
 import { saveSession, loadSession, clearSession } from './utils/session';
 import { genId } from './utils/ids';
 import { logAudit } from './utils/audit';
+import { notify, requestNotificationPermission } from './utils/notify';
 import {
   collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, getDoc,
 } from 'firebase/firestore';
@@ -206,6 +207,46 @@ export default function App() {
     }
     return teams.filter(tm => tm.region === currentUser.region);
   }, [teams, currentUser, adminRegion]);
+
+  // ─── Desktop notifications for new pending approvals (admins only) ───────
+  // Asks for permission once after an admin logs in, then pings whenever a
+  // new score enters PENDING status while the tab is hidden.
+  const prevPendingIdsRef = useRef(new Set());
+  useEffect(() => {
+    if (currentUser?.role === 'admin') {
+      requestNotificationPermission();
+    }
+  }, [currentUser?.role]);
+  useEffect(() => {
+    if (currentUser?.role !== 'admin') {
+      prevPendingIdsRef.current = new Set();
+      return;
+    }
+    const currentPending = new Set(
+      scores.filter(s => s.status === 'PENDING').map(s => String(s.id))
+    );
+    // Only fire once we have a baseline (skip first hydration burst).
+    if (prevPendingIdsRef.current.size > 0 || prevPendingIdsRef.current.__init) {
+      const fresh = [...currentPending].filter(id => !prevPendingIdsRef.current.has(id));
+      if (fresh.length > 0) {
+        const title = lang === 'ar'
+          ? `طلبات موافقة جديدة (${fresh.length})`
+          : `${fresh.length} new approval${fresh.length > 1 ? 's' : ''} pending`;
+        const body = lang === 'ar'
+          ? 'افتح لوحة العمليات لمراجعة التعديلات.'
+          : 'Open Operations to review edit requests.';
+        notify({
+          title,
+          body,
+          tag: 'roborave-pending',
+          onClick: () => safeSetView?.('operations'),
+        });
+      }
+    } else {
+      prevPendingIdsRef.current.__init = true;
+    }
+    prevPendingIdsRef.current = currentPending;
+  }, [scores, currentUser?.role, lang]);
 
   // ─── Login / Logout ───────────────────────────────────────────────────────
   // Supports both hashed and legacy plain-text password records during the
