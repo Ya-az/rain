@@ -774,37 +774,37 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
   const disabled = fsmState === 'SUBMITTED' || fsmState === 'PENDING_ADMIN';
 
   const calculate = () => {
-    let ptsA = 0, ptsB = 0, res = '';
+    let ptsA = 0, ptsB = 0, res = '', scoreStr = '';
     const fA = match.teamA, fB = match.teamB;
     if (lang === 'ar') {
-      if (!data.showA && !data.showB) { ptsA = 0; ptsB = 0; res = 'لم يحضر أي فريق.'; }
-      else if (!data.showA) { ptsA = 0; ptsB = 3; res = `${fB} فاز بالغياب.`; }
-      else if (!data.showB) { ptsA = 3; ptsB = 0; res = `${fA} فاز بالغياب.`; }
-      else if (data.unableA && data.unableB) { ptsA = 0; ptsB = 0; res = 'الفريقان عاجزان عن الاستمرار.'; }
-      else if (data.unableA) { ptsA = 0; ptsB = 3; res = `${fB} فاز (عطل الخصم).`; }
-      else if (data.unableB) { ptsA = 3; ptsB = 0; res = `${fA} فاز (عطل الخصم).`; }
-      else if (data.goalsA > data.goalsB) { ptsA = 3; ptsB = 0; res = `${fA} فاز بالأهداف.`; }
-      else if (data.goalsB > data.goalsA) { ptsA = 0; ptsB = 3; res = `${fB} فاز بالأهداف.`; }
-      else { ptsA = 1; ptsB = 1; res = 'انتهت المباراة بالتعادل.'; }
+      if (!data.showA && !data.showB) { ptsA = 0; ptsB = 0; res = 'لم يحضر أي فريق.'; scoreStr = '0 - 0 (Forfeit)'; }
+      else if (!data.showA) { ptsA = 0; ptsB = 3; res = `${fB} فاز بالغياب.`; scoreStr = 'L - W (Forfeit)'; }
+      else if (!data.showB) { ptsA = 3; ptsB = 0; res = `${fA} فاز بالغياب.`; scoreStr = 'W - L (Forfeit)'; }
+      else if (data.unableA && data.unableB) { ptsA = 0; ptsB = 0; res = 'الفريقان عاجزان عن الاستمرار.'; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
+      else if (data.unableA) { ptsA = 0; ptsB = 3; res = `${fB} فاز (عطل الخصم).`; scoreStr = `${data.goalsA} - ${Math.max(data.goalsB, data.goalsA + 1)}`; }
+      else if (data.unableB) { ptsA = 3; ptsB = 0; res = `${fA} فاز (عطل الخصم).`; scoreStr = `${Math.max(data.goalsA, data.goalsB + 1)} - ${data.goalsB}`; }
+      else if (data.goalsA > data.goalsB) { ptsA = 3; ptsB = 0; res = `${fA} فاز بالأهداف.`; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
+      else if (data.goalsB > data.goalsA) { ptsA = 0; ptsB = 3; res = `${fB} فاز بالأهداف.`; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
+      else { ptsA = 1; ptsB = 1; res = 'انتهت المباراة بالتعادل.'; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
     } else {
-      if (!data.showA && !data.showB) { ptsA = 0; ptsB = 0; res = 'Neither team appeared.'; }
-      else if (!data.showA) { ptsA = 0; ptsB = 3; res = `${fB} wins by forfeit.`; }
-      else if (!data.showB) { ptsA = 3; ptsB = 0; res = `${fA} wins by forfeit.`; }
-      else if (data.unableA && data.unableB) { ptsA = 0; ptsB = 0; res = 'Both teams unable to continue.'; }
-      else if (data.unableA) { ptsA = 0; ptsB = 3; res = `${fB} wins (opponent damage).`; }
-      else if (data.unableB) { ptsA = 3; ptsB = 0; res = `${fA} wins (opponent damage).`; }
-      else if (data.goalsA > data.goalsB) { ptsA = 3; ptsB = 0; res = `${fA} wins by goals.`; }
-      else if (data.goalsB > data.goalsA) { ptsA = 0; ptsB = 3; res = `${fB} wins by goals.`; }
-      else { ptsA = 1; ptsB = 1; res = 'Match ended in a draw.'; }
+      if (!data.showA && !data.showB) { ptsA = 0; ptsB = 0; res = 'Neither team appeared.'; scoreStr = '0 - 0 (Forfeit)'; }
+      else if (!data.showA) { ptsA = 0; ptsB = 3; res = `${fB} wins by forfeit.`; scoreStr = 'L - W (Forfeit)'; }
+      else if (!data.showB) { ptsA = 3; ptsB = 0; res = `${fA} wins by forfeit.`; scoreStr = 'W - L (Forfeit)'; }
+      else if (data.unableA && data.unableB) { ptsA = 0; ptsB = 0; res = 'Both teams unable to continue.'; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
+      else if (data.unableA) { ptsA = 0; ptsB = 3; res = `${fB} wins (opponent damage).`; scoreStr = `${data.goalsA} - ${Math.max(data.goalsB, data.goalsA + 1)}`; }
+      else if (data.unableB) { ptsA = 3; ptsB = 0; res = `${fA} wins (opponent damage).`; scoreStr = `${Math.max(data.goalsA, data.goalsB + 1)} - ${data.goalsB}`; }
+      else if (data.goalsA > data.goalsB) { ptsA = 3; ptsB = 0; res = `${fA} wins by goals.`; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
+      else if (data.goalsB > data.goalsA) { ptsA = 0; ptsB = 3; res = `${fB} wins by goals.`; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
+      else { ptsA = 1; ptsB = 1; res = 'Match ended in a draw.'; scoreStr = `${data.goalsA} - ${data.goalsB}`; }
     }
-    return { ptsA, ptsB, res };
+    return { ptsA, ptsB, res, scoreStr, goalsA: data.goalsA, goalsB: data.goalsB };
   };
   const result = calculate();
 
   const handleAction = () => {
-    if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(`${result.ptsA} - ${result.ptsB}`, inspA, inspB, data); }
+    if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(result.scoreStr, inspA, inspB, data); }
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
-    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, `${result.ptsA} - ${result.ptsB}`, inspA, inspB, data); setFsmState('PENDING_ADMIN'); } }
+    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.scoreStr, inspA, inspB, data); setFsmState('PENDING_ADMIN'); } }
   };
 
   // Scoring is ALWAYS available regardless of inspection status (req. #3).
@@ -890,8 +890,13 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
               <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl mb-4">
                 <div className="font-black text-brand-800 text-lg mb-1">{lang === 'ar' ? 'النتيجة' : 'Result'}: {result.res}</div>
                 <div className="flex justify-between font-bold text-ink-600 text-sm">
-                  <span>{match.teamA}: {result.ptsA} {lang === 'ar' ? 'نقطة' : 'pts'}</span>
-                  <span>{match.teamB}: {result.ptsB} {lang === 'ar' ? 'نقطة' : 'pts'}</span>
+                  <span>{match.teamA}: {result.goalsA} {lang === 'ar' ? 'هدف' : 'goals'}</span>
+                  <span>{match.teamB}: {result.goalsB} {lang === 'ar' ? 'هدف' : 'goals'}</span>
+                </div>
+                <div className="mt-1 text-[11px] font-semibold text-ink-500">
+                  {lang === 'ar'
+                    ? `نقاط الدوري: ${result.ptsA} - ${result.ptsB}`
+                    : `League points: ${result.ptsA} - ${result.ptsB}`}
                 </div>
               </div>
             </>
