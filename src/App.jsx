@@ -701,6 +701,92 @@ export default function App() {
     return true;
   };
 
+  // ─── Remove a single participation (admin) ─────────────────────────────
+  // Drops the team from one specific category table; keeps the team itself.
+  // Cascades any scores tied to the participation id.
+  const removeParticipation = (participationId) => {
+    if (!participationId) return false;
+    const part = participations.find(p => p.id === participationId);
+    if (!part) return false;
+    const team = teams.find(t => t.id === part.teamId);
+    const cat  = categories.find(c => c.id === part.categoryId);
+    const partScores = scores.filter(s => s.pId === participationId);
+
+    setParticipations(prev => prev.filter(p => p.id !== participationId));
+    setScores(prev => prev.filter(s => s.pId !== participationId));
+
+    (async () => {
+      try {
+        const b = writeBatch(db);
+        b.delete(doc(db, 'participations', participationId));
+        partScores.forEach(s => b.delete(doc(db, 'scores', String(s.id))));
+        await b.commit();
+        logAudit({ user: currentUser, action: 'participation.delete', target: `participations/${participationId}`, payload: { team: team?.name, category: cat?.name, removedScores: partScores.length } });
+      } catch (err) {
+        reportError(lang === 'ar' ? 'حذف المشاركة' : 'remove participation', err);
+      }
+    })();
+
+    showToast(lang === 'ar'
+      ? `تم حذف "${team?.name || ''}" من جدول ${cat?.name || ''}`
+      : `Removed "${team?.name || ''}" from ${cat?.name || ''} table`,
+      'info'
+    );
+    return true;
+  };
+
+  // ─── Add a participation (existing team → category, admin) ────────────
+  const addParticipation = ({ teamId, categoryId }) => {
+    if (!teamId || !categoryId) return false;
+    const team = teams.find(t => t.id === teamId);
+    const cat  = categories.find(c => c.id === categoryId);
+    if (!team || !cat) return false;
+    if (participations.some(p => p.teamId === teamId && p.categoryId === categoryId)) {
+      showToast(lang === 'ar' ? 'الفريق مسجّل مسبقاً في هذه الفئة' : 'Team is already in this category', 'error');
+      return false;
+    }
+    const letter = (team.region || 'W').charAt(0).toUpperCase();
+    const maxSeq = participations.reduce((m, p) => {
+      const match = p.id?.match?.(/^26(\d{3})/);
+      return match ? Math.max(m, parseInt(match[1], 10)) : m;
+    }, 0);
+    const newPart = {
+      id: `26${String(maxSeq + 1).padStart(3, '0')}${letter}`,
+      teamId,
+      categoryId,
+    };
+
+    setParticipations(prev => [...prev, newPart]);
+    // Mirror the team's categories array if missing — keeps roster card in sync.
+    if (!team.categories?.includes(categoryId)) {
+      const updatedTeam = { ...team, categories: [...(team.categories || []), categoryId] };
+      setTeams(prev => prev.map(t => t.id === teamId ? updatedTeam : t));
+      setDoc(doc(db, 'teams', teamId), updatedTeam).catch(err => reportError('sync team categories', err));
+    }
+    setDoc(doc(db, 'participations', newPart.id), newPart)
+      .then(() => logAudit({ user: currentUser, action: 'participation.add', target: `participations/${newPart.id}`, payload: { team: team.name, category: cat.name } }))
+      .catch(err => reportError(lang === 'ar' ? 'إضافة مشاركة' : 'add participation', err));
+
+    showToast(lang === 'ar' ? `أُضيف "${team.name}" إلى ${cat.name} ✓` : `Added "${team.name}" to ${cat.name} ✓`);
+    return true;
+  };
+
+  // ─── Update a bracket match (admin manual matchup) ─────────────────────
+  // Lets admin override teamA / teamB on a specific bracket slot — useful
+  // for Sumo when the auto-generated pairing needs to be tweaked.
+  const updateBracketMatch = (matchId, patch) => {
+    if (!matchId || !patch) return false;
+    const existing = group2Matches.find(m => m.id === matchId);
+    if (!existing) return false;
+    const next = { ...existing, ...patch };
+    setGroup2Matches(prev => prev.map(m => m.id === matchId ? next : m));
+    setDoc(doc(db, 'group2Matches', matchId), next)
+      .then(() => logAudit({ user: currentUser, action: 'bracket.edit', target: `group2Matches/${matchId}`, payload: patch }))
+      .catch(err => reportError(lang === 'ar' ? 'تعديل المباراة' : 'edit bracket match', err));
+    showToast(lang === 'ar' ? 'تم تحديث المباراة' : 'Match updated');
+    return true;
+  };
+
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   // ─── Access control ───────────────────────────────────────────────────────
@@ -805,6 +891,7 @@ export default function App() {
             categories={categories}
             participations={participations}
             teams={authorizedTeams}
+            allTeams={teams}
             getTeamStatus={getTeamStatus}
             scores={scores}
             setScores={setScoresFB}
@@ -813,6 +900,9 @@ export default function App() {
             systemConfig={systemConfig}
             lang={lang}
             showToast={showToast}
+            removeParticipation={removeParticipation}
+            addParticipation={addParticipation}
+            updateBracketMatch={updateBracketMatch}
           />
         )}
         {currentView === 'operations' && allowedViews.includes('operations') && (

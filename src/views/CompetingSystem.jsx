@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
-import { CheckCircle2, Search } from 'lucide-react';
+import { CheckCircle2, Search, X, Plus, Pencil, Save } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import { t } from '../constants/translations';
 import CollapsibleCard from '../components/ui/CollapsibleCard';
@@ -931,7 +931,7 @@ function BracketMatchTile({ match, onSelect, lang, accent = 'orange' }) {
   );
 }
 
-function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', categoryLabel = '' }) {
+function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', categoryLabel = '', editable = false, editingMatchId = null, onRequestEdit, onSaveEdit, onCancelEdit, teamPool = [] }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const resolved = useMemo(() => resolveBracket(matches, scores), [matches, scores]);
   const byDivision = useMemo(() => groupBracketByDivision(resolved), [resolved]);
@@ -978,13 +978,14 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
                     <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Team B', 'الفريق ب')}</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center">{tx('Score', 'النتيجة')}</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Winner', 'الفائز')}</th>
+                    {editable && <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center w-16">{tx('Edit', 'تعديل')}</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-100 bg-white">
                   {rounds.map(({ roundIndex, round, matches: rMatches }) => (
                     <Fragment key={roundIndex}>
                       <tr className="bg-ink-50/80">
-                        <td colSpan={7} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
+                        <td colSpan={editable ? 8 : 7} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
                           {round}
                         </td>
                       </tr>
@@ -993,6 +994,19 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
                         const winnerName = m._winnerTeamName || '';
                         const isWinnerA = m._winnerSide === 'A';
                         const isWinnerB = m._winnerSide === 'B';
+                        const isEditing = editingMatchId === m.id;
+                        if (isEditing && editable) {
+                          return (
+                            <BracketEditorRow
+                              key={m.id}
+                              match={m}
+                              teamPool={teamPool}
+                              onSave={(patch) => onSaveEdit?.(m.id, patch)}
+                              onCancel={() => onCancelEdit?.()}
+                              lang={lang}
+                            />
+                          );
+                        }
                         return (
                           <tr
                             key={m.id}
@@ -1027,6 +1041,17 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
                             <td className="px-3 py-2.5 font-bold text-saudi-700 truncate max-w-[140px]">
                               {winnerName || (m.isBye ? (m.teamA || '--') : '--')}
                             </td>
+                            {editable && (
+                              <td className="px-3 py-2.5 text-center">
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); onRequestEdit?.(m.id); }}
+                                  className="inline-flex items-center gap-1 text-[10px] font-black text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2 py-1 rounded-md"
+                                >
+                                  <Pencil size={10} /> {tx('Edit', 'تعديل')}
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
@@ -1048,11 +1073,200 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
   );
 }
 
+// ─── CategoryRosterAdmin (admin-only manage teams in a category) ─────────────
+// Lets the admin remove a team from a category's match table or add an
+// existing team that's not yet participating. Compact panel rendered above
+// each Group-2/3 workflow's tables when role==='admin'.
+
+function CategoryRosterAdmin({ category, participations, teams, allTeams, removeParticipation, addParticipation, lang }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickedTeamId, setPickedTeamId] = useState('');
+
+  // Teams currently in this category
+  const myParts = participations.filter(p => p.categoryId === category.id);
+  const myRows = myParts
+    .map(p => {
+      const team = (allTeams || teams).find(t => t.id === p.teamId);
+      return team ? { participationId: p.id, team } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => (a.team.region || '').localeCompare(b.team.region || '') || a.team.name.localeCompare(b.team.name));
+
+  // Eligible to add: not already in category, division allowed (if category specifies levels)
+  const inIds = new Set(myParts.map(p => p.teamId));
+  const pool = (allTeams || teams).filter(t => {
+    if (inIds.has(t.id)) return false;
+    if (category.levels && !category.levels.includes(t.division)) return false;
+    return true;
+  }).sort((a, b) => (a.region || '').localeCompare(b.region || '') || a.name.localeCompare(b.name));
+
+  const handleRemove = (participationId, teamName) => {
+    const ok = window.confirm(lang === 'ar'
+      ? `إزالة "${teamName}" من جدول ${category.name}؟ ستُحذف نتائجه في هذه الفئة فقط.`
+      : `Remove "${teamName}" from ${category.name}? Only this category's scores will be removed.`);
+    if (ok) removeParticipation(participationId);
+  };
+
+  const handleAdd = () => {
+    if (!pickedTeamId) return;
+    addParticipation({ teamId: pickedTeamId, categoryId: category.id });
+    setPickedTeamId('');
+    setPickerOpen(false);
+  };
+
+  return (
+    <CollapsibleCard
+      title={<>👮 {tx('Manage Teams in this Category', 'إدارة فرق هذه الفئة')}</>}
+      badge={`${myRows.length} ${tx('team(s)', 'فريق')}`}
+      badgeColor="bg-brand-600"
+    >
+      <div className="p-4 space-y-3 bg-ink-50">
+        <p className="text-[11px] text-ink-500 leading-relaxed">
+          {tx(
+            'Add or remove teams here to update both the round-robin schedule and the bracket inputs. Removing a team also clears its scores in this category.',
+            'أضف أو أزل الفرق هنا لتحديث جدول الدوري ومدخلات الإقصائيات معاً. إزالة فريق يحذف نتائجه في هذه الفئة فقط.'
+          )}
+        </p>
+
+        {/* Current teams as chips */}
+        {myRows.length === 0 ? (
+          <p className="text-xs text-ink-400 italic">{tx('No teams yet.', 'لا توجد فرق بعد.')}</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {myRows.map(({ participationId, team }) => (
+              <span
+                key={participationId}
+                className="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-2.5 py-1 text-[11px] font-bold text-ink-700"
+              >
+                <span className="text-ink-400 font-mono text-[9px]">{team.region?.[0] || '—'}·{team.division}</span>
+                <span>{team.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemove(participationId, team.name)}
+                  className="ml-0.5 text-rose-500 hover:text-rose-700"
+                  aria-label={tx('Remove', 'إزالة')}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Add picker */}
+        <div className="pt-2 border-t border-ink-200">
+          {!pickerOpen ? (
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-700 bg-white border border-brand-200 hover:border-brand-400 px-3 py-1.5 rounded-lg"
+            >
+              <Plus size={12} /> {tx('Add team to this category', 'إضافة فريق إلى هذه الفئة')}
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <CustomSelect value={pickedTeamId} onChange={e => setPickedTeamId(e.target.value)}>
+                <option value="">{tx('— pick a team —', '— اختر فريقاً —')}</option>
+                {pool.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.region}/{t.division})
+                  </option>
+                ))}
+              </CustomSelect>
+              <button
+                type="button"
+                onClick={handleAdd}
+                disabled={!pickedTeamId}
+                className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg disabled:opacity-40"
+              >
+                <Plus size={12} /> {tx('Add', 'أضف')}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPickerOpen(false); setPickedTeamId(''); }}
+                className="text-[11px] font-bold text-ink-500 hover:text-ink-700 px-2 py-1.5"
+              >
+                {tx('Cancel', 'إلغاء')}
+              </button>
+              {pool.length === 0 && (
+                <p className="text-[11px] text-ink-400 italic">{tx('All eligible teams already added.', 'كل الفرق المؤهلة مُضافة مسبقاً.')}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </CollapsibleCard>
+  );
+}
+
+// ─── BracketEditorRow (admin manual matchup) ─────────────────────────────────
+// Inline editor for a single bracket match; lets admin pick teamA/teamB from
+// the category's teams. Returns null when not in edit mode.
+
+function BracketEditorRow({ match, teamPool, onSave, onCancel, lang }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const [aId, setAId] = useState(match.teamAId || '');
+  const [bId, setBId] = useState(match.teamBId || '');
+
+  const findTeam = (id) => teamPool.find(t => t.teamId === id || t.participationId === id);
+  const handleSave = () => {
+    const a = findTeam(aId);
+    const b = findTeam(bId);
+    onSave({
+      teamA: a?.teamName || '',
+      teamB: b?.teamName || '',
+      teamAId: a?.teamId || '',
+      teamBId: b?.teamId || '',
+    });
+  };
+
+  return (
+    <tr className="bg-saudi-50/50 border-y border-saudi-200">
+      <td colSpan={8} className="px-3 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-ink-500 mr-1">
+            {tx('Editing', 'تعديل')} {match.round} #{match.matchIndex + 1}:
+          </span>
+          <CustomSelect value={aId} onChange={e => setAId(e.target.value)}>
+            <option value="">{tx('— Team A —', '— الفريق أ —')}</option>
+            {teamPool.map(t => (
+              <option key={`a-${t.teamId}`} value={t.teamId}>{t.teamName} ({t.region}/{t.division})</option>
+            ))}
+          </CustomSelect>
+          <span className="text-[10px] font-black text-ink-400">vs</span>
+          <CustomSelect value={bId} onChange={e => setBId(e.target.value)}>
+            <option value="">{tx('— Team B —', '— الفريق ب —')}</option>
+            {teamPool.map(t => (
+              <option key={`b-${t.teamId}`} value={t.teamId}>{t.teamName} ({t.region}/{t.division})</option>
+            ))}
+          </CustomSelect>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="inline-flex items-center gap-1 text-[11px] font-black text-white bg-saudi-600 hover:bg-saudi-700 px-3 py-1.5 rounded-lg"
+          >
+            <Save size={12} /> {tx('Save', 'حفظ')}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-[11px] font-bold text-ink-500 hover:text-ink-700 px-2 py-1.5"
+          >
+            {tx('Cancel', 'إلغاء')}
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 // ─── SumoWorkflow ─────────────────────────────────────────────────────────────
 
-function SumoWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
+function SumoWorkflow({ category, participations, teams, allTeams, scores, setScores, group2Matches = [], lang, showToast, isAdmin = false, removeParticipation, addParticipation, updateBracketMatch }) {
   const [mode, setMode] = useState('bracket'); // 'bracket' | 'roundrobin'
   const [selectedMatchId, setSelectedMatchId] = useState(null);
+  const [editingMatchId, setEditingMatchId] = useState(null);
 
   const teamEntries = useMemo(() =>
     participations
@@ -1160,14 +1374,49 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
   if (mode === 'bracket') {
     return (
       <div className="space-y-4">
+        {isAdmin && removeParticipation && addParticipation && (
+          <CategoryRosterAdmin
+            category={category}
+            participations={participations}
+            teams={teams}
+            allTeams={allTeams}
+            removeParticipation={removeParticipation}
+            addParticipation={addParticipation}
+            lang={lang}
+          />
+        )}
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
-        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="orange" categoryLabel={category.name} />
+        <BracketView
+          matches={bracketRaw}
+          scores={scores}
+          onSelectMatch={setSelectedMatchId}
+          lang={lang}
+          accent="orange"
+          categoryLabel={category.name}
+          editable={isAdmin && !!updateBracketMatch}
+          editingMatchId={editingMatchId}
+          onRequestEdit={setEditingMatchId}
+          onSaveEdit={(id, patch) => { updateBracketMatch?.(id, patch); setEditingMatchId(null); }}
+          onCancelEdit={() => setEditingMatchId(null)}
+          teamPool={teamEntries}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      {isAdmin && removeParticipation && addParticipation && (
+        <CategoryRosterAdmin
+          category={category}
+          participations={participations}
+          teams={teams}
+          allTeams={allTeams}
+          removeParticipation={removeParticipation}
+          addParticipation={addParticipation}
+          lang={lang}
+        />
+      )}
       <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
       <RoundRobinBucketsView
         categoryLabel={category.name}
@@ -1185,9 +1434,10 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
 
 // ─── SoccerWorkflow ──────────────────────────────────────────────────────────
 
-function SoccerWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
+function SoccerWorkflow({ category, participations, teams, allTeams, scores, setScores, group2Matches = [], lang, showToast, isAdmin = false, removeParticipation, addParticipation, updateBracketMatch }) {
   const [mode, setMode] = useState('bracket');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
+  const [editingMatchId, setEditingMatchId] = useState(null);
 
   const teamEntries = useMemo(() =>
     participations
@@ -1296,14 +1546,49 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
   if (mode === 'bracket') {
     return (
       <div className="space-y-4">
+        {isAdmin && removeParticipation && addParticipation && (
+          <CategoryRosterAdmin
+            category={category}
+            participations={participations}
+            teams={teams}
+            allTeams={allTeams}
+            removeParticipation={removeParticipation}
+            addParticipation={addParticipation}
+            lang={lang}
+          />
+        )}
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
-        <BracketView matches={bracketRaw} scores={scores} onSelectMatch={setSelectedMatchId} lang={lang} accent="teal" categoryLabel={category.name} />
+        <BracketView
+          matches={bracketRaw}
+          scores={scores}
+          onSelectMatch={setSelectedMatchId}
+          lang={lang}
+          accent="teal"
+          categoryLabel={category.name}
+          editable={isAdmin && !!updateBracketMatch}
+          editingMatchId={editingMatchId}
+          onRequestEdit={setEditingMatchId}
+          onSaveEdit={(id, patch) => { updateBracketMatch?.(id, patch); setEditingMatchId(null); }}
+          onCancelEdit={() => setEditingMatchId(null)}
+          teamPool={teamEntries}
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      {isAdmin && removeParticipation && addParticipation && (
+        <CategoryRosterAdmin
+          category={category}
+          participations={participations}
+          teams={teams}
+          allTeams={allTeams}
+          removeParticipation={removeParticipation}
+          addParticipation={addParticipation}
+          lang={lang}
+        />
+      )}
       <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
       <div className="flex items-center justify-between px-1 text-xs text-ink-500 font-semibold">
         <span>{lang === 'ar' ? 'المباريات:' : 'Matches:'} {totalPlayed}/{totalMatches} {lang === 'ar' ? 'مكتملة' : 'played'}</span>
@@ -1401,8 +1686,9 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
 
 // ─── CompetingSystem ─────────────────────────────────────────────────────────
 
-export default function CompetingSystem({ categories, participations, teams, getTeamStatus, scores, setScores, currentUser, group2Matches, systemConfig, lang, showToast }) {
+export default function CompetingSystem({ categories, participations, teams, allTeams, getTeamStatus, scores, setScores, currentUser, group2Matches, systemConfig, lang, showToast, removeParticipation, addParticipation, updateBracketMatch }) {
   const isRef = currentUser?.role === 'ref';
+  const isAdmin = currentUser?.role === 'admin';
   // Allowed categories for refs: prefer `categories` array, fall back to legacy single `category`
   const refAllowedIds = isRef
     ? (currentUser?.categories ?? (currentUser?.category ? [currentUser.category] : []))
@@ -1503,10 +1789,10 @@ export default function CompetingSystem({ categories, participations, teams, get
               <Group1Workflow category={selectedCategory} participations={participations} teams={teams} getTeamStatus={getTeamStatus} scores={scores} setScores={setScores} systemConfig={systemConfig} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_sumo' && (
-              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
+              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} allTeams={allTeams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} isAdmin={isAdmin} removeParticipation={removeParticipation} addParticipation={addParticipation} updateBracketMatch={updateBracketMatch} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_soccer' && (
-              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
+              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} allTeams={allTeams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} isAdmin={isAdmin} removeParticipation={removeParticipation} addParticipation={addParticipation} updateBracketMatch={updateBracketMatch} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id !== 'c2_sumo' && selectedCategory.id !== 'c2_soccer' && (
               <Group2Workflow category={selectedCategory} matches={group2Matches.filter(m => m.categoryId === selectedCategory.id)} scores={scores} setScores={setScores} lang={lang} showToast={showToast} />
