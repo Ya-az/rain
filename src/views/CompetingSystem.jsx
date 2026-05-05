@@ -917,53 +917,95 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange' }) {
   }, [matches, scores]);
 
   if (rows.length === 0) return null;
-  const accentChip = accent === 'teal'
-    ? 'bg-teal-50 border-teal-200 text-teal-700'
-    : 'bg-saudi-50 border-saudi-200 text-saudi-700';
+  const accentChipSolid = accent === 'teal'
+    ? 'bg-teal-600 text-white'
+    : 'bg-saudi-500 text-white';
+  const accentSoft = accent === 'teal'
+    ? 'bg-teal-50 text-teal-700 border-teal-200'
+    : 'bg-saudi-50 text-saudi-700 border-saudi-200';
+  const rankBadge = (i) => {
+    if (i === 0) return { label: '🥇', cls: 'bg-yellow-400 text-yellow-900' };
+    if (i === 1) return { label: '🥈', cls: 'bg-ink-200 text-ink-700' };
+    if (i === 2) return { label: '🥉', cls: 'bg-orange-300 text-orange-900' };
+    return { label: `${i + 1}`, cls: 'bg-ink-100 text-ink-600' };
+  };
 
   return (
     <div className="mt-3 rounded-xl border border-ink-200 bg-white overflow-hidden shadow-sm">
-      <div className="px-3 py-2 bg-gradient-to-r from-navy-700 to-navy-500 text-white flex items-center justify-between">
-        <h5 className="text-[11px] font-black uppercase tracking-widest">
-          🏅 {tx('Standings — Best Teams', 'الترتيب — أفضل الفرق')}
+      <div className="px-3 py-2.5 bg-gradient-to-r from-navy-700 to-navy-500 text-white flex items-center justify-between gap-2">
+        <h5 className="text-[11px] sm:text-xs font-black uppercase tracking-widest flex items-center gap-1.5">
+          🏅 {tx('Standings', 'الترتيب')}
         </h5>
-        <span className="text-[10px] font-bold text-white/60">{tx('Sorted by points', 'مرتبة حسب النقاط')}</span>
+        <span className="text-[9px] sm:text-[10px] font-bold text-white/60 truncate">{tx('Best teams by points', 'الأفضل حسب النقاط')}</span>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-[520px] w-full text-xs">
+
+      {/* Mobile view: compact cards */}
+      <ul className="sm:hidden divide-y divide-ink-100">
+        {rows.map((r, i) => {
+          const badge = rankBadge(i);
+          return (
+            <li key={r.teamId} className={`px-3 py-2.5 flex items-center gap-2.5 ${i < 3 ? 'bg-saudi-50/30' : ''}`}>
+              <span className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${badge.cls}`}>
+                {badge.label}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-ink-800 truncate">{r.teamName}</p>
+                <p className="text-[10px] font-semibold text-ink-500 mt-0.5">
+                  <span className="text-saudi-700">{r.wins}{tx('W', 'ف')}</span>
+                  <span className="text-ink-400"> · </span>
+                  <span>{r.draws}{tx('D', 'ت')}</span>
+                  <span className="text-ink-400"> · </span>
+                  <span className="text-rose-600">{r.losses}{tx('L', 'خ')}</span>
+                  <span className="text-ink-300 mx-1">|</span>
+                  <span>{tx('GD', 'الفارق')} {r.gd > 0 ? `+${r.gd}` : r.gd}</span>
+                </p>
+              </div>
+              <span className={`flex-shrink-0 inline-flex flex-col items-center justify-center min-w-[44px] px-2 py-1 rounded-lg text-[10px] font-black uppercase ${accentChipSolid}`}>
+                <span className="text-base leading-none">{r.points}</span>
+                <span className="text-[8px] opacity-80 mt-0.5">{tx('pts', 'نقطة')}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Desktop view: table */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full text-xs">
           <thead className="bg-ink-50 text-ink-600">
             <tr className="text-left">
               <th className="px-3 py-2 font-black w-10 text-center">#</th>
               <th className="px-3 py-2 font-black">{tx('Team', 'الفريق')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('P', 'لعب')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('W', 'فوز')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('D', 'تعادل')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('L', 'خسارة')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('GF', 'له')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('GA', 'عليه')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('GD', 'الفارق')}</th>
-              <th className="px-2 py-2 font-black text-center">{tx('Pts', 'النقاط')}</th>
+              <th className="px-2 py-2 font-black text-center" title={tx('Played', 'لعب')}>{tx('P', 'لعب')}</th>
+              <th className="px-2 py-2 font-black text-center" title={tx('Wins', 'فوز')}>{tx('W', 'ف')}</th>
+              <th className="px-2 py-2 font-black text-center" title={tx('Draws', 'تعادل')}>{tx('D', 'ت')}</th>
+              <th className="px-2 py-2 font-black text-center" title={tx('Losses', 'خسارة')}>{tx('L', 'خ')}</th>
+              <th className="px-2 py-2 font-black text-center" title={tx('Goal difference', 'فارق الأهداف')}>{tx('GD', '±')}</th>
+              <th className="px-3 py-2 font-black text-center">{tx('Pts', 'النقاط')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-100">
-            {rows.map((r, i) => (
-              <tr key={r.teamId} className={i < 3 ? 'bg-saudi-50/40' : ''}>
-                <td className="px-3 py-2 text-center font-black">
-                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                </td>
-                <td className="px-3 py-2 font-bold text-ink-800 truncate max-w-[180px]">{r.teamName}</td>
-                <td className="px-2 py-2 text-center text-ink-600">{r.played}</td>
-                <td className="px-2 py-2 text-center text-saudi-700 font-black">{r.wins}</td>
-                <td className="px-2 py-2 text-center text-ink-600">{r.draws}</td>
-                <td className="px-2 py-2 text-center text-rose-600">{r.losses}</td>
-                <td className="px-2 py-2 text-center text-ink-600">{r.gf}</td>
-                <td className="px-2 py-2 text-center text-ink-600">{r.ga}</td>
-                <td className="px-2 py-2 text-center font-bold text-ink-700">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
-                <td className="px-2 py-2 text-center">
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-black ${accentChip}`}>{r.points}</span>
-                </td>
-              </tr>
-            ))}
+            {rows.map((r, i) => {
+              const badge = rankBadge(i);
+              return (
+                <tr key={r.teamId} className={`${i < 3 ? 'bg-saudi-50/30' : ''} hover:bg-ink-50/60`}>
+                  <td className="px-3 py-2 text-center">
+                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-black ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 font-bold text-ink-800 truncate max-w-[200px]">{r.teamName}</td>
+                  <td className="px-2 py-2 text-center text-ink-600">{r.played}</td>
+                  <td className="px-2 py-2 text-center text-saudi-700 font-black">{r.wins}</td>
+                  <td className="px-2 py-2 text-center text-ink-600">{r.draws}</td>
+                  <td className="px-2 py-2 text-center text-rose-600">{r.losses}</td>
+                  <td className="px-2 py-2 text-center font-bold text-ink-700">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
+                  <td className="px-3 py-2 text-center">
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-black ${accentSoft}`}>{r.points}</span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
