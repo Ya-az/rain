@@ -621,10 +621,18 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
   const customGroupAddPool = (g) => (allTeams || teams).filter(tm => !g.teamIds.includes(tm.id));
 
   if (isFastBot) {
-    const esMsRows = visibleFastBotRows.filter(row => ['ES', 'MS'].includes(row.division));
-    const hsUsRows = visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division));
+    // Sort: best (lowest) time first; teams with no score go to the bottom.
+    // Tie-break alphabetically by team name.
+    const sortFastBotRows = (rows) => [...rows].sort((a, b) => {
+      const aVal = a.bestOfficialScore == null ? Infinity : Number(a.bestOfficialScore);
+      const bVal = b.bestOfficialScore == null ? Infinity : Number(b.bestOfficialScore);
+      if (aVal !== bVal) return aVal - bVal;
+      return (a.teamName || '').localeCompare(b.teamName || '');
+    });
+    const esMsRows = sortFastBotRows(visibleFastBotRows.filter(row => ['ES', 'MS'].includes(row.division)));
+    const hsUsRows = sortFastBotRows(visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division)));
     const customGroupCards = customGroups.map(g => {
-      const rows = visibleFastBotRows.filter(row => g.teamIds.includes(row.teamId));
+      const rows = sortFastBotRows(visibleFastBotRows.filter(row => g.teamIds.includes(row.teamId)));
       // Decide which slot keys to use — if all rows are HS/US use that schedule.
       const slotKeys = rows.length > 0 && rows.every(r => ['HS','US'].includes(r.division)) ? hsUsSlotKeys : esMsSlotKeys;
       return { id: g.id, name: g.name, rows, slotKeys };
@@ -872,6 +880,97 @@ function buildTimeMap(matchesByRegion, regions) {
   return map;
 }
 
+function RoundRobinStandings({ matches, scores, lang, accent = 'orange' }) {
+  const tx = (en, ar) => (lang === 'ar' ? ar : en);
+  const rows = useMemo(() => {
+    const stats = new Map();
+    const ensure = (id, name) => {
+      if (!id) return null;
+      if (!stats.has(id)) {
+        stats.set(id, { teamId: id, teamName: name || id, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0 });
+      }
+      const row = stats.get(id);
+      if (!row.teamName && name) row.teamName = name;
+      return row;
+    };
+    matches.forEach(m => {
+      const sc = scores.find(s => s.pId === m.id && s.status === 'VALID');
+      const a = ensure(m.teamAId, m.teamA);
+      const b = ensure(m.teamBId, m.teamB);
+      if (!sc || !a || !b) return;
+      const parts = String(sc.score || '').split('-').map(p => parseInt(p.trim(), 10));
+      const sa = Number.isFinite(parts[0]) ? parts[0] : 0;
+      const sb = Number.isFinite(parts[1]) ? parts[1] : 0;
+      a.played += 1; b.played += 1;
+      a.gf += sa; a.ga += sb; b.gf += sb; b.ga += sa;
+      if (sa > sb) { a.wins += 1; b.losses += 1; }
+      else if (sa < sb) { b.wins += 1; a.losses += 1; }
+      else { a.draws += 1; b.draws += 1; }
+    });
+    return [...stats.values()]
+      .map(r => ({ ...r, points: r.wins * 3 + r.draws, gd: r.gf - r.ga }))
+      .sort((x, y) =>
+        y.points - x.points
+        || y.gd - x.gd
+        || y.gf - x.gf
+        || (x.teamName || '').localeCompare(y.teamName || ''));
+  }, [matches, scores]);
+
+  if (rows.length === 0) return null;
+  const accentChip = accent === 'teal'
+    ? 'bg-teal-50 border-teal-200 text-teal-700'
+    : 'bg-saudi-50 border-saudi-200 text-saudi-700';
+
+  return (
+    <div className="mt-3 rounded-xl border border-ink-200 bg-white overflow-hidden shadow-sm">
+      <div className="px-3 py-2 bg-gradient-to-r from-navy-700 to-navy-500 text-white flex items-center justify-between">
+        <h5 className="text-[11px] font-black uppercase tracking-widest">
+          🏅 {tx('Standings — Best Teams', 'الترتيب — أفضل الفرق')}
+        </h5>
+        <span className="text-[10px] font-bold text-white/60">{tx('Sorted by points', 'مرتبة حسب النقاط')}</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-[520px] w-full text-xs">
+          <thead className="bg-ink-50 text-ink-600">
+            <tr className="text-left">
+              <th className="px-3 py-2 font-black w-10 text-center">#</th>
+              <th className="px-3 py-2 font-black">{tx('Team', 'الفريق')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('P', 'لعب')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('W', 'فوز')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('D', 'تعادل')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('L', 'خسارة')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('GF', 'له')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('GA', 'عليه')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('GD', 'الفارق')}</th>
+              <th className="px-2 py-2 font-black text-center">{tx('Pts', 'النقاط')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ink-100">
+            {rows.map((r, i) => (
+              <tr key={r.teamId} className={i < 3 ? 'bg-saudi-50/40' : ''}>
+                <td className="px-3 py-2 text-center font-black">
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                </td>
+                <td className="px-3 py-2 font-bold text-ink-800 truncate max-w-[180px]">{r.teamName}</td>
+                <td className="px-2 py-2 text-center text-ink-600">{r.played}</td>
+                <td className="px-2 py-2 text-center text-saudi-700 font-black">{r.wins}</td>
+                <td className="px-2 py-2 text-center text-ink-600">{r.draws}</td>
+                <td className="px-2 py-2 text-center text-rose-600">{r.losses}</td>
+                <td className="px-2 py-2 text-center text-ink-600">{r.gf}</td>
+                <td className="px-2 py-2 text-center text-ink-600">{r.ga}</td>
+                <td className="px-2 py-2 text-center font-bold text-ink-700">{r.gd > 0 ? `+${r.gd}` : r.gd}</td>
+                <td className="px-2 py-2 text-center">
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-black ${accentChip}`}>{r.points}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const accentChip = accent === 'teal'
@@ -959,6 +1058,9 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                     })}
                   </tbody>
                 </table>
+                <div className="px-3 pb-3 pt-1 bg-white">
+                  <RoundRobinStandings matches={allBucketMatches} scores={scores} lang={lang} accent={accent} />
+                </div>
               </div>
             )}
           </CollapsibleCard>
