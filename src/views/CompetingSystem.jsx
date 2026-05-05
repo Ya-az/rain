@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
-import { CheckCircle2, Search } from 'lucide-react';
+import { CheckCircle2, Search, Camera } from 'lucide-react';
+import QrScannerModal from '../components/ui/QrScannerModal';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import { t } from '../constants/translations';
 import { genId } from '../utils/ids';
@@ -379,6 +380,29 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const [activeGroup1Slot, setActiveGroup1Slot] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanError, setScanError] = useState('');
+
+  // Resolve a scanned QR (team.id or participation.id) → jump straight into
+  // that team's scoring detail view.
+  const handleScan = (raw) => {
+    setScannerOpen(false);
+    const text = String(raw || '').trim();
+    if (!text) return;
+    // Match by team.id first, then participation.id
+    const partByTeam = activeParticipations.find(p => p.teamId === text);
+    const partById = activeParticipations.find(p => p.id === text);
+    const target = partByTeam || partById;
+    if (!target) {
+      const msg = lang === 'ar' ? 'لم يتم العثور على فريق مطابق في هذه الفئة.' : 'No matching team in this category.';
+      setScanError(msg);
+      setTimeout(() => setScanError(''), 4000);
+      if (showToast) showToast(msg, 'error');
+      return;
+    }
+    if (isFastBot) handleOpenFastBotRow({ participationId: target.id });
+    else handleOpenGroup1Row({ participationId: target.id });
+  };
 
   const activeSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'es_ms', category.id), [systemConfig, category.id]);
   const esMsSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'es_ms', category.id), [systemConfig, category.id]);
@@ -584,6 +608,14 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
             <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
           </div>
+          <button
+            type="button"
+            onClick={() => setScannerOpen(true)}
+            title={lang === 'ar' ? 'مسح QR' : 'Scan QR'}
+            className="shrink-0 h-12 w-12 flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 text-white shadow-md press-effect"
+          >
+            <Camera size={18} />
+          </button>
           <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
             <option value="">{t(lang, 'allLevelsOption')}</option>
             {category.levels.map(l => <option key={l} value={l}>{l}</option>)}
@@ -628,6 +660,12 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
             )}
           </div>
         )}
+        <QrScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleScan} lang={lang} />
+        {scanError && (
+          <div className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold shadow-2xl animate-fade-in">
+            {scanError}
+          </div>
+        )}
       </div>
     );
   }
@@ -643,6 +681,14 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
           <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
         </div>
+        <button
+          type="button"
+          onClick={() => setScannerOpen(true)}
+          title={lang === 'ar' ? 'مسح QR' : 'Scan QR'}
+          className="shrink-0 h-12 w-12 flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 text-white shadow-md press-effect"
+        >
+          <Camera size={18} />
+        </button>
         <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
           <option value="">{t(lang, 'allLevelsOption')}</option>
           {category.levels.map(l => <option key={l} value={l}>{l}</option>)}
@@ -678,6 +724,12 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
           >
             <FastBotScheduleTable title="" rows={hsUsGroup1Rows} onSelectRow={handleOpenGroup1Row} lang={lang} showHeader={false} scoreFormatter={formatGroup1Score} activeSlotKeys={hsUsSlotKeys} />
           </CollapsibleCard>
+        </div>
+      )}
+      <QrScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleScan} lang={lang} />
+      {scanError && (
+        <div className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold shadow-2xl animate-fade-in">
+          {scanError}
         </div>
       )}
     </div>

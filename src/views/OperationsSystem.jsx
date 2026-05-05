@@ -9,6 +9,7 @@ import { parseExcelFile, downloadTemplate } from '../utils/excelImport';
 import { exportResultsToExcel } from '../utils/exportResults';
 import { printTeamQrSheet } from '../utils/printQrSheet';
 import { exportBackupJson, importBackupJson } from '../utils/backup';
+import AuditLogViewer from '../components/audit/AuditLogViewer';
 
 // ─── RosterMobileCard ─────────────────────────────────────────────────────── 
 
@@ -453,6 +454,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
   const pendingScores = scores.filter(s => s.status === 'PENDING');
   const [rosterSearch, setRosterSearch] = useState('');
   const [usersOpen, setUsersOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   // ─ Excel import state
@@ -1042,7 +1044,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       </CollapsibleCard>
 
       {/* Bottom utilities grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -1056,6 +1058,20 @@ export default function OperationsSystem({ scores, setScores, teams, participati
           <p className="text-xs text-ink-500 mb-4">{t(lang, 'userMgmtDesc')}</p>
           <button onClick={() => setUsersOpen(true)} className="w-full border-2 border-dashed border-brand-300 text-brand-700 font-bold py-3 rounded-xl hover:bg-brand-50 text-sm transition-colors press-effect">
             👥 {lang === 'ar' ? 'إدارة الموظفين والحكام' : 'Manage Staff & Referees'}
+          </button>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
+                <Activity size={18} className="text-amber-600" />
+              </div>
+              <h3 className="font-bold text-ink-800 text-sm truncate">{lang === 'ar' ? 'سجل التدقيق' : 'Audit Log'}</h3>
+            </div>
+          </div>
+          <p className="text-xs text-ink-500 mb-4">{lang === 'ar' ? 'تتبّع كل عملية تسجيل/تعديل/حذف للنتائج والمستخدمين مع المُنفّذ والوقت.' : 'Track every score, user, and admin action with who-did-what timestamps.'}</p>
+          <button onClick={() => setAuditOpen(true)} className="w-full border-2 border-dashed border-amber-300 text-amber-700 font-bold py-3 rounded-xl hover:bg-amber-50 text-sm transition-colors press-effect">
+            📜 {lang === 'ar' ? 'فتح السجل' : 'Open Audit Log'}
           </button>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
@@ -1094,6 +1110,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
           onClose={() => setUsersOpen(false)}
         />
       )}
+      <AuditLogViewer open={auditOpen} onClose={() => setAuditOpen(false)} lang={lang} currentUser={currentUser} />
     </div>
   );
 }

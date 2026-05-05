@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LogOut, Globe } from 'lucide-react';
 import { t } from '../../constants/translations';
+import ConnectionBadge from './ConnectionBadge';
 
 const REGION_DOTS = {
   Western: 'bg-brand-400',
@@ -68,6 +69,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
 
             {/* Right: language toggle + user chip */}
             <div className="flex items-center gap-1.5 shrink-0">
+              <ConnectionBadge lang={lang} />
               {/* Language toggle */}
               <button
                 onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')}

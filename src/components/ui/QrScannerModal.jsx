@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, Camera, AlertCircle } from 'lucide-react';
+import { X, Camera, AlertCircle, Image as ImageIcon } from 'lucide-react';
 
 /**
  * Camera-based QR scanner modal. Lazy-loads html5-qrcode so the parser is
@@ -14,6 +14,7 @@ import { X, Camera, AlertCircle } from 'lucide-react';
 export default function QrScannerModal({ open, onScan, onClose, lang = 'en' }) {
   const containerRef = useRef(null);
   const scannerRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [error, setError] = useState('');
   const [starting, setStarting] = useState(true);
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
@@ -133,6 +134,40 @@ export default function QrScannerModal({ open, onScan, onClose, lang = 'en' }) {
               )}
             </>
           )}
+          {/* Fallback: scan from a saved photo when camera is unavailable */}
+          <div className="mt-3 pt-3 border-t border-ink-100">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                setError('');
+                try {
+                  const { Html5Qrcode } = await import('html5-qrcode');
+                  // Stop the camera scanner first so the library can re-use the element.
+                  await safeStop(scannerRef.current);
+                  const tmp = new Html5Qrcode('qr-scanner-region', false);
+                  const result = await tmp.scanFile(file, /* showImage */ false);
+                  try { tmp.clear(); } catch { /* ignore */ }
+                  onScan?.(result);
+                } catch (err) {
+                  setError(tx(`No QR code found in image. ${err?.message || ''}`,
+                    `لم يتم العثور على رمز QR في الصورة. ${err?.message || ''}`));
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-ink-300 text-ink-600 hover:bg-ink-50 hover:text-brand-700 hover:border-brand-300 text-sm font-bold transition-colors"
+            >
+              <ImageIcon size={15} /> {tx('Scan from saved photo', 'مسح من صورة محفوظة')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

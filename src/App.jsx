@@ -17,6 +17,7 @@ import { hashPassword, verifyPassword, looksHashed, generateSalt } from './utils
 import { saveSession, loadSession, clearSession } from './utils/session';
 import { genId } from './utils/ids';
 import { logAudit } from './utils/audit';
+import { enqueueWrite } from './utils/retryQueue';
 import { notify, requestNotificationPermission } from './utils/notify';
 import {
   collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, getDoc,
@@ -197,14 +198,56 @@ export default function App() {
             next[next.indexOf(s)] = stamped;
           }
           const safe = sanitizeForFirestore(stamped);
-          setDoc(doc(db, 'scores', id), safe).catch(err => reportError('save score', err));
+          setDoc(doc(db, 'scores', id), safe).catch(err => {
+            // Queue for retry when network or transient errors occur.
+            enqueueWrite({ collection: 'scores', id, payload: safe });
+            reportError('save score', err);
+          });
+          // ─── Audit: classify the change ─────────────────────────────
+          const before = prevById.get(id);
+          const target = `scores/${id}`;
+          if (!before) {
+            logAudit({
+              user: currentUser, action: 'score.create', target,
+              details: { pId: stamped.pId, slotKey: stamped.slotKey, score: stamped.score, status: stamped.status },
+            });
+          } else {
+            const becamePending = before.status !== 'PENDING' && stamped.status === 'PENDING'
+              && stamped.proposedScore !== undefined;
+            const wasPending = before.status === 'PENDING' && stamped.status !== 'PENDING';
+            const scoreChanged = before.score !== stamped.score;
+            if (becamePending) {
+              logAudit({
+                user: currentUser, action: 'score.edit_request', target,
+                details: { pId: stamped.pId, slotKey: stamped.slotKey, from: before.score, to: stamped.proposedScore },
+              });
+            } else if (wasPending && scoreChanged) {
+              logAudit({
+                user: currentUser, action: 'score.approve', target,
+                details: { pId: stamped.pId, slotKey: stamped.slotKey, from: before.score, to: stamped.score },
+              });
+            } else if (wasPending && !scoreChanged) {
+              logAudit({
+                user: currentUser, action: 'score.reject', target,
+                details: { pId: stamped.pId, slotKey: stamped.slotKey, score: stamped.score, rejectedProposal: before.proposedScore },
+              });
+            } else if (scoreChanged) {
+              logAudit({
+                user: currentUser, action: 'score.update', target,
+                details: { pId: stamped.pId, slotKey: stamped.slotKey, from: before.score, to: stamped.score },
+              });
+            }
+          }
         }
       });
       // Delete removed
-      prevById.forEach((_, id) => {
+      prevById.forEach((before, id) => {
         if (!nextById.has(id)) {
           deleteDoc(doc(db, 'scores', id)).catch(err => reportError('remove score', err));
-          logAudit({ user: currentUser, action: 'score.delete', target: `scores/${id}` });
+          logAudit({
+            user: currentUser, action: 'score.delete', target: `scores/${id}`,
+            details: { pId: before?.pId, slotKey: before?.slotKey, score: before?.score },
+          });
         }
       });
       return next;
