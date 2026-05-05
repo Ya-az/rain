@@ -82,20 +82,20 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
   return (
     <div className="rounded-2xl border border-ink-200 overflow-hidden bg-white shadow-sm">
       {(showHeader || editable || canAdd) && (
-        <div className="px-4 py-3 border-b border-ink-100 flex items-center justify-between gap-3 bg-ink-50/70">
+        <div className="px-4 py-2.5 border-b border-ink-100 flex items-center justify-between gap-3 bg-white">
           {showHeader ? (
-            <h4 className="font-bold text-ink-800 text-sm">{title}</h4>
+            <h4 className="font-semibold text-ink-800 text-sm">{title}</h4>
           ) : <span />}
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">{rows.length} {t(lang, 'teamLabel')}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-ink-400">{rows.length} {t(lang, 'teamLabel')}</span>
             {editable && (
               <button
                 type="button"
                 onClick={() => setEditMode(m => !m)}
-                className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md border transition-colors ${
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-colors ${
                   editMode
-                    ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100'
-                    : 'bg-white border-brand-300 text-brand-700 hover:bg-brand-50'
+                    ? 'bg-brand-600 border-brand-600 text-white hover:bg-brand-700'
+                    : 'bg-white border-ink-200 text-ink-600 hover:bg-ink-50 hover:text-ink-800'
                 }`}
               >
                 <Pencil size={11} /> {editMode ? tx('Done', 'انتهيت') : tx('Edit', 'تعديل')}
@@ -105,24 +105,24 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
               <button
                 type="button"
                 onClick={() => { setAddOpen(o => !o); setPickedAddId(''); }}
-                className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-md border transition-colors ${
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-colors ${
                   addOpen
-                    ? 'bg-teal-50 border-teal-300 text-teal-700 hover:bg-teal-100'
-                    : 'bg-white border-teal-300 text-teal-700 hover:bg-teal-50'
+                    ? 'bg-brand-600 border-brand-600 text-white hover:bg-brand-700'
+                    : 'bg-white border-ink-200 text-ink-600 hover:bg-ink-50 hover:text-ink-800'
                 }`}
               >
-                <Plus size={11} /> {tx('Add Team', 'اضف فريق')}
+                <Plus size={11} /> {tx('Add', 'اضف')}
               </button>
             )}
           </div>
         </div>
       )}
       {canAdd && addOpen && (
-        <div className="px-4 py-3 border-b border-teal-100 bg-teal-50/40 flex flex-wrap items-center gap-2">
+        <div className="px-4 py-2.5 border-b border-ink-100 bg-ink-50/50 flex flex-wrap items-center gap-2">
           <select
             value={pickedAddId}
             onChange={(e) => setPickedAddId(e.target.value)}
-            className="flex-1 min-w-[200px] text-xs px-2 py-1.5 rounded-md border border-ink-300 bg-white"
+            className="flex-1 min-w-[200px] text-xs px-2.5 py-1.5 rounded-md border border-ink-200 bg-white focus:outline-none focus:border-brand-500"
           >
             <option value="">{tx('Select a team…', 'اختر فريق…')}</option>
             {addPool.map(tm => (
@@ -133,19 +133,19 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
             type="button"
             disabled={!pickedAddId}
             onClick={() => { if (pickedAddId) { onAddTeam(pickedAddId); setPickedAddId(''); setAddOpen(false); } }}
-            className="inline-flex items-center gap-1 text-[11px] font-black px-3 py-1.5 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Plus size={12} /> {tx('Add', 'اضف')}
+            {tx('Add', 'اضف')}
           </button>
           <button
             type="button"
             onClick={() => { setAddOpen(false); setPickedAddId(''); }}
-            className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-md bg-white border border-ink-300 text-ink-600 hover:bg-ink-50"
+            className="inline-flex items-center text-[11px] font-medium px-3 py-1.5 rounded-md text-ink-500 hover:text-ink-800 hover:bg-ink-100"
           >
             {tx('Cancel', 'إلغاء')}
           </button>
           {addPool.length === 0 && (
-            <span className="text-[10px] font-bold text-ink-400">{tx('No more teams available', 'لا توجد فرق متاحة')}</span>
+            <span className="text-[11px] font-medium text-ink-400">{tx('No more teams available', 'لا توجد فرق متاحة')}</span>
           )}
         </div>
       )}
@@ -183,7 +183,7 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                 }}
                 className={`transition-colors focus:outline-none ${
                   showActions
-                    ? 'bg-rose-50/30 hover:bg-rose-50/60'
+                    ? 'bg-ink-50/40 hover:bg-ink-50/80'
                     : 'cursor-pointer hover:bg-brand-50/60 focus:bg-brand-50'
                 }`}
               >
@@ -223,7 +223,7 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                           : `Remove "${row.teamName}" from this table?`);
                         if (ok) onRemoveRow?.(row);
                       }}
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-md text-ink-400 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-200 transition-colors"
                       aria-label={tx('Remove', 'حذف')}
                     >
                       <X size={13} />
@@ -1216,7 +1216,7 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); onRequestEdit?.(m.id); }}
-                                  className="inline-flex items-center gap-1 text-[10px] font-black text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2 py-1 rounded-md"
+                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-600 hover:text-ink-900 bg-white hover:bg-ink-50 border border-ink-200 px-2 py-1 rounded-md transition-colors"
                                 >
                                   <Pencil size={10} /> {tx('Edit', 'تعديل')}
                                 </button>
@@ -1320,7 +1320,7 @@ function CategoryRosterAdmin({ category, participations, teams, allTeams, remove
                 <button
                   type="button"
                   onClick={() => handleRemove(participationId, team.name)}
-                  className="ml-0.5 text-rose-500 hover:text-rose-700"
+                  className="ml-0.5 text-ink-300 hover:text-rose-600 transition-colors"
                   aria-label={tx('Remove', 'إزالة')}
                 >
                   <X size={11} />
@@ -1487,7 +1487,7 @@ function CategoryRosterAdmin({ category, participations, teams, allTeams, remove
                         const ok = window.confirm(lang === 'ar' ? `حذف الجدول "${g.name}"؟` : `Delete table "${g.name}"?`);
                         if (ok) deleteCustomGroup(g.id);
                       }}
-                      className="inline-flex items-center gap-0.5 text-[10px] font-black text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded"
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold text-ink-500 hover:text-rose-600 px-1.5 py-0.5 rounded transition-colors"
                     >
                       <X size={10} /> {tx('Delete', 'حذف')}
                     </button>
@@ -1507,7 +1507,7 @@ function CategoryRosterAdmin({ category, participations, teams, allTeams, remove
                         <button
                           type="button"
                           onClick={() => updateCustomGroup(g.id, { teamIds: g.teamIds.filter(id => id !== team.id) })}
-                          className="text-rose-500 hover:text-rose-700"
+                          className="text-ink-300 hover:text-rose-600 transition-colors"
                           aria-label={tx('Remove from table', 'إزالة من الجدول')}
                         >
                           <X size={10} />
