@@ -972,10 +972,13 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange', scoring
                 {badge.label}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-ink-800 truncate flex items-center gap-1.5">
+                <p className="text-sm font-black text-ink-800 truncate flex items-center gap-2">
                   <span className="truncate">{r.teamName}</span>
                   {!isSumo && (
-                    <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{r.gf}</span>
+                    <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-[10px] font-black px-2 py-0.5 shadow-sm" title={tx('Total goals scored', 'إجمالي الأهداف المسجلة')}>
+                      <span aria-hidden>⚽</span>
+                      <span>{r.gf}</span>
+                    </span>
                   )}
                 </p>
                 <p className="text-[10px] font-semibold text-ink-500 mt-0.5">
@@ -1022,11 +1025,14 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange', scoring
                       {badge.label}
                     </span>
                   </td>
-                  <td className="px-3 py-2 font-bold text-ink-800 max-w-[220px]">
-                    <span className="inline-flex items-center gap-1.5">
+                  <td className="px-3 py-2 font-bold text-ink-800 max-w-[240px]">
+                    <span className="inline-flex items-center gap-2 min-w-0">
                       <span className="truncate">{r.teamName}</span>
                       {!isSumo && (
-                        <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{r.gf}</span>
+                        <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 text-white text-[10px] font-black px-2 py-0.5 shadow-sm" title={tx('Total goals scored', 'إجمالي الأهداف المسجلة')}>
+                          <span aria-hidden>⚽</span>
+                          <span>{r.gf}</span>
+                        </span>
                       )}
                     </span>
                   </td>
@@ -1048,12 +1054,29 @@ function RoundRobinStandings({ matches, scores, lang, accent = 'orange', scoring
   );
 }
 
-function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets, scoringMode = 'soccer', showGoalsBesideTeams = false }) {
+function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets, scoringMode = 'soccer' }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const accentChip = accent === 'teal'
     ? 'bg-teal-50 border-teal-200 text-teal-700'
     : 'bg-saudi-50 border-saudi-200 text-saudi-700';
   const accentBadge = accent === 'teal' ? 'bg-teal-600' : 'bg-saudi-500';
+
+  // For soccer: convert raw goals score into league points display (3-1-0).
+  const formatScoreBadge = (raw) => {
+    const s = String(raw || '').trim();
+    if (scoringMode !== 'soccer') return s;
+    if (/forfeit/i.test(s)) {
+      if (/^w\s*-\s*l/i.test(s)) return `3 - 0 (${tx('Forfeit', 'انسحاب')})`;
+      if (/^l\s*-\s*w/i.test(s)) return `0 - 3 (${tx('Forfeit', 'انسحاب')})`;
+      return `0 - 0 (${tx('Forfeit', 'انسحاب')})`;
+    }
+    const parts = s.split('-').map(p => parseInt(p.trim(), 10));
+    const a = Number.isFinite(parts[0]) ? parts[0] : 0;
+    const b = Number.isFinite(parts[1]) ? parts[1] : 0;
+    if (a > b) return '3 - 0';
+    if (b > a) return '0 - 3';
+    return '1 - 1';
+  };
 
   return (
     <div className="space-y-4">
@@ -1099,13 +1122,6 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                           </tr>
                           {list.map((m, i) => {
                             const sc = scores.find(s => s.pId === m.id && s.status === 'VALID');
-                            let goalsA = null;
-                            let goalsB = null;
-                            if (showGoalsBesideTeams && sc) {
-                              const parts = String(sc.score || '').split('-').map(p => parseInt(p.trim(), 10));
-                              if (Number.isFinite(parts[0])) goalsA = parts[0];
-                              if (Number.isFinite(parts[1])) goalsB = parts[1];
-                            }
                             return (
                               <tr
                                 key={m.id}
@@ -1125,25 +1141,15 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores
                                   <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${accentChip}`}>{region}</span>
                                 </td>
                                 <td className="px-3 py-2.5 font-bold text-ink-700 max-w-[180px]">
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <span className="truncate">{m.teamA}</span>
-                                    {goalsA != null && (
-                                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{goalsA}</span>
-                                    )}
-                                  </span>
+                                  <span className="truncate">{m.teamA}</span>
                                 </td>
                                 <td className="px-2 py-2.5 text-center text-[10px] font-black text-ink-400">vs</td>
                                 <td className="px-3 py-2.5 font-bold text-ink-700 max-w-[180px]">
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <span className="truncate">{m.teamB}</span>
-                                    {goalsB != null && (
-                                      <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-md bg-teal-100 text-teal-800 text-[10px] font-black" title={tx('Goals', 'الأهداف')}>⚽{goalsB}</span>
-                                    )}
-                                  </span>
+                                  <span className="truncate">{m.teamB}</span>
                                 </td>
                                 <td className="px-3 py-2.5 text-center font-black">
                                   {sc ? (
-                                    <span className="inline-flex items-center rounded-full bg-saudi-50 border border-saudi-200 px-2.5 py-1 text-[10px] font-black text-saudi-700">{sc.score}</span>
+                                    <span className="inline-flex items-center rounded-full bg-saudi-50 border border-saudi-200 px-2.5 py-1 text-[10px] font-black text-saudi-700">{formatScoreBadge(sc.score)}</span>
                                   ) : (
                                     <span className="inline-flex items-center rounded-full bg-ink-50 border border-ink-200 px-2.5 py-1 text-[10px] font-bold text-ink-400">{tx('Pending', 'لم تُلعب')}</span>
                                   )}
@@ -2179,7 +2185,6 @@ function SoccerWorkflow({ category, participations, teams, allTeams, scores, set
         accent="teal"
         buckets={getRrBuckets(category.id)}
         scoringMode="soccer"
-        showGoalsBesideTeams
       />
     </div>
   );
