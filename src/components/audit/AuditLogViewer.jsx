@@ -12,7 +12,7 @@ import { X, Activity, Search, Download, Filter } from 'lucide-react';
 const ACTION_LABELS = {
   'score.create':        { en: 'Score Created',         ar: 'نتيجة جديدة',           color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
   'score.update':        { en: 'Score Updated',         ar: 'تعديل نتيجة',            color: 'text-sky-700 bg-sky-50 border-sky-200' },
-  'score.edit_request':  { en: 'Edit Requested',        ar: 'طلب تعديل',              color: 'text-amber-700 bg-amber-50 border-amber-200' },
+  'score.edit_request':  { en: 'Edit Requested',        ar: 'طلب تعديل',              color: 'text-saudi-700 bg-saudi-50 border-saudi-200' },
   'score.approve':       { en: 'Edit Approved',         ar: 'تمت الموافقة',           color: 'text-green-700 bg-green-50 border-green-200' },
   'score.reject':        { en: 'Edit Rejected',         ar: 'رُفض التعديل',           color: 'text-rose-700 bg-rose-50 border-rose-200' },
   'score.delete':        { en: 'Score Deleted',         ar: 'حذف نتيجة',              color: 'text-rose-700 bg-rose-50 border-rose-200' },

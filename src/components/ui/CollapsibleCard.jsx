@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
  * CollapsibleCard — collapsed by default, smooth expand animation.
  * Props: title, badge, badgeColor, headerClass, children
  */
-export default function CollapsibleCard({ title, badge, badgeColor = 'bg-ink-500', headerClass = 'bg-[#061a27]', children, defaultOpen = false }) {
+export default function CollapsibleCard({ title, badge, badgeColor = 'bg-ink-500', headerClass = 'bg-navy-700', children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (

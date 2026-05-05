@@ -91,14 +91,26 @@ export async function printTeamQrSheet({ teams, participations, categories, lang
 </body>
 </html>`;
 
-  const win = window.open('', '_blank');
+  // Use a Blob URL — far more reliable than document.write across modern browsers
+  // and avoids many popup-blocker edge cases when the new tab loads about:blank.
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank', 'noopener,noreferrer');
   if (!win) {
-    alert(tx('Pop-up blocked. Allow pop-ups and try again.', 'تم حظر النافذة المنبثقة. اسمح بها ثم أعد المحاولة.'));
-    return;
+    // Fallback: trigger a download so the user can open it manually
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `team-qr-sheets-${Date.now()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    alert(tx(
+      'Pop-up blocked — the QR sheet was downloaded instead. Open the file to print.',
+      'تم حظر النافذة المنبثقة — تم تنزيل ملف الرموز بدلاً من ذلك. افتح الملف للطباعة.'
+    ));
   }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  // Revoke after a delay so the new tab has time to load
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 function escapeHtml(s) {

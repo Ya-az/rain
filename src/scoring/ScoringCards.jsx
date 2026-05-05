@@ -21,7 +21,7 @@ function InspectionScoringTabs({ step, onChange, hasInspection, isPassed, lang =
         >
           🔍 {lang === 'ar' ? 'الفحص' : 'Inspection'}
           {hasInspection && (
-            <span className={`ms-1.5 inline-block w-2 h-2 rounded-full ${isPassed ? 'bg-saudi-500' : 'bg-amber-500'}`} />
+            <span className={`ms-1.5 inline-block w-2 h-2 rounded-full ${isPassed ? 'bg-saudi-500' : 'bg-saudi-500'}`} />
           )}
           <span className="ms-1 text-[9px] font-bold uppercase tracking-wider text-ink-400">
             {lang === 'ar' ? 'اختياري' : 'Optional'}
@@ -39,14 +39,14 @@ function InspectionScoringTabs({ step, onChange, hasInspection, isPassed, lang =
           🏆 {lang === 'ar' ? 'التسجيل' : 'Scoring'}
           {!hasInspection && (
             <span
-              className="ms-1.5 inline-block w-2 h-2 rounded-full bg-amber-500"
+              className="ms-1.5 inline-block w-2 h-2 rounded-full bg-saudi-500"
               title={lang === 'ar' ? 'لم يتم الفحص' : 'Inspection not completed'}
             />
           )}
         </button>
       </div>
       {step === 'scoring' && !hasInspection && (
-        <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 font-semibold">
+        <p className="mt-2 text-[11px] text-saudi-700 bg-saudi-50 border border-saudi-200 rounded-lg px-2.5 py-1.5 font-semibold">
           ⚠ {lang === 'ar' ? 'لم يتم تسجيل الفحص بعد (اختياري لكن مُستحسن قبل التسجيل).' : 'Inspection not recorded yet (optional but recommended before scoring).'}
         </p>
       )}
@@ -64,8 +64,8 @@ function FsmButton({ fsmState, onAction, showScore, lang = 'en' }) {
         fsmState === 'AWAITING_SUBMISSION'
           ? 'bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 shadow-lg shadow-brand-600/25'
           : fsmState === 'SUBMITTED'
-          ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 shadow-lg shadow-amber-500/25'
-          : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/20'
+          ? 'bg-gradient-to-r from-saudi-500 to-saudi-600 hover:from-saudi-400 hover:to-saudi-500 shadow-lg shadow-saudi-500/25'
+          : 'bg-gradient-to-r from-saudi-500 to-saudi-500 hover:from-saudi-400 hover:to-saudi-400 shadow-lg shadow-saudi-500/20'
       }`}
     >
       {fsmState === 'AWAITING_SUBMISSION' && <><CheckCircle2 size={16} /> {lang === 'ar' ? 'إرسال النتيجة' : 'Submit Score'}</>}
@@ -196,11 +196,11 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
             {/* Scoring card */}
             <button
               onClick={() => { setPhoto(null); setEditMode('scoring'); }}
-              className="w-full flex items-center justify-between p-4 bg-white border-2 border-ink-200 hover:border-amber-300 hover:bg-amber-50 rounded-xl transition-colors text-left"
+              className="w-full flex items-center justify-between p-4 bg-white border-2 border-ink-200 hover:border-saudi-300 hover:bg-saudi-50 rounded-xl transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                  <Edit3 size={18} className="text-amber-600" />
+                <div className="w-10 h-10 rounded-xl bg-saudi-100 flex items-center justify-center shrink-0">
+                  <Edit3 size={18} className="text-saudi-600" />
                 </div>
                 <div>
                   <p className="font-bold text-ink-800 text-sm">{lang === 'ar' ? 'التسجيل' : 'Scoring'}</p>
@@ -242,7 +242,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
               </button>
               <button
                 onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo: initialScoreObj?.rawInput?.photo || photo }); setFsmState('PENDING_ADMIN'); setEditMode(null); } }}
-                className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold rounded-xl text-sm transition-colors"
+                className="flex-1 py-3 bg-saudi-500 hover:bg-saudi-600 active:bg-saudi-700 text-white font-bold rounded-xl text-sm transition-colors"
               >
                 {lang === 'ar' ? 'إرسال تعديل الفحص' : 'Submit Inspection Edit'}
               </button>
@@ -342,7 +342,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
               <button
                 onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo }); setFsmState('PENDING_ADMIN'); setEditMode(null); } }}
                 disabled={!photo}
-                className="flex-1 py-3.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:bg-ink-200 disabled:text-ink-400 text-white font-bold rounded-xl text-sm transition-colors disabled:cursor-not-allowed"
+                className="flex-1 py-3.5 bg-saudi-500 hover:bg-saudi-600 active:bg-saudi-700 disabled:bg-ink-200 disabled:text-ink-400 text-white font-bold rounded-xl text-sm transition-colors disabled:cursor-not-allowed"
               >
                 {!photo ? (lang === 'ar' ? '📷 أضف صورة إثبات أولاً' : '📷 Add evidence photo first') : (lang === 'ar' ? 'إرسال التعديل للموافقة' : 'Submit Edit for Approval')}
               </button>
@@ -353,7 +353,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
           {fsmState === 'SUBMITTED' && showScore && (
             <button
               onClick={() => { setEditMode(null); setFsmState('EDIT_REQUESTED'); }}
-              className="w-full font-bold py-4 px-4 rounded-xl transition-colors text-white flex items-center justify-center gap-2 press-effect text-base bg-amber-600 hover:bg-amber-700"
+              className="w-full font-bold py-4 px-4 rounded-xl transition-colors text-white flex items-center justify-center gap-2 press-effect text-base bg-saudi-600 hover:bg-saudi-700"
             >
               <Edit3 size={16} /> {lang === 'ar' ? 'طلب تعديل' : 'Edit Requested'}
             </button>
@@ -484,7 +484,7 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
               <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl mb-4 text-sm space-y-1">
                 <div className="text-ink-600">{lang === 'ar' ? 'أساسي' : 'Base'}: {res.base} | {lang === 'ar' ? 'نقاط إضافية' : 'Bonus Checkpoints'}: {res.bonusCheckpoints} | {lang === 'ar' ? 'كرات إضافية' : 'Bonus Balls'}: {res.bonusBalls}</div>
                 <div className="font-black text-brand-800 text-xl">{lang === 'ar' ? 'النتيجة النهائية' : 'Final Score'}: {res.final}</div>
-                {!res.successfulBaseRun && data.bonusBallsDelivered > 0 && <div className="text-amber-600 text-xs font-bold">{lang === 'ar' ? 'تحذير: الكرات الإضافية تم تجاهلها — الجولة الأساسية غير مكتملة.' : 'Warning: Bonus balls ignored — base run not complete.'}</div>}
+                {!res.successfulBaseRun && data.bonusBallsDelivered > 0 && <div className="text-saudi-600 text-xs font-bold">{lang === 'ar' ? 'تحذير: الكرات الإضافية تم تجاهلها — الجولة الأساسية غير مكتملة.' : 'Warning: Bonus balls ignored — base run not complete.'}</div>}
                 {data.towerViolation && <div className="text-rose-600 text-xs font-bold">{lang === 'ar' ? 'تحذير: النتيجة محسوبة بـ400 (مخالفة البرج).' : 'Warning: Score capped at 400 (tower violation).'}</div>}
               </div>
             </>
@@ -679,9 +679,9 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
               both inspections and one passed while the other failed. Inspection is no
               longer required for scoring — this is just a convenience submit. */}
           {isForfeit && inspectionTouched && fsmState === 'AWAITING_SUBMISSION' && (
-            <div className="mt-3 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
-              <p className="text-xs font-black uppercase tracking-widest text-amber-600 mb-1">{lang === 'ar' ? 'فوز بالفحص (اختياري)' : 'Inspection Forfeit (optional)'}</p>
-              <p className="font-bold text-amber-900 text-sm mb-1">
+            <div className="mt-3 rounded-xl border-2 border-saudi-400 bg-saudi-50 p-4">
+              <p className="text-xs font-black uppercase tracking-widest text-saudi-600 mb-1">{lang === 'ar' ? 'فوز بالفحص (اختياري)' : 'Inspection Forfeit (optional)'}</p>
+              <p className="font-bold text-saudi-900 text-sm mb-1">
                 <span className="text-rose-600">{forfeitWinA ? match.teamB : match.teamA}</span> {lang === 'ar' ? 'رسب في الفحص.' : 'failed inspection.'}
               </p>
               <p className="font-black text-saudi-700 text-base mb-3">
@@ -689,7 +689,7 @@ export function SumoMatchCard({ title, match, categoryId, attemptNumber, initial
               </p>
               <button
                 onClick={handleForfeitSubmit}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all text-sm shadow shadow-amber-500/20"
+                className="w-full py-3 bg-gradient-to-r from-saudi-500 to-saudi-500 hover:from-saudi-400 hover:to-saudi-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all text-sm shadow shadow-saudi-500/20"
               >
                 {lang === 'ar' ? 'إرسال الفوز بالفحص' : 'Submit Forfeit Win'} — {forfeitWinner}
               </button>
@@ -830,7 +830,7 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
           >
             🔍 {lang === 'ar' ? 'الفحص' : 'Inspection'}
             {inspectionTouched && (
-              <span className={`ms-1.5 inline-block w-2 h-2 rounded-full ${isInspectionPassed ? 'bg-saudi-500' : 'bg-amber-500'}`} />
+              <span className={`ms-1.5 inline-block w-2 h-2 rounded-full ${isInspectionPassed ? 'bg-saudi-500' : 'bg-saudi-500'}`} />
             )}
             <span className="ms-1 text-[9px] font-bold uppercase tracking-wider text-ink-400">
               {lang === 'ar' ? 'اختياري' : 'Optional'}
@@ -1001,13 +1001,13 @@ function CardHeader({ title, inspPassed, matchReady, lang = 'en' }) {
 
 function PendingBanner({ lang = 'en' }) {
   return (
-    <div className="mb-3 p-3.5 bg-amber-50 text-amber-800 rounded-xl border border-amber-200 text-xs font-bold flex items-center gap-2.5">
-      <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-        <Lock size={14} className="text-amber-600" />
+    <div className="mb-3 p-3.5 bg-saudi-50 text-saudi-800 rounded-xl border border-saudi-200 text-xs font-bold flex items-center gap-2.5">
+      <div className="w-7 h-7 rounded-lg bg-saudi-100 flex items-center justify-center shrink-0">
+        <Lock size={14} className="text-saudi-600" />
       </div>
       <div>
         <p className="font-black">{lang === 'ar' ? 'بانتظار موافقة الإدارة' : 'Pending Admin Approval'}</p>
-        <p className="font-medium text-amber-600 mt-0.5">{lang === 'ar' ? 'الواجهة مقفلة حتى تتم المراجعة من قبل المسؤول.' : 'UI locked until reviewed by an administrator.'}</p>
+        <p className="font-medium text-saudi-600 mt-0.5">{lang === 'ar' ? 'الواجهة مقفلة حتى تتم المراجعة من قبل المسؤول.' : 'UI locked until reviewed by an administrator.'}</p>
       </div>
     </div>
   );

@@ -1,9 +1,7 @@
-import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
-import { CheckCircle2, Search, Camera } from 'lucide-react';
-import QrScannerModal from '../components/ui/QrScannerModal';
+import { useState, useEffect, useMemo, Fragment } from 'react';
+import { CheckCircle2, Search } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import { t } from '../constants/translations';
-import { genId } from '../utils/ids';
 import CollapsibleCard from '../components/ui/CollapsibleCard';
 import CustomSelect from '../components/ui/CustomSelect';
 import {
@@ -41,11 +39,13 @@ function slotGridClass(count) {
 }
 
 function FastBotScheduleCell({ slot, scoreFormatter = formatFastBotScore }) {
+  const { timeLabel } = getFastBotCellDisplay(slot);
   const scoreLabel = scoreFormatter(getFastBotScoreValue(slot?.scoreObj));
   const hasScore = scoreLabel !== '--';
 
   return (
     <div className="min-w-[72px] text-center">
+      <p className="font-mono text-[11px] text-ink-500">{timeLabel}</p>
       <p className={`text-xs font-black ${hasScore ? 'text-brand-700' : 'text-ink-300'}`}>{scoreLabel}</p>
     </div>
   );
@@ -61,7 +61,7 @@ function FastBotCheckInBadge({ status, lang }) {
   const badgeClassName = status === 'Fully Arrived'
     ? 'border-saudi-200 bg-saudi-50 text-saudi-700'
     : status === 'Partially Arrived'
-      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      ? 'border-saudi-200 bg-saudi-50 text-saudi-700'
       : 'border-rose-200 bg-rose-50 text-rose-700';
 
   return (
@@ -80,73 +80,14 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
           <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">{rows.length} {t(lang, 'teamLabel')}</span>
         </div>
       )}
-
-      {/* Mobile: card view (avoids horizontal table scroll on small screens) */}
-      <div className="sm:hidden divide-y divide-ink-100">
-        {rows.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-ink-400 font-medium">
-            {t(lang, 'fastbotNoTeamsForGroup')}
-          </div>
-        )}
-        {rows.map(row => (
-          <button
-            key={row.participationId}
-            type="button"
-            onClick={() => onSelectRow(row)}
-            className="w-full text-start p-3 active:bg-brand-50 transition-colors press-effect"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-bold text-ink-800 text-sm truncate">{row.teamName}</p>
-                  <FastBotCheckInBadge status={row.checkInStatus} lang={lang} />
-                </div>
-                <p className="font-mono text-[11px] text-ink-500 mt-0.5">
-                  #{row.participationId}
-                  <span className="ms-2 inline-flex items-center rounded-full bg-brand-50 border border-brand-200 px-2 py-0.5 text-[9px] font-black uppercase text-brand-700">{row.division}</span>
-                </p>
-              </div>
-              <div className="text-end shrink-0">
-                <p className="text-[9px] font-black uppercase tracking-wider text-ink-400">{t(lang, 'bestResult')}</p>
-                <p className={`text-base font-black tabular-nums ${row.bestOfficialScore !== null ? 'text-saudi-700' : 'text-ink-300'}`}>
-                  {scoreFormatter(row.bestOfficialScore)}
-                </p>
-              </div>
-            </div>
-            {activeSlotKeys.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {activeSlotKeys.map(slotKey => {
-                  const slot = row.slots[slotKey];
-                  const label = scoreFormatter(getFastBotScoreValue(slot?.scoreObj));
-                  const has = label !== '--';
-                  return (
-                    <span
-                      key={slotKey}
-                      className={`inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-black ${
-                        has ? 'border-brand-200 bg-brand-50 text-brand-700' : 'border-ink-200 bg-ink-50 text-ink-400'
-                      }`}
-                    >
-                      <span className="opacity-70">{slotKey}</span>
-                      <span className="tabular-nums">{label}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-            <p className="mt-1.5 text-[10px] text-brand-500 font-black uppercase tracking-wider">{t(lang, 'openFastBotTeam')} →</p>
-          </button>
-        ))}
-      </div>
-
-      {/* Desktop / tablet: table view */}
-      <div className="hidden sm:block overflow-x-auto -webkit-overflow-scrolling-touch">
+      <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
         <table className="min-w-[820px] sm:min-w-[1120px] w-full text-xs sm:text-sm">
-          <thead className="bg-[#061a27] text-white">
+          <thead className="bg-navy-700 text-white">
             <tr className="text-left">
-              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold sticky start-0 bg-[#061a27] z-10">{t(lang, 'teamName')}</th>
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamName')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'teamNumber')}</th>
               <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{t(lang, 'divisionLabel')}</th>
-              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{t(lang, 'bestResult')}</th>
+              <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap bg-saudi-600/20">{`Best (R1-R${activeSlotKeys.filter(k => k.startsWith('R')).length})`}</th>
               {activeSlotKeys.map(slotKey => <th key={slotKey} className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center whitespace-nowrap">{slotKey}</th>)}
             </tr>
           </thead>
@@ -169,9 +110,9 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                     onSelectRow(row);
                   }
                 }}
-                className="cursor-pointer transition-colors hover:bg-brand-50/60 focus:outline-none focus:bg-brand-50 group"
+                className="cursor-pointer transition-colors hover:bg-brand-50/60 focus:outline-none focus:bg-brand-50"
               >
-                <td className="px-3 py-3 sticky start-0 bg-white group-hover:bg-brand-50/60 group-focus:bg-brand-50 z-[5]">
+                <td className="px-3 py-3">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-bold text-ink-800">{row.teamName}</p>
@@ -184,7 +125,7 @@ function FastBotScheduleTable({ title, rows, onSelectRow, lang, showHeader = tru
                 <td className="px-3 py-3">
                   <span className="inline-flex items-center rounded-full bg-brand-50 border border-brand-200 px-2.5 py-1 text-[10px] font-black uppercase text-brand-700">{row.division}</span>
                 </td>
-                <td className="px-3 py-3 text-center">
+                <td className="px-3 py-3 text-center bg-saudi-50/40">
                   <span className={`text-sm font-black ${row.bestOfficialScore !== null ? 'text-saudi-700' : 'text-ink-300'}`}>
                     {scoreFormatter(row.bestOfficialScore)}
                   </span>
@@ -217,7 +158,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
         ← {t(lang, 'backToFastBotSchedule')}
       </button>
 
-      <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
+      <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-navy-700 to-navy-500 p-4 text-white shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-300">{t(lang, 'fastbotTeamSchedule')}</p>
@@ -238,7 +179,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
       <div className={`grid gap-2 sm:gap-3 ${slotGridClass(activeSlotKeys.length)}`}>
         {activeSlotKeys.map(slotKey => {
           const slot = row.slots[slotKey];
-          const scoreLabel = formatFastBotScore(getFastBotScoreValue(slot?.scoreObj));
+          const { timeLabel, scoreLabel } = getFastBotCellDisplay(slot);
           const isActive = slotKey === activeSlotKey;
 
           return (
@@ -252,6 +193,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
               }`}
             >
               <p className={`text-sm font-black ${isActive ? 'text-brand-700' : 'text-ink-700'}`}>{slotKey}</p>
+              <p className="font-mono text-[10px] sm:text-[11px] text-ink-500 mt-1">{timeLabel}</p>
               <p className={`text-xs font-black mt-1.5 sm:mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
             </button>
           );
@@ -260,7 +202,7 @@ function FastBotDetailView({ row, activeSlotKey, onSlotChange, onBack, onSaveSco
 
       <FastBotAttemptCard
         key={`${row.participationId}_${activeSlotKey}`}
-        title={`${activeSlotKey} • ${row.teamName}`}
+        title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
         categoryId="c1_fastbot"
         teamDivision={row.division}
         attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, categoryId)}
@@ -292,7 +234,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
         {t(lang, 'backToSchedule')}
       </button>
 
-      <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
+      <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-navy-700 to-navy-500 p-4 text-white shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-300">{category.name}</p>
@@ -314,6 +256,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
       <div className={`grid gap-2 sm:gap-3 ${slotGridClass(activeSlotKeys.length)}`}>
         {activeSlotKeys.map(slotKey => {
           const slot = row.slots[slotKey];
+          const { timeLabel } = getFastBotCellDisplay(slot);
           const scoreValue = getFastBotScoreValue(slot?.scoreObj);
           const scoreLabel = formatGroup1Score(scoreValue);
           const isActive = slotKey === activeSlotKey;
@@ -328,6 +271,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
               }`}
             >
               <p className={`text-sm font-black ${isActive ? 'text-brand-700' : 'text-ink-700'}`}>{slotKey}</p>
+              <p className="font-mono text-[10px] sm:text-[11px] text-ink-500 mt-1">{timeLabel}</p>
               <p className={`text-xs font-black mt-1.5 sm:mt-2 ${scoreLabel !== '--' ? 'text-saudi-700' : 'text-ink-300'}`}>{scoreLabel}</p>
             </button>
           );
@@ -337,7 +281,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
       {category.id === 'c1_linefollow' && (
         <LineFollowingAttemptCard
           key={`${row.participationId}_${activeSlotKey}`}
-          title={`${activeSlotKey} • ${row.teamName}`}
+          title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
           categoryId={category.id}
           teamDivision={row.division}
           attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, category.id)}
@@ -353,7 +297,7 @@ function Group1DetailView({ row, category, activeSlotKey, onSlotChange, onBack, 
       {category.id === 'c1_amazeing' && (
         <AMazeIngAttemptCard
           key={`${row.participationId}_${activeSlotKey}`}
-          title={`${activeSlotKey} • ${row.teamName}`}
+          title={`${activeSlotKey} • ${row.teamName} • ${activeSlot.timeLabel}`}
           categoryId={category.id}
           teamDivision={row.division}
           attemptNumber={getFastBotSlotOrder(activeSlotKey, systemConfig, row.divisionGroup, category.id)}
@@ -380,44 +324,6 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const [activeGroup1Slot, setActiveGroup1Slot] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [scanError, setScanError] = useState('');
-  // Double-submit guard: holds keys (e.g. "pId|slot") that fired in the last 1.5s
-  const recentSavesRef = useRef(new Map());
-  const guardSave = (key) => {
-    const now = Date.now();
-    const last = recentSavesRef.current.get(key) || 0;
-    if (now - last < 1500) return false;
-    recentSavesRef.current.set(key, now);
-    // Garbage-collect old entries to keep the map small.
-    if (recentSavesRef.current.size > 50) {
-      for (const [k, t] of recentSavesRef.current) {
-        if (now - t > 5000) recentSavesRef.current.delete(k);
-      }
-    }
-    return true;
-  };
-
-  // Resolve a scanned QR (team.id or participation.id) → jump straight into
-  // that team's scoring detail view.
-  const handleScan = (raw) => {
-    setScannerOpen(false);
-    const text = String(raw || '').trim();
-    if (!text) return;
-    // Match by team.id first, then participation.id
-    const partByTeam = activeParticipations.find(p => p.teamId === text);
-    const partById = activeParticipations.find(p => p.id === text);
-    const target = partByTeam || partById;
-    if (!target) {
-      const msg = lang === 'ar' ? 'لم يتم العثور على فريق مطابق في هذه الفئة.' : 'No matching team in this category.';
-      setScanError(msg);
-      setTimeout(() => setScanError(''), 4000);
-      if (showToast) showToast(msg, 'error');
-      return;
-    }
-    if (isFastBot) handleOpenFastBotRow({ participationId: target.id });
-    else handleOpenGroup1Row({ participationId: target.id });
-  };
 
   const activeSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'es_ms', category.id), [systemConfig, category.id]);
   const esMsSlotKeys = useMemo(() => getActiveSlotKeys(systemConfig, 'es_ms', category.id), [systemConfig, category.id]);
@@ -453,23 +359,12 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const visibleFastBotRows = useMemo(() => {
     if (!isFastBot) return [];
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const filtered = fastBotRows.filter(row => {
+    return fastBotRows.filter(row => {
       const matchSearch = !normalizedQuery
         || row.participationId.toLowerCase().includes(normalizedQuery)
         || row.teamName.toLowerCase().includes(normalizedQuery);
       const matchLevel = levelFilter ? row.division === levelFilter : true;
       return matchSearch && matchLevel;
-    });
-    // Rank by best official time (ascending — lower is better). Teams without
-    // a recorded best go to the bottom. Alphabetical tiebreak by team name.
-    return filtered.slice().sort((a, b) => {
-      const aHas = Number.isFinite(a.bestOfficialScore);
-      const bHas = Number.isFinite(b.bestOfficialScore);
-      if (aHas && bHas && a.bestOfficialScore !== b.bestOfficialScore) {
-        return a.bestOfficialScore - b.bestOfficialScore;
-      }
-      if (aHas !== bHas) return aHas ? -1 : 1;
-      return (a.teamName || '').localeCompare(b.teamName || '', undefined, { sensitivity: 'base' });
     });
   }, [isFastBot, fastBotRows, searchQuery, levelFilter]);
 
@@ -494,23 +389,12 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const visibleGroup1Rows = useMemo(() => {
     if (isFastBot) return [];
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const filtered = group1Rows.filter(row => {
+    return group1Rows.filter(row => {
       const matchSearch = !normalizedQuery
         || row.participationId.toLowerCase().includes(normalizedQuery)
         || row.teamName.toLowerCase().includes(normalizedQuery);
       const matchLevel = levelFilter ? row.division === levelFilter : true;
       return matchSearch && matchLevel;
-    });
-    // Rank by best official points (descending — higher is better). Teams
-    // without a recorded best go to the bottom. Alphabetical tiebreak.
-    return filtered.slice().sort((a, b) => {
-      const aHas = Number.isFinite(a.bestOfficialScore);
-      const bHas = Number.isFinite(b.bestOfficialScore);
-      if (aHas && bHas && a.bestOfficialScore !== b.bestOfficialScore) {
-        return b.bestOfficialScore - a.bestOfficialScore;
-      }
-      if (aHas !== bHas) return aHas ? -1 : 1;
-      return (a.teamName || '').localeCompare(b.teamName || '', undefined, { sensitivity: 'base' });
     });
   }, [isFastBot, group1Rows, searchQuery, levelFilter]);
 
@@ -537,11 +421,9 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const handleOpenFastBotRow = (row) => {
     setSelectedFastBotPId(row.participationId);
     setActiveFastBotSlot(getDefaultFastBotSlotKey(row, systemConfig, category.id));
-    try { localStorage.setItem(`roborave.lastTeam.${category.id}`, row.participationId); } catch { /* ignore */ }
   };
 
   const onSaveFastBotScore = (participationId, slotKey, scoreValue, insp, rawData) => {
-    if (!guardSave(`fb|${participationId}|${slotKey}`)) return;
     setScores(prev => {
       const existingScore = prev.find(score => score.pId === participationId && score.slotKey === slotKey);
       if (existingScore) {
@@ -556,7 +438,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
           proposedRawInput: undefined,
         } : score);
       }
-      return [...prev, { id: genId('s'), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
+      return [...prev, { id: Date.now() + Math.random(), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
     });
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -590,11 +472,9 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
   const handleOpenGroup1Row = (row) => {
     setSelectedP(row.participationId);
     setActiveGroup1Slot(getDefaultFastBotSlotKey(row, systemConfig, category.id));
-    try { localStorage.setItem(`roborave.lastTeam.${category.id}`, row.participationId); } catch { /* ignore */ }
   };
 
   const onSaveGroup1Score = (participationId, slotKey, scoreValue, insp, rawData) => {
-    if (!guardSave(`g1|${participationId}|${slotKey}`)) return;
     setScores(prev => {
       const existingScore = prev.find(score => score.pId === participationId && score.slotKey === slotKey);
       if (existingScore) {
@@ -609,7 +489,7 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
           proposedRawInput: undefined,
         } : score);
       }
-      return [...prev, { id: genId('s'), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
+      return [...prev, { id: Date.now() + Math.random(), pId: participationId, slotKey, score: scoreValue, inspectionData: insp, rawInput: rawData, status: 'VALID' }];
     });
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -636,55 +516,21 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
 
   if (isFastBot) {
     const esMsRows = visibleFastBotRows.filter(row => ['ES', 'MS'].includes(row.division));
-    // Western HS / US run as two standalone tables; other regions stay merged.
-    const hsUsNonWesternRows = visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division) && row.region !== 'Western');
-    const hsWesternRows = visibleFastBotRows.filter(row => row.division === 'HS' && row.region === 'Western');
-    const usWesternRows = visibleFastBotRows.filter(row => row.division === 'US' && row.region === 'Western');
-
-    // ─ Last team this device worked on for this category ─
-    let lastTeamRow = null;
-    try {
-      const lastPid = localStorage.getItem(`roborave.lastTeam.${category.id}`);
-      if (lastPid && !selectedFastBotRow) {
-        lastTeamRow = visibleFastBotRows.find(r => r.participationId === lastPid) || null;
-      }
-    } catch { /* ignore */ }
+    const hsUsRows = visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division));
 
     return (
       <div className="space-y-5">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
             <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+              className="w-full pl-9 pr-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
           </div>
-          <button
-            type="button"
-            onClick={() => setScannerOpen(true)}
-            title={lang === 'ar' ? 'مسح QR' : 'Scan QR'}
-            className="shrink-0 h-12 w-12 flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 text-white shadow-md press-effect"
-          >
-            <Camera size={18} />
-          </button>
           <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
             <option value="">{t(lang, 'allLevelsOption')}</option>
             {category.levels.map(l => <option key={l} value={l}>{l}</option>)}
           </CustomSelect>
         </div>
-
-        {lastTeamRow && (
-          <button
-            type="button"
-            onClick={() => handleOpenFastBotRow(lastTeamRow)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-brand-50 border border-brand-200 hover:bg-brand-100 transition-colors text-start press-effect"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-brand-600">{lang === 'ar' ? 'آخر فريق' : 'Last Team'}</p>
-              <p className="text-sm font-bold text-ink-800 truncate">{lastTeamRow.teamName} · {lastTeamRow.division}</p>
-            </div>
-            <span className="shrink-0 text-xs font-bold text-brand-700">{lang === 'ar' ? 'متابعة ←' : 'Resume →'}</span>
-          </button>
-        )}
 
         {selectedFastBotRow ? (
           <FastBotDetailView
@@ -707,27 +553,9 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
             <CollapsibleCard title={t(lang, 'fastbotEsMsTable')} badge={esMsRows.length} badgeColor="bg-brand-500">
               <FastBotScheduleTable title={t(lang, 'fastbotEsMsTable')} rows={esMsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={esMsSlotKeys} />
             </CollapsibleCard>
-            {hsUsNonWesternRows.length > 0 && (
-              <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsNonWesternRows.length} badgeColor="bg-brand-500">
-                <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsNonWesternRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
-              </CollapsibleCard>
-            )}
-            {hsWesternRows.length > 0 && (
-              <CollapsibleCard title={`FastBot Schedule — HS (Western)`} badge={hsWesternRows.length} badgeColor="bg-brand-500">
-                <FastBotScheduleTable title="" rows={hsWesternRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
-              </CollapsibleCard>
-            )}
-            {usWesternRows.length > 0 && (
-              <CollapsibleCard title={`FastBot Schedule — US (Western)`} badge={usWesternRows.length} badgeColor="bg-brand-500">
-                <FastBotScheduleTable title="" rows={usWesternRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
-              </CollapsibleCard>
-            )}
-          </div>
-        )}
-        <QrScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleScan} lang={lang} />
-        {scanError && (
-          <div className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold shadow-2xl animate-fade-in">
-            {scanError}
+            <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsRows.length} badgeColor="bg-brand-500">
+              <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} />
+            </CollapsibleCard>
           </div>
         )}
       </div>
@@ -741,18 +569,10 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
           <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+            className="w-full pl-9 pr-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
         </div>
-        <button
-          type="button"
-          onClick={() => setScannerOpen(true)}
-          title={lang === 'ar' ? 'مسح QR' : 'Scan QR'}
-          className="shrink-0 h-12 w-12 flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 text-white shadow-md press-effect"
-        >
-          <Camera size={18} />
-        </button>
         <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
           <option value="">{t(lang, 'allLevelsOption')}</option>
           {category.levels.map(l => <option key={l} value={l}>{l}</option>)}
@@ -790,12 +610,6 @@ function Group1Workflow({ category, participations, teams, getTeamStatus, scores
           </CollapsibleCard>
         </div>
       )}
-      <QrScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleScan} lang={lang} />
-      {scanError && (
-        <div className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-[150] px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold shadow-2xl animate-fade-in">
-          {scanError}
-        </div>
-      )}
     </div>
   );
 }
@@ -818,7 +632,7 @@ function Group2Workflow({ category, matches, scores, setScores, lang, showToast 
   }
 
   const onSaveScore = (s, inspA, inspB, rawData) => {
-    setScores(prev => [...prev, { id: genId('s'), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
+    setScores(prev => [...prev, { id: Date.now(), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
     setSelectedMatchId('');
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
@@ -907,30 +721,43 @@ function generateRoundRobinMatches(teamEntries, categoryId, divisionTag, region)
   return ordered;
 }
 
+function minutesToTimeString(totalMinutes) {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+function buildTimeMap(matchesByRegion, regions) {
+  const map = {};
+  let minutes = 11 * 60; // start 11:00 AM
+  regions.forEach(region => {
+    (matchesByRegion[region] || []).forEach(match => {
+      map[match.id] = minutesToTimeString(minutes);
+      minutes += 15;
+    });
+  });
+  return map;
+}
+
 // ─── Round-Robin buckets (FastBot-style grouping) ────────────────────────────
-// SoccerBot is bucketed as ES/MS together and HS/US together.
+// Sumo & SoccerBot are bucketed as ES/MS together and HS/US together.
 const RR_BUCKETS = [
   { key: 'ES / MS', divs: ['ES', 'MS'] },
   { key: 'HS / US', divs: ['HS', 'US'] },
 ];
 
-// Sumo: ES alone, MS alone, HS/US merged.
-const SUMO_RR_BUCKETS = [
-  { key: 'ES', divs: ['ES'] },
-  { key: 'MS', divs: ['MS'] },
-  { key: 'HS / US', divs: ['HS', 'US'] },
-];
-
-function RoundRobinBucketsView({ categoryLabel, matchesByBucket, scores, onSelectMatch, lang, accent = 'orange', buckets = RR_BUCKETS }) {
+function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange' }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const accentChip = accent === 'teal'
     ? 'bg-teal-50 border-teal-200 text-teal-700'
-    : 'bg-orange-50 border-orange-200 text-orange-700';
-  const accentBadge = accent === 'teal' ? 'bg-teal-600' : 'bg-orange-500';
+    : 'bg-saudi-50 border-saudi-200 text-saudi-700';
+  const accentBadge = accent === 'teal' ? 'bg-teal-600' : 'bg-saudi-500';
 
   return (
     <div className="space-y-4">
-      {buckets.map(({ key: bucketKey }) => {
+      {RR_BUCKETS.map(({ key: bucketKey }) => {
         const regionMap = matchesByBucket[bucketKey] || {};
         const regions = Object.keys(regionMap).sort();
         const allBucketMatches = regions.flatMap(r => regionMap[r] || []);
@@ -948,9 +775,10 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, scores, onSelec
             ) : (
               <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
                 <table className="min-w-[720px] sm:min-w-[920px] w-full text-xs sm:text-sm">
-                  <thead className="bg-[#061a27] text-white">
+                  <thead className="bg-navy-700 text-white">
                     <tr className="text-left">
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold w-12 text-center">#</th>
+                      <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Time', 'الوقت')}</th>
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Region', 'المنطقة')}</th>
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Team A', 'الفريق أ')}</th>
                       <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold text-center w-10">{tx('vs', 'ضد')}</th>
@@ -965,7 +793,7 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, scores, onSelec
                       return (
                         <Fragment key={region}>
                           <tr className="bg-ink-50/80">
-                            <td colSpan={6} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
+                            <td colSpan={7} className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-ink-500">
                               {tx('Region', 'منطقة')}: {region} · {list.length} {tx('matches', 'مباريات')}
                             </td>
                           </tr>
@@ -985,6 +813,7 @@ function RoundRobinBucketsView({ categoryLabel, matchesByBucket, scores, onSelec
                                 className="cursor-pointer hover:bg-brand-50/60 focus:bg-brand-50 focus:outline-none transition-colors"
                               >
                                 <td className="px-3 py-2.5 text-center font-mono text-[11px] text-ink-500">{i + 1}</td>
+                                <td className="px-3 py-2.5 font-mono text-[11px] text-ink-500 whitespace-nowrap">{timeMap?.[m.id] || '--'}</td>
                                 <td className="px-3 py-2.5">
                                   <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase ${accentChip}`}>{region}</span>
                                 </td>
@@ -1024,7 +853,7 @@ function BracketModeToggle({ mode, setMode, lang, hasBracket }) {
       onClick={() => setMode(value)}
       className={`flex-1 px-3 py-2.5 rounded-xl text-xs font-black transition-all border ${
         mode === value
-          ? 'bg-gradient-to-r from-[#061a27] to-[#0a2a3a] text-white border-[#061a27] shadow-md'
+          ? 'bg-gradient-to-r from-navy-700 to-navy-500 text-white border-navy-700 shadow-md'
           : 'bg-white text-ink-600 border-ink-200 hover:border-ink-300'
       }`}
     >
@@ -1045,9 +874,9 @@ function BracketMatchTile({ match, onSelect, lang, accent = 'orange' }) {
   const winnerSide = match._winnerSide;
   const score = match._scoreObj;
   const ready = match.teamA && match.teamB && !match.isBye;
-  const accentBorder = accent === 'teal' ? 'border-teal-400' : 'border-orange-400';
-  const accentBg = accent === 'teal' ? 'bg-teal-50' : 'bg-orange-50';
-  const accentText = accent === 'teal' ? 'text-teal-700' : 'text-orange-700';
+  const accentBorder = accent === 'teal' ? 'border-teal-400' : 'border-saudi-400';
+  const accentBg = accent === 'teal' ? 'bg-teal-50' : 'bg-saudi-50';
+  const accentText = accent === 'teal' ? 'text-teal-700' : 'text-saudi-700';
 
   const TeamRow = ({ name, side, isBye }) => {
     const isWinner = winnerSide === side;
@@ -1102,8 +931,8 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
 
   const accentChip = accent === 'teal'
     ? 'bg-teal-50 border-teal-200 text-teal-700'
-    : 'bg-orange-50 border-orange-200 text-orange-700';
-  const accentHeaderBadge = accent === 'teal' ? 'bg-teal-600' : 'bg-orange-500';
+    : 'bg-saudi-50 border-saudi-200 text-saudi-700';
+  const accentHeaderBadge = accent === 'teal' ? 'bg-teal-600' : 'bg-saudi-500';
 
   return (
     <div className="space-y-4">
@@ -1123,7 +952,7 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
           >
             <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
               <table className="min-w-[720px] sm:min-w-[920px] w-full text-xs sm:text-sm">
-                <thead className="bg-[#061a27] text-white">
+                <thead className="bg-navy-700 text-white">
                   <tr className="text-left">
                     <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold w-12 text-center">#</th>
                     <th className="px-2 sm:px-3 py-2 sm:py-3 font-bold">{tx('Round', 'الجولة')}</th>
@@ -1168,12 +997,12 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
                             </td>
                             <td className={`px-3 py-2.5 font-bold ${isWinnerA ? 'text-saudi-700' : 'text-ink-700'} ${!m.teamA ? 'text-ink-300 italic font-medium' : ''}`}>
                               {m.teamA || tx('TBD', 'لم يُحدد')}
-                              {isWinnerA && <span className="ms-1 text-saudi-600">✓</span>}
+                              {isWinnerA && <span className="ml-1 text-saudi-600">✓</span>}
                             </td>
                             <td className="px-2 py-2.5 text-center text-[10px] font-black text-ink-400">vs</td>
                             <td className={`px-3 py-2.5 font-bold ${isWinnerB ? 'text-saudi-700' : 'text-ink-700'} ${!m.teamB ? 'text-ink-300 italic font-medium' : ''} ${m.isBye ? 'italic text-ink-400' : ''}`}>
                               {m.teamB || tx('TBD', 'لم يُحدد')}
-                              {isWinnerB && <span className="ms-1 text-saudi-600">✓</span>}
+                              {isWinnerB && <span className="ml-1 text-saudi-600">✓</span>}
                             </td>
                             <td className="px-3 py-2.5 text-center font-black text-ink-700">
                               {m._scoreObj?.score || (m.isBye ? tx('BYE', 'تأهل') : '--')}
@@ -1204,7 +1033,7 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
 
 // ─── SumoWorkflow ─────────────────────────────────────────────────────────────
 
-function SumoWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast, currentUser }) {
+function SumoWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
   const [mode, setMode] = useState('bracket'); // 'bracket' | 'roundrobin'
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
@@ -1220,10 +1049,10 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
     [participations, teams, category.id],
   );
 
-  // R.R matches grouped first by bucket (ES, MS, HS, US separately) then by region.
+  // R.R matches grouped first by bucket (ES/MS, HS/US) then by region.
   const matchesByBucket = useMemo(() => {
     const result = {};
-    SUMO_RR_BUCKETS.forEach(({ key, divs }) => {
+    RR_BUCKETS.forEach(({ key, divs }) => {
       const bucketEntries = teamEntries.filter(e => divs.includes(e.division));
       const regionsInBucket = [...new Set(bucketEntries.map(e => e.region))].sort();
       result[key] = Object.fromEntries(
@@ -1236,15 +1065,21 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
     return result;
   }, [teamEntries, category.id]);
 
-  const allMatches = useMemo(() => {
-    const flat = [];
-    SUMO_RR_BUCKETS.forEach(({ key }) => {
+  const { timeMap, allMatches } = useMemo(() => {
+    const flatByRegion = {};
+    const orderedKeys = [];
+    RR_BUCKETS.forEach(({ key }) => {
       const regionMap = matchesByBucket[key] || {};
       Object.keys(regionMap).sort().forEach(region => {
-        flat.push(...(regionMap[region] || []));
+        const composite = `${key}::${region}`;
+        flatByRegion[composite] = regionMap[region];
+        orderedKeys.push(composite);
       });
     });
-    return flat;
+    return {
+      timeMap: buildTimeMap(flatByRegion, orderedKeys),
+      allMatches: orderedKeys.flatMap(k => flatByRegion[k]),
+    };
   }, [matchesByBucket]);
 
   // Bracket matches for this category (skeletons in Firestore) + resolved view.
@@ -1262,22 +1097,13 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
   const existingScores = scores.filter(s => s.pId === selectedMatchId);
 
   const handleSaveScore = (s, inspA, inspB, rawData) => {
-    setScores(prev => [...prev, { id: genId('s'), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
+    setScores(prev => [...prev, { id: Date.now(), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
     setSelectedMatchId(null);
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
   const handleEditRequest = (id, newScore, newInspA, newInspB, newRaw) => {
     setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, proposedInspectionA: newInspA, proposedInspectionB: newInspB, proposedRawInput: newRaw, status: 'PENDING' } : s));
     setSelectedMatchId(null);
-  };
-  const isAdmin = currentUser?.role === 'admin';
-  const handleReplay = (scoreId) => {
-    const ok = window.confirm(lang === 'ar'
-      ? 'سيتم حذف هذه المحاولة ويمكن إعادة تسجيلها. متأكد؟'
-      : 'This attempt will be deleted and can be re-recorded. Continue?');
-    if (!ok) return;
-    setScores(prev => prev.filter(s => s.id !== scoreId));
-    if (showToast) showToast(lang === 'ar' ? 'تم حذف المحاولة' : 'Attempt deleted', 'info');
   };
 
   if (teamEntries.length === 0) {
@@ -1294,22 +1120,19 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
         <button onClick={() => setSelectedMatchId(null)} className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-ink-50 px-4 py-2.5 text-sm font-bold text-ink-700 hover:bg-ink-100 transition-colors">
           {lang === 'ar' ? '→ العودة للجدول' : '← Back to Schedule'}
         </button>
-        <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
+        <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-navy-700 to-navy-500 p-4 text-white shadow-sm">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-300">{category.name}{selectedMatch.bracket ? ` — ${selectedMatch.round}` : ' — Round Robin'}</p>
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
+          {timeMap[selectedMatchId] && (
+            <div className="mt-3">
+              <span className="inline-flex items-center rounded-full border border-saudi-400/40 bg-saudi-500/20 px-2.5 py-1 text-[10px] font-black text-saudi-300">
+                🕐 {timeMap[selectedMatchId]}
+              </span>
+            </div>
+          )}
         </div>
         {existingScores.map((scoreObj, index) => (
-          <div key={scoreObj.id} className="space-y-2">
-            <SumoMatchCard title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
-            {isAdmin && (
-              <button
-                onClick={() => handleReplay(scoreObj.id)}
-                className="w-full py-2.5 rounded-xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
-              >
-                🔄 {lang === 'ar' ? `إعادة المحاولة ${index + 1} (حذف وإعادة تسجيل)` : `Replay attempt ${index + 1} (delete & re-record)`}
-              </button>
-            )}
-          </div>
+          <SumoMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
         ))}
         <SumoMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} lang={lang} />
       </div>
@@ -1332,11 +1155,11 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
       <RoundRobinBucketsView
         categoryLabel={category.name}
         matchesByBucket={matchesByBucket}
+        timeMap={timeMap}
         scores={scores}
         onSelectMatch={setSelectedMatchId}
         lang={lang}
         accent="orange"
-        buckets={SUMO_RR_BUCKETS}
       />
     </div>
   );
@@ -1344,7 +1167,7 @@ function SumoWorkflow({ category, participations, teams, scores, setScores, grou
 
 // ─── SoccerWorkflow ──────────────────────────────────────────────────────────
 
-function SoccerWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast, currentUser }) {
+function SoccerWorkflow({ category, participations, teams, scores, setScores, group2Matches = [], lang, showToast }) {
   const [mode, setMode] = useState('bracket');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
 
@@ -1376,15 +1199,21 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
     return result;
   }, [teamEntries, category.id]);
 
-  const allMatches = useMemo(() => {
-    const flat = [];
+  const { timeMap, allMatches } = useMemo(() => {
+    const flatByRegion = {};
+    const orderedKeys = [];
     RR_BUCKETS.forEach(({ key }) => {
       const regionMap = matchesByBucket[key] || {};
       Object.keys(regionMap).sort().forEach(region => {
-        flat.push(...(regionMap[region] || []));
+        const composite = `${key}::${region}`;
+        flatByRegion[composite] = regionMap[region];
+        orderedKeys.push(composite);
       });
     });
-    return flat;
+    return {
+      timeMap: buildTimeMap(flatByRegion, orderedKeys),
+      allMatches: orderedKeys.flatMap(k => flatByRegion[k]),
+    };
   }, [matchesByBucket]);
 
   const bracketRaw = useMemo(
@@ -1401,22 +1230,13 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
   const existingScores = scores.filter(s => s.pId === selectedMatchId);
 
   const handleSaveScore = (s, inspA, inspB, rawData) => {
-    setScores(prev => [...prev, { id: genId('s'), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
+    setScores(prev => [...prev, { id: Date.now(), pId: selectedMatchId, score: s, inspectionA: inspA, inspectionB: inspB, rawInput: rawData, status: 'VALID' }]);
     setSelectedMatchId(null);
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
   const handleEditRequest = (id, newScore, newInspA, newInspB, newRaw) => {
     setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, proposedInspectionA: newInspA, proposedInspectionB: newInspB, proposedRawInput: newRaw, status: 'PENDING' } : s));
     setSelectedMatchId(null);
-  };
-  const isAdmin = currentUser?.role === 'admin';
-  const handleReplay = (scoreId) => {
-    const ok = window.confirm(lang === 'ar'
-      ? 'سيتم حذف هذه المحاولة ويمكن إعادة تسجيلها. متأكد؟'
-      : 'This attempt will be deleted and can be re-recorded. Continue?');
-    if (!ok) return;
-    setScores(prev => prev.filter(s => s.id !== scoreId));
-    if (showToast) showToast(lang === 'ar' ? 'تم حذف المحاولة' : 'Attempt deleted', 'info');
   };
 
   if (teamEntries.length === 0) {
@@ -1433,22 +1253,19 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
         <button onClick={() => setSelectedMatchId(null)} className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-ink-50 px-4 py-2.5 text-sm font-bold text-ink-700 hover:bg-ink-100 transition-colors">
           {lang === 'ar' ? '→ العودة للجدول' : '← Back to Schedule'}
         </button>
-        <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 text-white shadow-sm">
+        <div className="rounded-2xl border border-ink-200 bg-gradient-to-r from-navy-700 to-navy-500 p-4 text-white shadow-sm">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-teal-300">{category.name}{selectedMatch.bracket ? ` — ${selectedMatch.round}` : ' — Round Robin'}</p>
           <h4 className="text-xl font-black mt-1">{selectedMatch.title}</h4>
+          {timeMap[selectedMatchId] && (
+            <div className="mt-3">
+              <span className="inline-flex items-center rounded-full border border-teal-400/40 bg-teal-500/20 px-2.5 py-1 text-[10px] font-black text-teal-300">
+                🕐 {timeMap[selectedMatchId]}
+              </span>
+            </div>
+          )}
         </div>
         {existingScores.map((scoreObj, index) => (
-          <div key={scoreObj.id} className="space-y-2">
-            <SoccerBotMatchCard title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
-            {isAdmin && (
-              <button
-                onClick={() => handleReplay(scoreObj.id)}
-                className="w-full py-2.5 rounded-xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
-              >
-                🔄 {lang === 'ar' ? `إعادة المحاولة ${index + 1} (حذف وإعادة تسجيل)` : `Replay attempt ${index + 1} (delete & re-record)`}
-              </button>
-            )}
-          </div>
+          <SoccerBotMatchCard key={scoreObj.id} title={`${t(lang, 'matchAttempt')} ${index + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={index + 1} initialScoreObj={scoreObj} onEditRequest={handleEditRequest} lang={lang} />
         ))}
         <SoccerBotMatchCard key="new" title={`${t(lang, 'matchAttempt')} ${existingScores.length + 1}: ${selectedMatch.title}`} match={selectedMatch} categoryId={category.id} attemptNumber={existingScores.length + 1} onSaveScore={handleSaveScore} lang={lang} />
       </div>
@@ -1476,6 +1293,7 @@ function SoccerWorkflow({ category, participations, teams, scores, setScores, gr
       <RoundRobinBucketsView
         categoryLabel={category.name}
         matchesByBucket={matchesByBucket}
+        timeMap={timeMap}
         scores={scores}
         onSelectMatch={setSelectedMatchId}
         lang={lang}
@@ -1521,9 +1339,9 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
           <input type="text" placeholder={t(lang, 'searchTeamOrId')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            className="w-full ps-9 pe-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+            className="w-full pl-9 pr-4 py-3 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
         </div>
         <CustomSelect value={levelFilter} onChange={e => setLevelFilter(e.target.value)}>
           <option value="">{t(lang, 'allLevelsOption')}</option>
@@ -1544,15 +1362,15 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
             <ScoringCard key={scoreObj.id} title={`${t(lang, 'presentationAttempt')} ${index + 1}: ${teamName}`}
               initialScoreObj={scoreObj}
               lang={lang}
-              onEditRequest={(id, newScore, newInsp) => {
-                setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, inspectionData: newInsp || s.inspectionData, status: 'PENDING' } : s));
+              onEditRequest={(id, newScore) => {
+                setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, status: 'PENDING' } : s));
                 setSelectedP('');
               }} />
           ))}
           <ScoringCard title={`${t(lang, 'presentationAttempt')} ${existingScores.length + 1}: ${teamName}`}
             lang={lang}
-            onSaveScore={(s, insp) => {
-              setScores(prev => [...prev, { id: genId('s'), pId: selectedP, score: s, inspectionData: insp || {}, status: 'VALID' }]);
+            onSaveScore={s => {
+              setScores(prev => [...prev, { id: Date.now(), pId: selectedP, score: s, status: 'VALID' }]);
               setSelectedP('');
               if (showToast) showToast(t(lang, 'toastScoreSubmit'));
             }} />
@@ -1654,7 +1472,7 @@ export default function CompetingSystem({ categories, participations, teams, get
       {/* Workflow area */}
       {selectedCategory ? (
         <div className="bg-white rounded-2xl shadow-sm border border-ink-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-[#061a27] to-[#0a2a3a] p-4 flex justify-between items-center text-white border-b-2 border-brand-500">
+          <div className="bg-gradient-to-r from-navy-700 to-navy-500 p-4 flex justify-between items-center text-white border-b-2 border-brand-500">
             <div>
               <h3 className="font-bold text-brand-400">{t(lang, 'systemWorkflow')}: {t(lang, 'group')} {selectedCategory.group}</h3>
               <p className="text-xs text-white/40 mt-0.5">{selectedCategory.name}</p>
@@ -1666,10 +1484,10 @@ export default function CompetingSystem({ categories, participations, teams, get
               <Group1Workflow category={selectedCategory} participations={participations} teams={teams} getTeamStatus={getTeamStatus} scores={scores} setScores={setScores} systemConfig={systemConfig} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_sumo' && (
-              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} currentUser={currentUser} />
+              <SumoWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id === 'c2_soccer' && (
-              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} currentUser={currentUser} />
+              <SoccerWorkflow category={selectedCategory} participations={participations} teams={teams} scores={scores} setScores={setScores} group2Matches={group2Matches} lang={lang} showToast={showToast} />
             )}
             {selectedCategory.group === 2 && selectedCategory.id !== 'c2_sumo' && selectedCategory.id !== 'c2_soccer' && (
               <Group2Workflow category={selectedCategory} matches={group2Matches.filter(m => m.categoryId === selectedCategory.id)} scores={scores} setScores={setScores} lang={lang} showToast={showToast} />

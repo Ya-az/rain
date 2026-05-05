@@ -42,12 +42,12 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
     return group2Matches.filter(m => !scores.some(s => s.pId === m.id && s.status === 'VALID'));
   }, [group2Matches, scores]);
 
-  const REGION_COLORS = { Western: 'bg-brand-400', Central: 'bg-saudi-400', Eastern: 'bg-amber-400' };
+  const REGION_COLORS = { Western: 'bg-brand-400', Central: 'bg-saudi-400', Eastern: 'bg-orange-400' };
 
   return (
     <div className="space-y-5" dir={dir}>
       {/* Competition Status Banner */}
-      <div className="bg-gradient-to-r from-[#061a27] to-[#0a2a3a] rounded-2xl p-4 flex items-center gap-3 border border-white/10 shadow-xl">
+      <div className="bg-gradient-to-r from-navy-700 to-navy-500 rounded-2xl p-4 flex items-center gap-3 border border-white/10 shadow-xl">
         <div className="w-10 h-10 rounded-xl bg-brand-600/20 border border-brand-500/30 flex items-center justify-center shrink-0">
           <Activity size={20} className="text-brand-400" />
         </div>
@@ -93,9 +93,9 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
           label={lang === 'ar' ? 'النتائج المعتمدة' : 'Verified Scores'}
           value={stats.validScores}
           icon={<Zap size={20} />}
-          iconClass="bg-amber-50 text-amber-600"
-          valueClass="text-amber-700"
-          accentClass="bg-amber-400"
+          iconClass="bg-saudi-50 text-saudi-600"
+          valueClass="text-saudi-700"
+          accentClass="bg-saudi-400"
         />
       </div>
 
@@ -103,8 +103,8 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
       <div className="bg-white rounded-2xl shadow-card border border-ink-100 overflow-hidden">
         {/* Header */}
         <div className="px-5 py-4 border-b border-ink-100 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
-            <Trophy className="text-amber-500" size={17} />
+          <div className="w-8 h-8 rounded-xl bg-saudi-50 border border-saudi-200 flex items-center justify-center">
+            <Trophy className="text-saudi-500" size={17} />
           </div>
           <h2 className="text-base font-bold text-ink-800">{t(lang, 'dynamicLeaderboard')}</h2>
           <div className="ml-auto flex items-center gap-1.5">
@@ -127,9 +127,9 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
               .map(({ cat, top3 }) => {
                 const style = CATEGORY_STYLES[cat.id] || { from: '#334155', to: '#0f172a', icon: '🤖' };
                 const MEDALS = [
-                  { emoji: '🥇', bg: 'bg-amber-50 border-amber-200', score: 'text-amber-600' },
+                  { emoji: '🥇', bg: 'bg-saudi-50 border-saudi-200', score: 'text-saudi-600' },
                   { emoji: '🥈', bg: 'bg-ink-50 border-ink-200', score: 'text-ink-600' },
-                  { emoji: '🥉', bg: 'bg-orange-50 border-orange-200', score: 'text-orange-600' },
+                  { emoji: '🥉', bg: 'bg-saudi-50 border-saudi-200', score: 'text-saudi-600' },
                 ];
                 return (
                   <div key={cat.id} className="p-4 sm:p-5">
@@ -217,7 +217,7 @@ export default function Dashboard({ teams, getTeamStatus, scores, lang, particip
                     <p className="font-bold text-ink-700 text-sm truncate">{m.title}</p>
                     <p className="text-[10px] text-ink-400 font-mono mt-0.5">{m.id}</p>
                   </div>
-                  <span className={`badge shrink-0 ${isDone ? 'bg-saudi-50 text-saudi-700 border border-saudi-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                  <span className={`badge shrink-0 ${isDone ? 'bg-saudi-50 text-saudi-700 border border-saudi-200' : 'bg-saudi-50 text-saudi-700 border border-saudi-200'}`}>
                     {isDone ? (lang === 'ar' ? '✓ منتهية' : '✓ Done') : (lang === 'ar' ? 'قادمة' : 'Pending')}
                   </span>
                 </div>

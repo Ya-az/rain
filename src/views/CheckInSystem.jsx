@@ -8,7 +8,7 @@ import QrScannerModal from '../components/ui/QrScannerModal';
 const REGION_COLORS = {
   Western: 'bg-brand-500',
   Central: 'bg-saudi-500',
-  Eastern: 'bg-amber-500',
+  Eastern: 'bg-orange-500',
 };
 
 function CopyIdButton({ id, lang }) {
@@ -80,8 +80,8 @@ function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participat
   if (presentCount === total) draftStatus = 'Fully Arrived';
 
   const STATUS_STYLES = {
-    'No-Show':           { border: 'border-ink-200',   bg: 'bg-white',        badge: 'bg-ink-100 text-ink-600',       icon: <XCircle size={13} className="text-ink-400" /> },
-    'Partially Arrived': { border: 'border-amber-300', bg: 'bg-amber-50/30',  badge: 'bg-amber-100 text-amber-800',   icon: <Clock size={13} className="text-amber-500" /> },
+    'No-Show':           { border: 'border-rose-200',   bg: 'bg-rose-50/40',   badge: 'bg-rose-100 text-rose-700',     icon: <XCircle size={13} className="text-rose-500" /> },
+    'Partially Arrived': { border: 'border-orange-300', bg: 'bg-orange-50/40', badge: 'bg-orange-100 text-orange-800', icon: <Clock size={13} className="text-orange-500" /> },
     'Fully Arrived':     { border: 'border-saudi-400', bg: 'bg-saudi-50/30',  badge: 'bg-saudi-100 text-saudi-800',   icon: <CheckCircle2 size={13} className="text-saudi-500" /> },
   };
   const ss = STATUS_STYLES[draftStatus];
@@ -266,13 +266,13 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
           <div className="text-2xl sm:text-3xl font-black text-saudi-700">{checkedInTeams}</div>
           <div className="text-[10px] sm:text-xs font-bold text-saudi-500 mt-0.5 leading-tight">{t(lang, 'fullyArrived')}</div>
         </div>
-        <div className="bg-white rounded-2xl shadow-card border border-amber-200 p-3 sm:p-4 text-center">
-          <div className="text-2xl sm:text-3xl font-black text-amber-700">{partiallyChecked}</div>
-          <div className="text-[10px] sm:text-xs font-bold text-amber-500 mt-0.5 leading-tight">{t(lang, 'partiallyArrived')}</div>
+        <div className="bg-white rounded-2xl shadow-card border border-orange-200 p-3 sm:p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-black text-orange-700">{partiallyChecked}</div>
+          <div className="text-[10px] sm:text-xs font-bold text-orange-500 mt-0.5 leading-tight">{t(lang, 'partiallyArrived')}</div>
         </div>
-        <div className="bg-white rounded-2xl shadow-card border border-ink-200 p-3 sm:p-4 text-center">
-          <div className="text-2xl sm:text-3xl font-black text-ink-600">{noShowCount}</div>
-          <div className="text-[10px] sm:text-xs font-bold text-ink-400 mt-0.5 leading-tight">{t(lang, 'noShow')}</div>
+        <div className="bg-white rounded-2xl shadow-card border border-rose-200 p-3 sm:p-4 text-center">
+          <div className="text-2xl sm:text-3xl font-black text-rose-700">{noShowCount}</div>
+          <div className="text-[10px] sm:text-xs font-bold text-rose-500 mt-0.5 leading-tight">{t(lang, 'noShow')}</div>
         </div>
       </div>
 
@@ -284,7 +284,7 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
           {[
             { name: 'Western', cls: 'bg-brand-500',  ar: 'الغربية' },
             { name: 'Central', cls: 'bg-saudi-500',  ar: 'الوسطى' },
-            { name: 'Eastern', cls: 'bg-amber-500',  ar: 'الشرقية' },
+            { name: 'Eastern', cls: 'bg-orange-500', ar: 'الشرقية' },
           ].map(r => (
             <span key={r.name} className="inline-flex items-center gap-1.5">
               <span className={`inline-block w-2.5 h-2.5 rounded-full ${r.cls}`} />
@@ -331,8 +331,8 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
           onClick={() => setActiveTab('No-Show')}
           className={`flex-1 py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all press-effect ${
             activeTab === 'No-Show'
-              ? 'bg-ink-800 text-white shadow-sm'
-              : 'bg-white text-ink-500 border border-ink-200 hover:border-ink-300'
+              ? 'bg-rose-500 text-white shadow-sm'
+              : 'bg-white text-rose-600 border border-rose-200 hover:border-rose-300'
           }`}
         >
           {t(lang, 'noShow')} ({noShowTeams.length})
@@ -341,8 +341,8 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
           onClick={() => setActiveTab('Partially Arrived')}
           className={`flex-1 py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all press-effect ${
             activeTab === 'Partially Arrived'
-              ? 'bg-amber-500 text-white shadow-sm'
-              : 'bg-white text-amber-600 border border-amber-200 hover:border-amber-300'
+              ? 'bg-orange-500 text-white shadow-sm'
+              : 'bg-white text-orange-600 border border-orange-200 hover:border-orange-300'
           }`}
         >
           {t(lang, 'partialCheckin')} ({partialTeams.length})

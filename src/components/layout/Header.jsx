@@ -6,7 +6,7 @@ import ConnectionBadge from './ConnectionBadge';
 const REGION_DOTS = {
   Western: 'bg-brand-400',
   Central: 'bg-saudi-400',
-  Eastern: 'bg-amber-400',
+  Eastern: 'bg-orange-400',
 };
 
 export default function Header({ currentUser, lang, setLang, onLogout, adminRegion, setAdminRegion }) {
@@ -24,7 +24,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
       )}
       <header className="sticky top-0 z-50" dir={dir}>
       {/* Main bar */}
-      <div className="bg-white text-[#0A2A3A] shadow-xl border-b border-gray-200">
+      <div className="bg-white text-navy-500 shadow-xl border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex flex-col items-center gap-2">
 
           {/* Top row: rain logo (left) | logos (center) | lang toggle + user chip (right) */}
@@ -90,7 +90,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
                   className="flex items-center gap-1.5 bg-gray-100 hover:bg-emerald-50 border border-gray-300 rounded-lg px-2 py-1.5 transition-colors press-effect"
                 >
                   <div className="w-2 h-2 rounded-full bg-saudi-400 animate-pulse shrink-0" />
-                  <span className="hidden sm:block text-xs font-medium text-[#0A2A3A]/70 max-w-[100px] truncate">
+                  <span className="hidden sm:block text-xs font-medium text-navy-500/70 max-w-[100px] truncate">
                     {currentUser.name}
                   </span>
                   <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700">
@@ -100,7 +100,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
 
                 {/* User dropdown */}
                 {userMenuOpen && (
-                  <div className={`absolute top-full mt-2 z-50 bg-[#0a2a3a] border border-white/15 rounded-xl shadow-2xl overflow-hidden min-w-[160px] ${dir === 'rtl' ? 'left-0' : 'right-0'}`}>
+                  <div className={`absolute top-full mt-2 z-50 bg-navy-500 border border-white/15 rounded-xl shadow-2xl overflow-hidden min-w-[160px] ${dir === 'rtl' ? 'left-0' : 'right-0'}`}>
                     <div className="px-4 py-3 border-b border-white/10">
                       <p className="text-white font-bold text-sm truncate">{currentUser.name}</p>
                       <p className="text-white/40 text-[10px] uppercase tracking-widest font-black mt-0.5">{currentUser.role}</p>
@@ -132,7 +132,7 @@ export default function Header({ currentUser, lang, setLang, onLogout, adminRegi
 
       {/* Admin region filter bar */}
       {currentUser?.role === 'admin' && (
-        <div className="bg-[#0a2a3a]/95 backdrop-blur-sm border-b border-white/8 px-3 sm:px-4 py-1.5" dir={dir}>
+        <div className="bg-navy-500/95 backdrop-blur-sm border-b border-white/8 px-3 sm:px-4 py-1.5" dir={dir}>
           <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto scrollbar-hide">
             <span className="text-white/30 text-xs font-semibold whitespace-nowrap shrink-0 uppercase tracking-wide">
               {t(lang, 'regionFilter')}

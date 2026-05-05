@@ -6,7 +6,7 @@ import Footer from '../components/layout/Footer';
 const REGION_COLORS = {
   Western: { dot: 'bg-brand-500', chip: 'bg-brand-500/15 text-brand-200 border-brand-400/40' },
   Central: { dot: 'bg-saudi-500', chip: 'bg-saudi-500/15 text-saudi-200 border-saudi-400/40' },
-  Eastern: { dot: 'bg-teal-500',  chip: 'bg-teal-500/15 text-teal-200 border-teal-400/40' },
+  Eastern: { dot: 'bg-orange-500', chip: 'bg-orange-500/15 text-orange-200 border-orange-400/40' },
 };
 
 export default function PublicResults({ teams, getTeamStatus, scores, lang, participations = [], categories = [], group2Matches = [] }) {
@@ -419,10 +419,10 @@ function FeaturedCategory({ featured, populatedCats, featuredIdx, setFeaturedIdx
 
         {/* Big winner spotlight */}
         {winner && (
-          <div className="mb-5 rounded-2xl bg-gradient-to-r from-amber-300/20 via-amber-200/10 to-transparent border border-amber-300/30 p-4 sm:p-5 flex items-center gap-4">
+          <div className="mb-5 rounded-2xl bg-gradient-to-r from-saudi-300/20 via-saudi-200/10 to-transparent border border-saudi-300/30 p-4 sm:p-5 flex items-center gap-4">
             <div className="text-5xl sm:text-6xl">🥇</div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-amber-200">{tx('Current Leader', 'المتصدر الحالي')}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-saudi-200">{tx('Current Leader', 'المتصدر الحالي')}</p>
               <p className="text-xl sm:text-3xl font-black truncate">{winner.teamName}</p>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {winner.region && <RegionChip region={winner.region} tx={tx} />}
@@ -430,7 +430,7 @@ function FeaturedCategory({ featured, populatedCats, featuredIdx, setFeaturedIdx
               </div>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-3xl sm:text-5xl font-black text-amber-300 tabular-nums">
+              <p className="text-3xl sm:text-5xl font-black text-saudi-300 tabular-nums">
                 {isFastBot ? `${winner.score.toFixed(2)}` : winner.rawScore}
               </p>
               <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
@@ -507,12 +507,12 @@ function CategoryCard({ cat, top5, isFastBot, tx }) {
           return (
             <div key={entry.scoreId}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
-                isWinner ? 'bg-amber-300/15 border-amber-300/30' : 'bg-white/5 border-white/10'
+                isWinner ? 'bg-saudi-300/15 border-saudi-300/30' : 'bg-white/5 border-white/10'
               }`}>
               <span className="text-base w-6 text-center shrink-0">{medal}</span>
               <span className={`flex-1 truncate text-sm ${isWinner ? 'font-black' : 'font-bold'}`}>{entry.teamName}</span>
               {entry.region && <span className={`w-2 h-2 rounded-full shrink-0 ${REGION_COLORS[entry.region]?.dot || 'bg-white/30'}`} />}
-              <span className={`tabular-nums shrink-0 text-sm ${isWinner ? 'font-black text-amber-300' : 'font-bold text-white/85'}`}>
+              <span className={`tabular-nums shrink-0 text-sm ${isWinner ? 'font-black text-saudi-300' : 'font-bold text-white/85'}`}>
                 {isFastBot ? `${entry.score.toFixed(2)}s` : entry.rawScore}
               </span>
             </div>
@@ -690,7 +690,7 @@ function TopTeams({ topTeams, tx }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-300 to-amber-600 flex items-center justify-center shadow">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-saudi-300 to-saudi-600 flex items-center justify-center shadow">
           <Medal size={20} className="text-white" />
         </div>
         <div>
@@ -713,7 +713,7 @@ function TopTeams({ topTeams, tx }) {
           <tbody>
             {topTeams.map((row, i) => {
               const isPodium = i < 3;
-              const rowAccent = i === 0 ? 'bg-amber-300/10 border-amber-300/30' : i === 1 ? 'bg-white/8 border-white/15' : i === 2 ? 'bg-orange-400/10 border-orange-400/20' : 'bg-white/[0.03] border-white/10';
+              const rowAccent = i === 0 ? 'bg-saudi-300/10 border-saudi-300/30' : i === 1 ? 'bg-white/8 border-white/15' : i === 2 ? 'bg-saudi-400/10 border-saudi-400/20' : 'bg-white/[0.03] border-white/10';
               return (
                 <tr key={row.team} className={`border ${rowAccent} rounded-xl`}>
                   <td className="px-3 py-2.5 font-black text-white/60">{i + 1}</td>
@@ -721,9 +721,9 @@ function TopTeams({ topTeams, tx }) {
                     <div className={`font-black ${isPodium ? 'text-base' : 'text-sm'} truncate`}>{row.team}</div>
                     {row.division && <div className="text-[10px] font-bold text-white/40 mt-0.5">{row.division}</div>}
                   </td>
-                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-amber-300">{row.gold || '·'}</td>
+                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-saudi-300">{row.gold || '·'}</td>
                   <td className="px-2 py-2.5 text-center font-black tabular-nums text-white/80">{row.silver || '·'}</td>
-                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-orange-300">{row.bronze || '·'}</td>
+                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-saudi-300">{row.bronze || '·'}</td>
                   <td className="px-3 py-2.5 text-end">
                     {row.region && (
                       <span className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2 py-0.5 rounded-full border ${REGION_COLORS[row.region]?.chip || 'bg-white/10 text-white/70 border-white/20'}`}>

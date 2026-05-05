@@ -42,7 +42,7 @@ export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }
     <div className="min-h-screen flex flex-col" dir={dir}>
       <div className="flex flex-1">
       {/* Left hero panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[55%] bg-gradient-to-br from-navy-500 via-[#0a2a3a] to-[#091f2e] p-12 relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-between w-[55%] bg-gradient-to-br from-navy-500 via-navy-500 to-navy-700 p-12 relative overflow-hidden">
         {/* Background decorative circles */}
         <div className="absolute top-[-80px] right-[-80px] w-96 h-96 rounded-full bg-teal-500/8 border border-teal-500/15" />
         <div className="absolute bottom-[-60px] left-[-60px] w-80 h-80 rounded-full bg-emerald-500/8 border border-emerald-500/15" />
@@ -111,7 +111,7 @@ export default function Login({ handleLogin, lang, onToggleLang, onEnterPublic }
           {/* Card */}
           <div className="bg-white rounded-2xl shadow-card border border-ink-100 overflow-hidden">
             {/* Card header */}
-            <div className="bg-gradient-to-br from-navy-500 to-[#0a2a3a] px-5 py-5 sm:px-8 sm:py-7 text-center">
+            <div className="bg-gradient-to-br from-navy-500 to-navy-500 px-5 py-5 sm:px-8 sm:py-7 text-center">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 mb-3">
                 <ShieldCheck className="text-emerald-300" size={28} />
               </div>

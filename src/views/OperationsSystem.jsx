@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet, X, Trash2, Shield, MapPin, UserPlus, Plus, QrCode } from 'lucide-react';
+import { Settings, CheckCircle2, Activity, Users, PlayCircle, Upload, Download, AlertTriangle, FileSpreadsheet, X, Trash2, Shield, MapPin, UserPlus, Plus, QrCode, LayoutDashboard, Sliders, Database } from 'lucide-react';
 import { CATEGORY_STYLES } from '../constants/mockData';
 import CollapsibleCard from '../components/ui/CollapsibleCard';
 import CustomSelect from '../components/ui/CustomSelect';
@@ -33,8 +33,8 @@ function RosterMobileCard({ team, confirmAttendance, lang, participations = [], 
   const handleSave = () => { confirmAttendance(team.id, draftCoach, draftMembers); setIsEditing(false); };
 
   const statusBadge = {
-    'No-Show': 'bg-ink-200 text-ink-600',
-    'Partially Arrived': 'bg-brand-100 text-brand-800',
+    'No-Show': 'bg-rose-100 text-rose-700',
+    'Partially Arrived': 'bg-orange-100 text-orange-800',
     'Fully Arrived': 'bg-saudi-100 text-saudi-800',
   };
 
@@ -121,8 +121,8 @@ function RosterRow({ team, confirmAttendance, lang, participations = [], categor
   const handleSave = () => { confirmAttendance(team.id, draftCoach, draftMembers); setIsEditing(false); };
 
   const statusBadge = {
-    'No-Show': 'bg-ink-200 text-ink-600',
-    'Partially Arrived': 'bg-brand-100 text-brand-800',
+    'No-Show': 'bg-rose-100 text-rose-700',
+    'Partially Arrived': 'bg-orange-100 text-orange-800',
     'Fully Arrived': 'bg-saudi-100 text-saudi-800',
   };
 
@@ -232,7 +232,7 @@ function AddTeamCard({ lang, categories, addTeam, defaultRegion = 'Western' }) {
       title={<><UserPlus size={18} className="text-brand-400 me-2" />{tx('Add Team Manually', 'إضافة فريق يدوياً')}</>}
       badge={tx('Admin Only', 'للمشرف فقط')}
       badgeColor="bg-brand-600"
-      headerClass="bg-[#061a27]"
+      headerClass="bg-navy-700"
     >
       <div className="p-5 space-y-5 bg-ink-50">
         <p className="text-sm text-ink-500">
@@ -456,7 +456,18 @@ export default function OperationsSystem({ scores, setScores, teams, participati
   const [rosterSearch, setRosterSearch] = useState('');
   const [usersOpen, setUsersOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
+  const isAdmin = currentUser?.role === 'admin';
+
+  // ─ Tab definitions (admin-gated tabs hidden for non-admin)
+  const TABS = [
+    { key: 'dashboard', label: lang === 'ar' ? 'نظرة عامة' : 'Dashboard', icon: LayoutDashboard, badge: pendingScores.length, badgeTone: 'orange' },
+    { key: 'teams',     label: lang === 'ar' ? 'الفرق'        : 'Teams',     icon: Users,           badge: teams.length,         badgeTone: 'neutral' },
+    isAdmin && { key: 'config',   label: lang === 'ar' ? 'الإعدادات'    : 'Settings',   icon: Sliders,          badge: null },
+    isAdmin && { key: 'accounts', label: lang === 'ar' ? 'الحسابات'     : 'Accounts',   icon: Shield,           badge: users.length, badgeTone: 'neutral' },
+    isAdmin && { key: 'output',   label: lang === 'ar' ? 'المخرجات'      : 'Output',     icon: Download,         badge: null },
+  ].filter(Boolean);
 
   // ─ Excel import state
   const fileInputRef = useRef(null);
@@ -522,8 +533,40 @@ export default function OperationsSystem({ scores, setScores, teams, participati
         <h2 className="text-xl font-black text-ink-800">{t(lang, 'operationsCmd')}</h2>
       </div>
 
+      {/* ─ Tab navigation */}
+      <div className="bg-white border border-ink-200 rounded-2xl shadow-sm overflow-x-auto">
+        <div className="flex items-center gap-1 p-1.5 min-w-max">
+          {TABS.map(tab => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.key;
+            const showBadge = tab.badge != null && tab.badge > 0;
+            const badgeCls = tab.badgeTone === 'orange'
+              ? (active ? 'bg-white/25 text-white' : 'bg-saudi-500 text-white')
+              : (active ? 'bg-white/25 text-white' : 'bg-ink-100 text-ink-600');
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap press-effect ${
+                  active ? 'bg-navy-700 text-white shadow-md' : 'text-ink-600 hover:bg-ink-50'
+                }`}
+              >
+                <Icon size={16} />
+                <span>{tab.label}</span>
+                {showBadge && (
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md min-w-[20px] text-center ${badgeCls}`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ─ Export Results — admin only */}
-      {currentUser?.role === 'admin' && (
+      {activeTab === 'output' && currentUser?.role === 'admin' && (
         <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-saudi-200 bg-saudi-50">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-saudi-500 text-white flex items-center justify-center shrink-0">
@@ -554,7 +597,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
           </button>
         </div>
       )}
-      {currentUser?.role === 'admin' && (
+      {activeTab === 'output' && currentUser?.role === 'admin' && (
         <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-rose-200 bg-rose-50">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0">
@@ -585,12 +628,12 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       )}
 
       {/* ─ Backup / Restore — admin only */}
-      {currentUser?.role === 'admin' && (
+      {activeTab === 'output' && currentUser?.role === 'admin' && (
         <BackupRestoreCard lang={lang} showToast={showToast} />
       )}
 
       {/* ─ QR Sheet — admin only */}
-      {currentUser?.role === 'admin' && (
+      {activeTab === 'output' && currentUser?.role === 'admin' && (
         <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-brand-200 bg-brand-50">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-brand-500 text-white flex items-center justify-center shrink-0">
@@ -622,12 +665,12 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       )}
 
       {/* ─ Import Team Data — admin only */}
-      {currentUser?.role === 'admin' && (
+      {activeTab === 'teams' && currentUser?.role === 'admin' && (
         <CollapsibleCard
           title={<><FileSpreadsheet size={18} className="text-saudi-400 me-2" />{lang === 'ar' ? 'استيراد بيانات الفرق (Excel)' : 'Import Team Data (Excel)'}</>}
           badge={lang === 'ar' ? `${teams.length} فريق` : `${teams.length} teams`}
           badgeColor="bg-saudi-600"
-          headerClass="bg-[#061a27]"
+          headerClass="bg-navy-700"
         >
           <div className="p-5 space-y-4">
 
@@ -706,7 +749,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                         : `${importResult.imported} teams parsed successfully`}
                     </p>
                     {importResult.warnings.length > 0 && (
-                      <p className="text-xs text-amber-700 font-semibold mt-0.5">
+                      <p className="text-xs text-saudi-700 font-semibold mt-0.5">
                         {importResult.warnings.length} {lang === 'ar' ? 'تحذير' : 'warning(s)'}
                       </p>
                     )}
@@ -715,14 +758,14 @@ export default function OperationsSystem({ scores, setScores, teams, participati
 
                 {/* Warnings */}
                 {importResult.warnings.length > 0 && (
-                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
+                  <div className="p-3.5 bg-saudi-50 border border-saudi-200 rounded-xl space-y-1">
                     {importResult.warnings.slice(0, 5).map((w, i) => (
-                      <p key={i} className="text-xs text-amber-700 font-semibold flex items-start gap-2">
+                      <p key={i} className="text-xs text-saudi-700 font-semibold flex items-start gap-2">
                         <AlertTriangle size={12} className="shrink-0 mt-0.5" /> {w}
                       </p>
                     ))}
                     {importResult.warnings.length > 5 && (
-                      <p className="text-xs text-amber-500 font-semibold">+{importResult.warnings.length - 5} more...</p>
+                      <p className="text-xs text-saudi-500 font-semibold">+{importResult.warnings.length - 5} more...</p>
                     )}
                   </div>
                 )}
@@ -775,9 +818,9 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                 </div>
 
                 {/* Warning about reset */}
-                <div className="flex items-start gap-2.5 p-3.5 bg-amber-50 border border-amber-300 rounded-xl">
-                  <AlertTriangle size={15} className="text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-800 font-semibold">
+                <div className="flex items-start gap-2.5 p-3.5 bg-saudi-50 border border-saudi-300 rounded-xl">
+                  <AlertTriangle size={15} className="text-saudi-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-saudi-800 font-semibold">
                     {lang === 'ar'
                       ? 'تحذير: سيؤدي الاستيراد إلى حذف جميع بيانات تسجيل الحضور والنتائج السابقة.'
                       : 'Warning: Importing will clear all existing check-in data and scores. This cannot be undone.'}
@@ -828,7 +871,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       )}
 
       {/* Add Team manually — admin only */}
-      {currentUser?.role === 'admin' && addTeam && (
+      {activeTab === 'teams' && currentUser?.role === 'admin' && addTeam && (
         <AddTeamCard
           lang={lang}
           categories={categories}
@@ -838,12 +881,12 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       )}
 
       {/* Configuration — admin only */}
-      {currentUser?.role === 'admin' && (
+      {activeTab === 'config' && currentUser?.role === 'admin' && (
         <CollapsibleCard
           title={<><Settings size={18} className="text-brand-400 me-2" />{t(lang, 'configParams')}</>}
           badge={t(lang, 'systemAdminOnly')}
           badgeColor="bg-brand-600"
-          headerClass="bg-[#061a27]"
+          headerClass="bg-navy-700"
         >
           <div className="p-5">
             <p className="text-sm text-ink-500 mb-5">{t(lang, 'configDesc')}</p>
@@ -968,11 +1011,12 @@ export default function OperationsSystem({ scores, setScores, teams, participati
       )}
 
       {/* Roster */}
+      {activeTab === 'teams' && (
       <CollapsibleCard
         title={<><CheckCircle2 size={18} className="me-2" />{t(lang, 'rosterTitle')}</>}
         badge={`${teams.length} ${t(lang, 'teamsRegistered')}`}
         badgeColor="bg-saudi-600"
-        headerClass="bg-[#061a27]"
+        headerClass="bg-navy-700"
       >
         <div className="p-5 bg-ink-50">
           <p className="text-sm text-ink-500 mb-4">{t(lang, 'rosterDesc')}</p>
@@ -1015,13 +1059,15 @@ export default function OperationsSystem({ scores, setScores, teams, participati
           )}
         </div>
       </CollapsibleCard>
+      )}
 
       {/* Score Approvals */}
+      {activeTab === 'dashboard' && (
       <CollapsibleCard
-        title={<><Activity size={18} className="text-orange-400 me-2" />{t(lang, 'scoreApprovals')}</>}
+        title={<><Activity size={18} className="text-saudi-400 me-2" />{t(lang, 'scoreApprovals')}</>}
         badge={`${pendingScores.length} ${t(lang, 'pending')}`}
-        badgeColor={pendingScores.length > 0 ? 'bg-orange-500' : 'bg-ink-500'}
-        headerClass="bg-[#061a27]"
+        badgeColor={pendingScores.length > 0 ? 'bg-saudi-500' : 'bg-ink-500'}
+        headerClass="bg-navy-700"
         defaultOpen={pendingScores.length > 0}
       >
         <div className="p-5">
@@ -1034,10 +1080,10 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                 const team = participation ? teams.find(tm => tm.id === participation.teamId) : null;
                 const teamDisplay = team ? team.name : score.pId;
                 return (
-                <div key={score.id} className="flex flex-col gap-3 p-4 border-2 border-amber-100 rounded-2xl bg-amber-50/50 hover:border-amber-200 transition-colors">
+                <div key={score.id} className="flex flex-col gap-3 p-4 border-2 border-saudi-100 rounded-2xl bg-saudi-50/50 hover:border-saudi-200 transition-colors">
                   <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
-                      <Activity size={16} className="text-amber-600" />
+                    <div className="w-9 h-9 rounded-xl bg-saudi-100 border border-saudi-200 flex items-center justify-center shrink-0">
+                      <Activity size={16} className="text-saudi-600" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-ink-800 text-sm">{teamDisplay}</p>
@@ -1048,9 +1094,9 @@ export default function OperationsSystem({ scores, setScores, teams, participati
                           <span className="font-black font-mono text-ink-700">{score.score}</span>
                         </div>
                         <span className="text-ink-300">→</span>
-                        <div className="flex items-center gap-1.5 bg-amber-100 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                          <span className="text-amber-600 font-medium">Proposed</span>
-                          <span className="font-black font-mono text-amber-800">{score.proposedScore ?? '—'}</span>
+                        <div className="flex items-center gap-1.5 bg-saudi-100 border border-saudi-200 rounded-lg px-2.5 py-1.5">
+                          <span className="text-saudi-600 font-medium">Proposed</span>
+                          <span className="font-black font-mono text-saudi-800">{score.proposedScore ?? '—'}</span>
                         </div>
                       </div>
                     </div>
@@ -1072,43 +1118,50 @@ export default function OperationsSystem({ scores, setScores, teams, participati
           )}
         </div>
       </CollapsibleCard>
+      )}
 
-      {/* Bottom utilities grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
-                <Users size={18} className="text-brand-600" />
+      {/* ─ Accounts tab — User Management + Audit Log */}
+      {activeTab === 'accounts' && currentUser?.role === 'admin' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+                  <Users size={18} className="text-brand-600" />
+                </div>
+                <h3 className="font-bold text-ink-800 text-sm truncate">{t(lang, 'userManagement')}</h3>
               </div>
-              <h3 className="font-bold text-ink-800 text-sm truncate">{t(lang, 'userManagement')}</h3>
+              <span className="text-[10px] font-black uppercase tracking-widest text-ink-400 shrink-0">{users.length}</span>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-ink-400 shrink-0">{users.length}</span>
+            <p className="text-xs text-ink-500 mb-4">{t(lang, 'userMgmtDesc')}</p>
+            <button onClick={() => setUsersOpen(true)} className="w-full border-2 border-dashed border-brand-300 text-brand-700 font-bold py-3 rounded-xl hover:bg-brand-50 text-sm transition-colors press-effect">
+              👥 {lang === 'ar' ? 'إدارة الموظفين والحكام' : 'Manage Staff & Referees'}
+            </button>
           </div>
-          <p className="text-xs text-ink-500 mb-4">{t(lang, 'userMgmtDesc')}</p>
-          <button onClick={() => setUsersOpen(true)} className="w-full border-2 border-dashed border-brand-300 text-brand-700 font-bold py-3 rounded-xl hover:bg-brand-50 text-sm transition-colors press-effect">
-            👥 {lang === 'ar' ? 'إدارة الموظفين والحكام' : 'Manage Staff & Referees'}
-          </button>
-        </div>
-        <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
-                <Activity size={18} className="text-amber-600" />
+          <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-saudi-50 border border-saudi-100 flex items-center justify-center shrink-0">
+                  <Activity size={18} className="text-saudi-600" />
+                </div>
+                <h3 className="font-bold text-ink-800 text-sm truncate">{lang === 'ar' ? 'سجل التدقيق' : 'Audit Log'}</h3>
               </div>
-              <h3 className="font-bold text-ink-800 text-sm truncate">{lang === 'ar' ? 'سجل التدقيق' : 'Audit Log'}</h3>
             </div>
+            <p className="text-xs text-ink-500 mb-4">{lang === 'ar' ? 'تتبّع كل عملية تسجيل/تعديل/حذف للنتائج والمستخدمين مع المُنفّذ والوقت.' : 'Track every score, user, and admin action with who-did-what timestamps.'}</p>
+            <button onClick={() => setAuditOpen(true)} className="w-full border-2 border-dashed border-saudi-300 text-saudi-700 font-bold py-3 rounded-xl hover:bg-saudi-50 text-sm transition-colors press-effect">
+              📜 {lang === 'ar' ? 'فتح السجل' : 'Open Audit Log'}
+            </button>
           </div>
-          <p className="text-xs text-ink-500 mb-4">{lang === 'ar' ? 'تتبّع كل عملية تسجيل/تعديل/حذف للنتائج والمستخدمين مع المُنفّذ والوقت.' : 'Track every score, user, and admin action with who-did-what timestamps.'}</p>
-          <button onClick={() => setAuditOpen(true)} className="w-full border-2 border-dashed border-amber-300 text-amber-700 font-bold py-3 rounded-xl hover:bg-amber-50 text-sm transition-colors press-effect">
-            📜 {lang === 'ar' ? 'فتح السجل' : 'Open Audit Log'}
-          </button>
         </div>
+      )}
+
+      {/* ─ Matchmaking — dashboard tab */}
+      {activeTab === 'dashboard' && currentUser?.role === 'admin' && (
         <div className="bg-white p-5 rounded-2xl border border-ink-200 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-[#061a27]/10 border border-ink-200 flex items-center justify-center shrink-0">
-                <PlayCircle size={18} className="text-[#061a27]" />
+              <div className="w-9 h-9 rounded-xl bg-navy-700/10 border border-ink-200 flex items-center justify-center shrink-0">
+                <PlayCircle size={18} className="text-navy-700" />
               </div>
               <h3 className="font-bold text-ink-800 text-sm truncate">{t(lang, 'matchmaking')}</h3>
             </div>
@@ -1120,14 +1173,14 @@ export default function OperationsSystem({ scores, setScores, teams, participati
           <button
             onClick={generateMatches}
             disabled={busyMatches}
-            className="w-full bg-gradient-to-r from-[#061a27] to-[#0d3549] hover:from-[#0a2a3a] hover:to-[#103a52] disabled:opacity-60 disabled:cursor-wait text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md press-effect"
+            className="w-full bg-gradient-to-r from-navy-700 to-navy-400 hover:from-navy-500 hover:to-navy-300 disabled:opacity-60 disabled:cursor-wait text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md press-effect"
           >
             🏆 {busyMatches
               ? (lang === 'ar' ? 'جارٍ التوليد…' : 'Generating…')
               : (lang === 'ar' ? 'توليد جداول الإقصائيات' : 'Generate Knockout Brackets')}
           </button>
         </div>
-      </div>
+      )}
 
       {usersOpen && (
         <UsersModal
@@ -1180,7 +1233,7 @@ function UsersModal({ users, addUser, deleteUser, categories, currentUser, lang,
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-sm animate-fade-in" dir={dir} onClick={onClose}>
       <div className="w-full max-w-3xl max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-ink-200 overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-ink-100 bg-gradient-to-r from-navy-500 to-[#0d3549] text-white">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-ink-100 bg-gradient-to-r from-navy-500 to-navy-400 text-white">
           <div className="flex items-center gap-2.5 min-w-0">
             <Users size={20} />
             <h3 className="font-black text-base truncate">{tx('Manage Staff & Referees', 'إدارة الموظفين والحكام')}</h3>

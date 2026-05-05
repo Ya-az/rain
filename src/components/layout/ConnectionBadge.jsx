@@ -44,7 +44,7 @@ export default function ConnectionBadge({ lang = 'en' }) {
     <button
       type="button"
       onClick={() => flushNow()}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-saudi-50 text-saudi-800 border border-saudi-200 hover:bg-saudi-100 transition-colors"
       title={tx('Some changes are still syncing. Click to retry now.', 'بعض التعديلات قيد المزامنة. اضغط لإعادة المحاولة.')}
     >
       <RefreshCw size={12} className="animate-spin" />

@@ -51,13 +51,13 @@ export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, di
     : `${timeLeft.toFixed(2)}s`;
 
   return (
-    <div className="bg-[#061a27] rounded-2xl overflow-hidden mb-4 text-white">
+    <div className="bg-navy-700 rounded-2xl overflow-hidden mb-4 text-white">
       {/* Label + time + buttons */}
       <div className="px-4 pt-3 pb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-bold text-ink-500 uppercase tracking-widest mb-1">{disableControls ? (lang === 'ar' ? 'إدخال يدوي' : 'Manual Entry') : (lang === 'ar' ? 'مؤقت نشط' : 'Active Timer')}</div>
           <div className={`text-4xl font-mono font-black tabular-nums leading-none ${
-            switchTimer !== null ? 'text-amber-400' : 'text-brand-400'
+            switchTimer !== null ? 'text-saudi-400' : 'text-brand-400'
           } ${isRunning ? 'animate-pulse' : ''}`}>
             {displayText}
           </div>
@@ -94,7 +94,7 @@ export default function PrecisionTimer({ initialSeconds, onStop, isSoccerBot, di
       {/* Progress bar */}
       <div className="h-1.5 bg-white/10">
         <div
-          className={`h-full transition-all duration-100 ${switchTimer !== null ? 'bg-amber-400' : 'bg-brand-500'}`}
+          className={`h-full transition-all duration-100 ${switchTimer !== null ? 'bg-saudi-400' : 'bg-brand-500'}`}
           style={{ width: `${(timeLeft / initialSeconds) * 100}%` }}
         />
       </div>
