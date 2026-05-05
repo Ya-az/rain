@@ -694,7 +694,7 @@ export default function OperationsSystem({ scores, setScores, teams, participati
           </div>
           <button
             onClick={() => {
-              try { printResultsPdf({ categories, participations, teams, scores, lang }); }
+              try { printResultsPdf({ categories, participations, teams, scores, group2Matches, lang }); }
               catch (err) {
                 console.error('pdf error', err);
                 if (showToast) showToast(lang === 'ar' ? 'فشل توليد PDF' : 'PDF failed', 'error');

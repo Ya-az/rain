@@ -1,107 +1,210 @@
 // Export tournament results to a multi-sheet .xlsx file.
-// Each category becomes a sheet with team standings (best score per team).
+// One sheet per category, plus a Summary sheet at the front.
+// - FastBot: best official time (lower = better)
+// - LineFollowing / a-Maze-ing: best official points (higher = better)
+// - Sumo: round-robin record (1pt per match win, no draw points)
+// - SoccerBot: round-robin record (3-1-0) + GF/GA/GD
+// - Group 3 (AI / Web / Gaming): total points across attempts
 import * as XLSX from 'xlsx';
 
-function getBestScore(participationId, scores, mode = 'min') {
+// ─── Score helpers ──────────────────────────────────────────────────────────
+
+const REGION_FULL = {
+  W: 'Western', C: 'Central', E: 'Eastern', F: 'FN',
+  Western: 'Western', Central: 'Central', Eastern: 'Eastern', FN: 'FN',
+};
+
+function bestOfficial(participationId, scores, mode) {
+  // Skip practice slots (P1, P2). Official slots are R1, R2, R3, R4.
   const vals = scores
-    .filter(s => s.pId === participationId && s.status === 'VALID')
-    .map(s => {
-      const v = typeof s.score === 'number' ? s.score : (s.score?.total ?? s.score?.value ?? null);
-      return Number.isFinite(Number(v)) ? Number(v) : null;
-    })
-    .filter(v => v !== null);
+    .filter(s => s.pId === participationId && s.status === 'VALID' && !['P1', 'P2'].includes(s.slotKey))
+    .map(s => Number(typeof s.score === 'number' ? s.score : parseFloat(s.score)))
+    .filter(v => Number.isFinite(v));
   if (vals.length === 0) return null;
   return mode === 'max' ? Math.max(...vals) : Math.min(...vals);
 }
 
-// Best score helper for matches (Sumo / Soccer): wins-losses-draws record.
+// Parse a match score string like "3 - 1" or "W - L (Forfeit)" into {a, b}.
+function parseMatchScore(scoreStr) {
+  const s = String(scoreStr || '').trim();
+  if (/forfeit/i.test(s)) {
+    if (/^w\s*-\s*l/i.test(s)) return { a: 1, b: 0, forfeit: true };
+    if (/^l\s*-\s*w/i.test(s)) return { a: 0, b: 1, forfeit: true };
+  }
+  const m = s.split('-').map(p => parseInt(p.trim(), 10));
+  return {
+    a: Number.isFinite(m[0]) ? m[0] : 0,
+    b: Number.isFinite(m[1]) ? m[1] : 0,
+    forfeit: false,
+  };
+}
+
 function buildMatchRecord(teamId, matches, scores) {
-  let wins = 0, losses = 0, draws = 0, played = 0;
+  let wins = 0, losses = 0, draws = 0, played = 0, gf = 0, ga = 0;
   matches.forEach(m => {
     if (!m.teamAId || !m.teamBId) return;
     if (m.teamAId !== teamId && m.teamBId !== teamId) return;
-    const matchScores = scores.filter(s => s.pId === m.id && s.status === 'VALID');
-    if (matchScores.length === 0) return;
+    const sc = scores.find(s => s.pId === m.id && s.status === 'VALID');
+    if (!sc) return;
+    const { a, b } = parseMatchScore(sc.score);
     played += 1;
-    // Use latest score
-    const latest = matchScores[matchScores.length - 1];
-    const sc = latest.score || {};
-    const a = sc.scoreA ?? sc.a ?? 0;
-    const b = sc.scoreB ?? sc.b ?? 0;
-    const isTeamA = m.teamAId === teamId;
-    const own = isTeamA ? a : b;
-    const opp = isTeamA ? b : a;
+    const isA = m.teamAId === teamId;
+    const own = isA ? a : b;
+    const opp = isA ? b : a;
+    gf += own; ga += opp;
     if (own > opp) wins += 1;
     else if (own < opp) losses += 1;
     else draws += 1;
   });
-  return { played, wins, losses, draws };
+  return { played, wins, losses, draws, gf, ga, gd: gf - ga };
 }
 
-function buildCategorySheet(category, participations, teams, scores, group2Matches) {
+// ─── Sheet builders ─────────────────────────────────────────────────────────
+
+function buildCategoryRows(category, participations, teams, scores, group2Matches) {
   const catParts = participations.filter(p => p.categoryId === category.id);
+  const catMatches = (group2Matches || []).filter(m => m.categoryId === category.id);
+
   const rows = catParts.map(p => {
     const team = teams.find(t => t.id === p.teamId);
     if (!team) return null;
     const base = {
-      'Participation ID': p.id,
-      'Team Name': team.name,
+      'Team Name': team.name || '',
       'Team Number': team.teamNumber || '',
-      'Region': team.region || '',
+      'Region': REGION_FULL[team.region] || team.region || '',
       'Division': team.division || '',
       'Coach': team.coach?.name || '',
+      'Participation ID': p.id,
     };
-    // FastBot or Line Following → best official slot score
+
     if (category.id === 'c1_fastbot') {
-      base['Best Score (sec)'] = getBestScore(p.id, scores, 'min') ?? '';
-    } else if (category.id === 'c1_linefollowing' || category.id === 'c1_amazeing') {
-      base['Best Score'] = getBestScore(p.id, scores, 'max') ?? '';
-    } else if (category.id === 'c2_sumo' || category.id === 'c2_soccerbot') {
-      const catMatches = group2Matches.filter(m => m.categoryId === category.id);
-      const rec = buildMatchRecord(p.teamId, catMatches, scores);
-      base['Played'] = rec.played;
-      base['Wins'] = rec.wins;
-      base['Losses'] = rec.losses;
-      base['Draws'] = rec.draws;
-      base['Points'] = rec.wins * 3 + rec.draws;
+      const best = bestOfficial(p.id, scores, 'min');
+      base['Best Time (s)'] = best != null ? Number(best.toFixed(2)) : '';
+      base.__sortKey = best != null ? best : Infinity;
+      base.__sortDir = 'asc';
+    } else if (category.id === 'c1_linefollow' || category.id === 'c1_amazeing') {
+      const best = bestOfficial(p.id, scores, 'max');
+      base['Best Score'] = best != null ? Math.round(best) : '';
+      base.__sortKey = best != null ? best : -Infinity;
+      base.__sortDir = 'desc';
+    } else if (category.id === 'c2_sumo') {
+      const r = buildMatchRecord(p.teamId, catMatches, scores);
+      base['Played'] = r.played;
+      base['Wins'] = r.wins;
+      base['Draws'] = r.draws;
+      base['Losses'] = r.losses;
+      // Sumo: 1 point per match win
+      base['Points'] = r.wins;
+      base.__sortKey = r.wins;
+      base.__sortDir = 'desc';
+    } else if (category.id === 'c2_soccer') {
+      const r = buildMatchRecord(p.teamId, catMatches, scores);
+      base['Played'] = r.played;
+      base['Wins'] = r.wins;
+      base['Draws'] = r.draws;
+      base['Losses'] = r.losses;
+      base['Goals For'] = r.gf;
+      base['Goals Against'] = r.ga;
+      base['Goal Diff'] = r.gd;
+      base['Points'] = r.wins * 3 + r.draws;
+      base.__sortKey = r.wins * 3 + r.draws;
+      base.__sortDir = 'desc';
     } else {
-      // Group 3 (AI / open) — total score across attempts
+      // Group 3 (AI / Web / Gaming) — total of attempts
       const partScores = scores.filter(s => s.pId === p.id && s.status === 'VALID');
       const total = partScores.reduce((sum, s) => {
-        const v = typeof s.score === 'number' ? s.score : (s.score?.total ?? 0);
-        return sum + (Number(v) || 0);
+        const v = typeof s.score === 'number' ? s.score : parseFloat(s.score);
+        return sum + (Number.isFinite(v) ? v : 0);
       }, 0);
       base['Attempts'] = partScores.length;
-      base['Total Score'] = total;
+      base['Total Score'] = Number(total.toFixed(2));
+      base.__sortKey = total;
+      base.__sortDir = 'desc';
     }
     return base;
   }).filter(Boolean);
-  // Sort: Group 2 by Points desc, others by Best Score desc
+
   if (rows.length > 0) {
-    if ('Points' in rows[0]) rows.sort((a, b) => (b.Points || 0) - (a.Points || 0));
-    else if ('Best Score' in rows[0]) rows.sort((a, b) => (Number(b['Best Score']) || -Infinity) - (Number(a['Best Score']) || -Infinity));
-    else if ('Total Score' in rows[0]) rows.sort((a, b) => (b['Total Score'] || 0) - (a['Total Score'] || 0));
+    const dir = rows[0].__sortDir;
+    rows.sort((a, b) => {
+      const av = a.__sortKey, bv = b.__sortKey;
+      if (av !== bv) return dir === 'asc' ? av - bv : bv - av;
+      if (category.id === 'c2_soccer') {
+        if ((b['Goal Diff'] || 0) !== (a['Goal Diff'] || 0)) return (b['Goal Diff'] || 0) - (a['Goal Diff'] || 0);
+        if ((b['Goals For'] || 0) !== (a['Goals For'] || 0)) return (b['Goals For'] || 0) - (a['Goals For'] || 0);
+      }
+      return String(a['Team Name']).localeCompare(String(b['Team Name']));
+    });
     rows.forEach((r, i) => { r.Rank = i + 1; });
   }
-  return rows;
+
+  return rows.map(({ __sortKey, __sortDir, Rank, ...rest }) => ({ Rank, ...rest }));
 }
+
+function autoFitColumns(rows) {
+  if (rows.length === 0) return [];
+  const keys = Object.keys(rows[0]);
+  return keys.map(k => {
+    const maxLen = Math.max(
+      String(k).length,
+      ...rows.map(r => String(r[k] ?? '').length),
+    );
+    return { wch: Math.min(Math.max(maxLen + 2, 8), 38) };
+  });
+}
+
+function styleSheet(ws, rows) {
+  if (rows.length === 0) return;
+  ws['!cols'] = autoFitColumns(rows);
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  if (ws['!ref']) ws['!autofilter'] = { ref: ws['!ref'] };
+}
+
+// ─── Public API ─────────────────────────────────────────────────────────────
 
 export function exportResultsToExcel({ categories, participations, teams, scores, group2Matches }) {
   const wb = XLSX.utils.book_new();
   const summary = [];
+  const usedNames = new Set();
+
   categories.forEach(cat => {
-    const rows = buildCategorySheet(cat, participations, teams, scores, group2Matches);
-    if (rows.length === 0) return;
-    const ordered = rows.map(({ Rank, ...rest }) => ({ Rank, ...rest }));
-    const ws = XLSX.utils.json_to_sheet(ordered);
-    const sheetName = cat.name.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || cat.id;
+    const rows = buildCategoryRows(cat, participations, teams, scores, group2Matches);
+    if (rows.length === 0) {
+      summary.push({ Category: cat.name, Group: cat.group, Teams: 0, 'Top Team': '—', 'Top Score': '—' });
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    styleSheet(ws, rows);
+
+    let sheetName = cat.name.replace(/[\\/?*[\]:]/g, '').slice(0, 31) || cat.id;
+    const baseName = sheetName;
+    let suffix = 2;
+    while (usedNames.has(sheetName)) {
+      sheetName = `${baseName.slice(0, 28)} (${suffix++})`;
+    }
+    usedNames.add(sheetName);
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    summary.push({ Category: cat.name, Teams: rows.length });
+
+    const top = rows[0];
+    const scoreField = ['Best Time (s)', 'Best Score', 'Points', 'Total Score'].find(k => k in top);
+    summary.push({
+      Category: cat.name,
+      Group: cat.group,
+      Teams: rows.length,
+      'Top Team': top['Team Name'],
+      'Top Score': scoreField ? top[scoreField] : '—',
+    });
   });
+
   if (summary.length > 0) {
     const sumWs = XLSX.utils.json_to_sheet(summary);
+    styleSheet(sumWs, summary);
     XLSX.utils.book_append_sheet(wb, sumWs, 'Summary');
+    wb.SheetNames = ['Summary', ...wb.SheetNames.filter(n => n !== 'Summary')];
   }
-  const stamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `roborave-results-${stamp}.xlsx`);
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+  XLSX.writeFile(wb, `RoboRAVE-2026-Results-${stamp}.xlsx`);
 }
