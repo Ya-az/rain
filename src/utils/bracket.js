@@ -53,14 +53,21 @@ function roundLabel(roundIndex, totalRounds) {
 // Build skeleton matches for one (categoryId, division) bracket.
 // `entries` is an array of { teamId, teamName, region }, already filtered to
 // checked-in teams. We Fisher-Yates shuffle them so seeds are random.
-export function buildBracketForDivision({ entries, categoryId, division, label }) {
+//
+// Options:
+//   • presorted: when true, skip shuffle (entries already in seed order).
+//   • idSuffix:  when provided, used in match IDs instead of Date.now()
+//                (gives deterministic, reload-stable IDs).
+export function buildBracketForDivision({ entries, categoryId, division, label, presorted = false, idSuffix = null }) {
   if (!entries || entries.length < 2) return [];
 
-  // Shuffle
+  // Shuffle (skip when caller provides presorted seed order)
   const shuffled = [...entries];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  if (!presorted) {
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
   }
 
   const bracketSize = nextPow2(shuffled.length);
@@ -71,8 +78,8 @@ export function buildBracketForDivision({ entries, categoryId, division, label }
   const slots = new Array(bracketSize).fill(null);
   shuffled.forEach((entry, idx) => { slots[idx] = entry; });
 
-  const ts = Date.now();
-  const mkId = (round, mi) => `bracket_${categoryId}_${division}_${round}_${mi}_${ts}`;
+  const suffix = idSuffix ?? String(Date.now());
+  const mkId = (round, mi) => `bracket_${categoryId}_${division}_${round}_${mi}_${suffix}`;
 
   const matches = [];
 
@@ -261,3 +268,4 @@ export function groupByRound(divisionMatches) {
       matches: list.sort((a, b) => a.matchIndex - b.matchIndex),
     }));
 }
+

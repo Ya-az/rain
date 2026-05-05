@@ -24,6 +24,11 @@ import {
   ScoringCard,
 } from '../scoring/ScoringCards';
 import { resolveBracket, groupBracketByDivision, groupByRound } from '../utils/bracket';
+import {
+  generateRoundRobinMatches,
+  getRrBuckets,
+  buildAutoBracketFromRR,
+} from '../utils/roundRobin';
 
 // Static class mapping for the slot grid so Tailwind JIT can pick them up.
 function slotGridClass(count) {
@@ -847,57 +852,6 @@ function Group2Workflow({ category, matches, scores, setScores, lang, showToast 
 
 // ─── Sumo Round-Robin helpers ────────────────────────────────────────────────
 
-function seededShuffle(arr, seed) {
-  const result = [...arr];
-  let s = seed;
-  for (let i = result.length - 1; i > 0; i--) {
-    s = (s * 9301 + 49297) % 233280;
-    const j = Math.floor((s / 233280) * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
-function generateRoundRobinMatches(teamEntries, categoryId, divisionTag, region) {
-  const seed = [...`${categoryId}_${divisionTag}_${region}`].reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const shuffled = seededShuffle(teamEntries, seed);
-  const rawMatches = [];
-  for (let i = 0; i < shuffled.length; i++) {
-    for (let j = i + 1; j < shuffled.length; j++) {
-      const a = shuffled[i];
-      const b = shuffled[j];
-      rawMatches.push({
-        id: `rr_${a.participationId}_vs_${b.participationId}`,
-        teamA: a.teamName,
-        teamB: b.teamName,
-        teamAId: a.participationId,
-        teamBId: b.participationId,
-        title: `${a.teamName} vs ${b.teamName}`,
-        categoryId,
-      });
-    }
-  }
-
-  // Reorder so no team plays two consecutive matches when possible.
-  // Greedy: at each step, prefer a match whose teams didn't play in the previous match.
-  const ordered = [];
-  const remaining = [...rawMatches];
-  let lastTeams = new Set();
-  while (remaining.length > 0) {
-    // Pick the first match that shares no team with the previous one.
-    let pickIdx = remaining.findIndex(m => !lastTeams.has(m.teamAId) && !lastTeams.has(m.teamBId));
-    // Fallback: if none, allow one shared team (only one team plays back-to-back).
-    if (pickIdx === -1) pickIdx = remaining.findIndex(m => !(lastTeams.has(m.teamAId) && lastTeams.has(m.teamBId)));
-    // Last fallback: just take the first remaining.
-    if (pickIdx === -1) pickIdx = 0;
-    const picked = remaining.splice(pickIdx, 1)[0];
-    ordered.push(picked);
-    lastTeams = new Set([picked.teamAId, picked.teamBId]);
-  }
-
-  return ordered;
-}
-
 function minutesToTimeString(totalMinutes) {
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
@@ -918,24 +872,7 @@ function buildTimeMap(matchesByRegion, regions) {
   return map;
 }
 
-// ─── Round-Robin buckets (FastBot-style grouping) ────────────────────────────
-// Default: Sumo & most categories use ES/MS together and HS/US together.
-// Per-category overrides allow split tables (e.g. Soccer: ES alone + MS/HS).
-const RR_BUCKETS_DEFAULT = [
-  { key: 'ES / MS', divs: ['ES', 'MS'] },
-  { key: 'HS / US', divs: ['HS', 'US'] },
-];
-const RR_BUCKETS_BY_CATEGORY = {
-  c2_soccer: [
-    { key: 'ES',      divs: ['ES'] },
-    { key: 'MS / HS', divs: ['MS', 'HS'] },
-  ],
-};
-function getRrBuckets(categoryId) {
-  return RR_BUCKETS_BY_CATEGORY[categoryId] || RR_BUCKETS_DEFAULT;
-}
-
-function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets = RR_BUCKETS_DEFAULT }) {
+function RoundRobinBucketsView({ categoryLabel, matchesByBucket, timeMap, scores, onSelectMatch, lang, accent = 'orange', buckets }) {
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
   const accentChip = accent === 'teal'
     ? 'bg-teal-50 border-teal-200 text-teal-700'
@@ -1111,7 +1048,7 @@ function BracketView({ matches, scores, onSelectMatch, lang, accent = 'orange', 
     return (
       <div className="text-center py-12 bg-ink-50 rounded-xl border-2 border-dashed border-ink-200">
         <p className="text-ink-500 font-bold text-sm">{tx('No bracket has been generated yet.', 'لم يتم توليد جدول الإقصائيات بعد.')}</p>
-        <p className="text-ink-400 text-xs mt-1">{tx('Ask the admin to generate brackets from Operations.', 'اطلب من الأدمن توليد الإقصائيات من شاشة العمليات.')}</p>
+        <p className="text-ink-400 text-xs mt-1">{tx('Finish the Round-Robin matches first — winners advance here automatically.', 'أكمل مباريات الدوري أولاً، الفائزون يتأهلون هنا تلقائياً.')}</p>
       </div>
     );
   }
@@ -1683,7 +1620,36 @@ function SumoWorkflow({ category, participations, teams, allTeams, scores, setSc
     () => group2Matches.filter(m => m.categoryId === category.id && m.bracket),
     [group2Matches, category.id],
   );
-  const bracketResolved = useMemo(() => resolveBracket(bracketRaw, scores), [bracketRaw, scores]);
+
+  // Auto-bracket from RR winners — used when the admin hasn't generated a
+  // Firestore bracket yet. Built per bucket once every region's RR finishes.
+  const autoBracket = useMemo(() => {
+    if (bracketRaw.length > 0) return [];
+    const out = [];
+    getRrBuckets(category.id).forEach(({ key, divs }) => {
+      const bucketEntries = teamEntries.filter(e => divs.includes(e.division));
+      const regions = [...new Set(bucketEntries.map(e => e.region))].sort();
+      const rrMatchesByRegion = {};
+      const entriesByRegion = {};
+      regions.forEach(r => {
+        entriesByRegion[r] = bucketEntries.filter(e => e.region === r);
+        rrMatchesByRegion[r] = (matchesByBucket[key] || {})[r] || [];
+      });
+      const built = buildAutoBracketFromRR({
+        rrMatchesByRegion,
+        entriesByRegion,
+        scores,
+        categoryId: category.id,
+        bucketKey: key,
+        label: 'Sumo',
+      });
+      out.push(...built);
+    });
+    return out;
+  }, [bracketRaw, teamEntries, matchesByBucket, scores, category.id]);
+
+  const effectiveBracket = bracketRaw.length > 0 ? bracketRaw : autoBracket;
+  const bracketResolved = useMemo(() => resolveBracket(effectiveBracket, scores), [effectiveBracket, scores]);
   const hasBracket = bracketResolved.length > 0;
 
   const selectedMatch =
@@ -1756,7 +1722,7 @@ function SumoWorkflow({ category, participations, teams, allTeams, scores, setSc
         )}
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
         <BracketView
-          matches={bracketRaw}
+          matches={effectiveBracket}
           scores={scores}
           onSelectMatch={setSelectedMatchId}
           lang={lang}
@@ -1861,7 +1827,35 @@ function SoccerWorkflow({ category, participations, teams, allTeams, scores, set
     () => group2Matches.filter(m => m.categoryId === category.id && m.bracket),
     [group2Matches, category.id],
   );
-  const bracketResolved = useMemo(() => resolveBracket(bracketRaw, scores), [bracketRaw, scores]);
+
+  // Auto-bracket from RR winners (used until admin generates a Firestore one).
+  const autoBracket = useMemo(() => {
+    if (bracketRaw.length > 0) return [];
+    const out = [];
+    getRrBuckets(category.id).forEach(({ key, divs }) => {
+      const bucketEntries = teamEntries.filter(e => divs.includes(e.division));
+      const regions = [...new Set(bucketEntries.map(e => e.region))].sort();
+      const rrMatchesByRegion = {};
+      const entriesByRegion = {};
+      regions.forEach(r => {
+        entriesByRegion[r] = bucketEntries.filter(e => e.region === r);
+        rrMatchesByRegion[r] = (matchesByBucket[key] || {})[r] || [];
+      });
+      const built = buildAutoBracketFromRR({
+        rrMatchesByRegion,
+        entriesByRegion,
+        scores,
+        categoryId: category.id,
+        bucketKey: key,
+        label: 'Soccer',
+      });
+      out.push(...built);
+    });
+    return out;
+  }, [bracketRaw, teamEntries, matchesByBucket, scores, category.id]);
+
+  const effectiveBracket = bracketRaw.length > 0 ? bracketRaw : autoBracket;
+  const bracketResolved = useMemo(() => resolveBracket(effectiveBracket, scores), [effectiveBracket, scores]);
   const hasBracket = bracketResolved.length > 0;
 
   const selectedMatch =
@@ -1936,7 +1930,7 @@ function SoccerWorkflow({ category, participations, teams, allTeams, scores, set
         )}
         <BracketModeToggle mode={mode} setMode={setMode} lang={lang} hasBracket={hasBracket} />
         <BracketView
-          matches={bracketRaw}
+          matches={effectiveBracket}
           scores={scores}
           onSelectMatch={setSelectedMatchId}
           lang={lang}
