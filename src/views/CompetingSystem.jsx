@@ -708,13 +708,14 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
     );
   }
 
-  // LineFollowing standings: best (lowest) time first; no-score → bottom; alphabetical tiebreak.
+  // LineFollowing standings: best (highest points) first; no-score → bottom; alphabetical tiebreak.
+  // (LineFollowing is points-based, max 400. Higher = better, NOT time.)
   const sortGroup1Rows = (rows) => {
     if (category.id !== 'c1_linefollow') return rows;
     return [...rows].sort((a, b) => {
-      const aVal = a.bestOfficialScore == null ? Infinity : Number(a.bestOfficialScore);
-      const bVal = b.bestOfficialScore == null ? Infinity : Number(b.bestOfficialScore);
-      if (aVal !== bVal) return aVal - bVal;
+      const aVal = a.bestOfficialScore == null ? -Infinity : Number(a.bestOfficialScore);
+      const bVal = b.bestOfficialScore == null ? -Infinity : Number(b.bestOfficialScore);
+      if (aVal !== bVal) return bVal - aVal; // descending
       return (a.teamName || '').localeCompare(b.teamName || '');
     });
   };
