@@ -241,7 +241,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 {lang === 'ar' ? '→ رجوع' : '← Back'}
               </button>
               <button
-                onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo: initialScoreObj?.rawInput?.photo || photo }); setFsmState('PENDING_ADMIN'); setEditMode(null); } }}
+                onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo: initialScoreObj?.rawInput?.photo || photo }); setFsmState('SUBMITTED'); setEditMode(null); } }}
                 className="flex-1 py-3 bg-saudi-500 hover:bg-saudi-600 active:bg-saudi-700 text-white font-bold rounded-xl text-sm transition-colors"
               >
                 {lang === 'ar' ? 'إرسال تعديل الفحص' : 'Submit Inspection Edit'}
@@ -338,7 +338,7 @@ export function FastBotAttemptCard({ title, categoryId, teamDivision, attemptNum
                 {lang === 'ar' ? '→ رجوع' : '← Back'}
               </button>
               <button
-                onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo }); setFsmState('PENDING_ADMIN'); setEditMode(null); } }}
+                onClick={() => { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.score, insp, { ...data, photo }); setFsmState('SUBMITTED'); setEditMode(null); } }}
                 className="flex-1 py-3.5 bg-saudi-500 hover:bg-saudi-600 active:bg-saudi-700 text-white font-bold rounded-xl text-sm transition-colors"
               >
                 {lang === 'ar' ? 'إرسال التعديل للموافقة' : 'Submit Edit for Approval'}
@@ -427,7 +427,7 @@ export function LineFollowingAttemptCard({ title, categoryId, teamDivision, atte
   const handleAction = () => {
     if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(res.final, insp, data); }
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
-    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, res.final, insp, data); setFsmState('PENDING_ADMIN'); } }
+    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, res.final, insp, data); setFsmState('SUBMITTED'); } }
   };
   // Scoring is ALWAYS available regardless of inspection status.
   const showScore = true;
@@ -533,7 +533,7 @@ export function AMazeIngAttemptCard({ title, categoryId, teamDivision, attemptNu
   const handleAction = () => {
     if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(finalScore, insp, data); }
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
-    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, finalScore, insp, data); setFsmState('PENDING_ADMIN'); } }
+    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, finalScore, insp, data); setFsmState('SUBMITTED'); } }
   };
   // Scoring is ALWAYS available regardless of inspection status.
   const showScore = true;
@@ -804,7 +804,7 @@ export function SoccerBotMatchCard({ title, match, categoryId, attemptNumber, in
   const handleAction = () => {
     if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(result.scoreStr, inspA, inspB, data); }
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
-    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.scoreStr, inspA, inspB, data); setFsmState('PENDING_ADMIN'); } }
+    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, result.scoreStr, inspA, inspB, data); setFsmState('SUBMITTED'); } }
   };
 
   // Scoring is ALWAYS available regardless of inspection status (req. #3).
@@ -933,7 +933,7 @@ export function ScoringCard({ title, initialScoreObj, onSaveScore, onEditRequest
   const handleAction = () => {
     if (fsmState === 'AWAITING_SUBMISSION') { if (onSaveScore) onSaveScore(scoreVal, { notes: inspNotes }); }
     else if (fsmState === 'SUBMITTED') { setFsmState('EDIT_REQUESTED'); }
-    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, scoreVal, { notes: inspNotes }); setFsmState('PENDING_ADMIN'); } }
+    else if (fsmState === 'EDIT_REQUESTED') { if (onEditRequest && initialScoreObj) { onEditRequest(initialScoreObj.id, scoreVal, { notes: inspNotes }); setFsmState('SUBMITTED'); } }
   };
 
   const inspectionTouched = (inspNotes || '').trim().length > 0;

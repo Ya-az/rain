@@ -543,14 +543,19 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
 
+  // Edits apply immediately and remain VALID — ref/admin can edit unlimited times.
   const onFastBotEditRequest = (scoreId, newScore, newInsp, newRaw) => {
     setScores(prev => prev.map(score => score.id === scoreId ? {
       ...score,
-      proposedScore: newScore,
-      proposedInspection: newInsp,
-      proposedRawInput: newRaw,
-      status: 'PENDING',
+      score: newScore,
+      inspectionData: newInsp,
+      rawInput: newRaw,
+      status: 'VALID',
+      proposedScore: undefined,
+      proposedInspection: undefined,
+      proposedRawInput: undefined,
     } : score));
+    if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
 
   // ─── Group1 slot effects & handlers ──────────────────────────────────────
@@ -597,11 +602,15 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
   const onGroup1EditRequest = (scoreId, newScore, newInsp, newRaw) => {
     setScores(prev => prev.map(score => score.id === scoreId ? {
       ...score,
-      proposedScore: newScore,
-      proposedInspection: newInsp,
-      proposedRawInput: newRaw,
-      status: 'PENDING',
+      score: newScore,
+      inspectionData: newInsp,
+      rawInput: newRaw,
+      status: 'VALID',
+      proposedScore: undefined,
+      proposedInspection: undefined,
+      proposedRawInput: undefined,
     } : score));
+    if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
 
   if (activeParticipations.length === 0) {
@@ -857,8 +866,20 @@ function Group2Workflow({ category, matches, scores, setScores, lang, showToast 
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
   const onEditRequest = (id, newScore, newInspA, newInspB, newRaw) => {
-    setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, proposedInspectionA: newInspA, proposedInspectionB: newInspB, proposedRawInput: newRaw, status: 'PENDING' } : s));
+    setScores(prev => prev.map(s => s.id === id ? {
+      ...s,
+      score: newScore,
+      inspectionA: newInspA,
+      inspectionB: newInspB,
+      rawInput: newRaw,
+      status: 'VALID',
+      proposedScore: undefined,
+      proposedInspectionA: undefined,
+      proposedInspectionB: undefined,
+      proposedRawInput: undefined,
+    } : s));
     setSelectedMatchId('');
+    if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
 
   return (
@@ -1889,8 +1910,20 @@ function SumoWorkflow({ category, participations, teams, allTeams, scores, setSc
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
   const handleEditRequest = (id, newScore, newInspA, newInspB, newRaw) => {
-    setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, proposedInspectionA: newInspA, proposedInspectionB: newInspB, proposedRawInput: newRaw, status: 'PENDING' } : s));
+    setScores(prev => prev.map(s => s.id === id ? {
+      ...s,
+      score: newScore,
+      inspectionA: newInspA,
+      inspectionB: newInspB,
+      rawInput: newRaw,
+      status: 'VALID',
+      proposedScore: undefined,
+      proposedInspectionA: undefined,
+      proposedInspectionB: undefined,
+      proposedRawInput: undefined,
+    } : s));
     setSelectedMatchId(null);
+    if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
 
   if (teamEntries.length === 0) {
@@ -2096,8 +2129,20 @@ function SoccerWorkflow({ category, participations, teams, allTeams, scores, set
     if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
   const handleEditRequest = (id, newScore, newInspA, newInspB, newRaw) => {
-    setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, proposedInspectionA: newInspA, proposedInspectionB: newInspB, proposedRawInput: newRaw, status: 'PENDING' } : s));
+    setScores(prev => prev.map(s => s.id === id ? {
+      ...s,
+      score: newScore,
+      inspectionA: newInspA,
+      inspectionB: newInspB,
+      rawInput: newRaw,
+      status: 'VALID',
+      proposedScore: undefined,
+      proposedInspectionA: undefined,
+      proposedInspectionB: undefined,
+      proposedRawInput: undefined,
+    } : s));
     setSelectedMatchId(null);
+    if (showToast) showToast(t(lang, 'toastScoreSubmit'));
   };
 
   if (teamEntries.length === 0) {
@@ -2326,8 +2371,9 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
               initialScoreObj={scoreObj}
               lang={lang}
               onEditRequest={(id, newScore) => {
-                setScores(prev => prev.map(s => s.id === id ? { ...s, proposedScore: newScore, status: 'PENDING' } : s));
+                setScores(prev => prev.map(s => s.id === id ? { ...s, score: newScore, status: 'VALID', proposedScore: undefined } : s));
                 setSelectedP('');
+                if (showToast) showToast(t(lang, 'toastScoreSubmit'));
               }} />
           ))}
           <ScoringCard title={`${t(lang, 'presentationAttempt')} ${existingScores.length + 1}: ${teamName}`}

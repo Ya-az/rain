@@ -314,7 +314,7 @@ const FN_ROSTER = [
   ['UQUxRAIC MT2', 'US', 'c2_sumo', 'د.م/ محمد إبراهيم بن ذالنون',
     ['hfd']],
   ['GRP', 'US', 'c2_sumo', 'د.م/ محمد إبراهيم بن ذالنون',
-    ['T']],
+    ['TBD']],
   ['UQUxRAIC (THESLUGGER)', 'HS', 'c2_sumo', 'د.م/ محمد إبراهيم بن ذالنون',
     ['صالح حسن عبد الله الصيعري']],
   ['jawatha fighters', 'HS', 'c2_sumo', 'حسن عبدالرحمن ابوفارس',
