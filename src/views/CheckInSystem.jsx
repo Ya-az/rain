@@ -204,15 +204,22 @@ function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participat
 }
 
 // ─── EditTeamModal (admin) ────────────────────────────────────────────────
+const DIVISION_OPTIONS = [
+  { value: 'ES', en: 'Elementary (ES)', ar: 'ابتدائي (ES)' },
+  { value: 'MS', en: 'Middle (MS)',     ar: 'متوسط (MS)' },
+  { value: 'HS', en: 'High (HS)',       ar: 'ثانوي (HS)' },
+  { value: 'US', en: 'University (US)', ar: 'جامعي (US)' },
+];
 function EditTeamModal({ team, lang, onSave, onClose }) {
   const [name, setName] = useState(team.name || '');
+  const [division, setDivision] = useState(team.division || 'ES');
   const [coachName, setCoachName] = useState(team.coach?.name || '');
   const [members, setMembers] = useState((team.members || []).map(m => ({ id: m.id, name: m.name, present: !!m.present })));
   const tx = (en, ar) => lang === 'ar' ? ar : en;
 
   const submit = () => {
     if (!name.trim()) return;
-    onSave({ name: name.trim(), coachName: coachName.trim(), members });
+    onSave({ name: name.trim(), division, coachName: coachName.trim(), members });
     onClose();
   };
 
@@ -232,6 +239,30 @@ function EditTeamModal({ team, lang, onSave, onClose }) {
             <label className="block text-xs font-black text-ink-500 uppercase tracking-wide mb-1.5">{tx('Team name', 'اسم الفريق')}</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)}
               className="w-full px-4 py-2.5 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm font-semibold" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black text-ink-500 uppercase tracking-wide mb-1.5">{tx('Division', 'الفئة')}</label>
+            <div className="grid grid-cols-4 gap-2">
+              {DIVISION_OPTIONS.map(opt => (
+                <button key={opt.value} type="button" onClick={() => setDivision(opt.value)}
+                  className={`px-2 py-2 rounded-xl border-2 text-xs font-black transition ${
+                    division === opt.value
+                      ? 'bg-brand-500 text-white border-brand-500 shadow'
+                      : 'bg-white text-ink-600 border-ink-200 hover:bg-ink-50'
+                  }`}>
+                  {tx(opt.en, opt.ar)}
+                </button>
+              ))}
+            </div>
+            {division !== team.division && (
+              <p className="text-[11px] text-amber-700 mt-1.5 font-semibold">
+                {tx(
+                  `⚠ Changing division from ${team.division} to ${division} affects brackets & schedules.`,
+                  `⚠ تغيير الفئة من ${team.division} إلى ${division} يؤثر على الجداول والمباريات.`
+                )}
+              </p>
+            )}
           </div>
 
           <div>

@@ -502,15 +502,20 @@ export default function App() {
   };
 
   // ─── Edit team profile (admin) ─────────────────────────────────────────
-  // Updates team display name, coach name, and members (rename/add/remove).
+  // Updates team display name, division, coach name, and members (rename/add/remove).
   // Preserves each existing member's `present` flag where the id matches.
   const updateTeamInfo = (teamId, patch) => {
     if (!teamId || !patch) return false;
     const existing = teams.find(t => t.id === teamId);
     if (!existing) return false;
+    const ALLOWED_DIVS = ['ES', 'MS', 'HS', 'US'];
+    const nextDivision = patch.division != null && ALLOWED_DIVS.includes(String(patch.division).toUpperCase())
+      ? String(patch.division).toUpperCase()
+      : null;
     const next = {
       ...existing,
       ...(patch.name != null ? { name: String(patch.name).trim() || existing.name } : {}),
+      ...(nextDivision ? { division: nextDivision } : {}),
       ...(patch.coachName != null ? { coach: { ...existing.coach, name: String(patch.coachName).trim() } } : {}),
       ...(Array.isArray(patch.members) ? { members: patch.members.map((m, i) => ({
         id: m.id || `${teamId}_m${i + 1}`,
@@ -520,7 +525,7 @@ export default function App() {
     };
     setTeams(prev => prev.map(t => t.id === teamId ? next : t));
     setDoc(doc(db, 'teams', teamId), next)
-      .then(() => logAudit({ user: currentUser, action: 'team.edit', target: `teams/${teamId}`, payload: { name: next.name, members: next.members.length } }))
+      .then(() => logAudit({ user: currentUser, action: 'team.edit', target: `teams/${teamId}`, payload: { name: next.name, division: next.division, members: next.members.length } }))
       .catch(err => reportError(lang === 'ar' ? 'تعديل الفريق' : 'edit team', err));
     showToast(lang === 'ar' ? `تم تحديث "${next.name}" ✓` : `Updated "${next.name}" ✓`);
     return true;
