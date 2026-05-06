@@ -47,19 +47,49 @@ export function generateRoundRobinMatches(teamEntries, categoryId, divisionTag, 
   const seed = [...`${categoryId}_${divisionTag}_${region}`].reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const shuffled = seededShuffle(teamEntries, seed);
   const rawMatches = [];
-  for (let i = 0; i < shuffled.length; i++) {
-    for (let j = i + 1; j < shuffled.length; j++) {
-      const a = shuffled[i];
-      const b = shuffled[j];
+
+  // SoccerBot: each team plays exactly 2 random matches (cycle pairing on the
+  // shuffled order). For N≥3 this gives N matches, every team with degree 2,
+  // no repeated opponents. N=2 → single match.
+  if (categoryId === 'c2_soccer') {
+    const n = shuffled.length;
+    if (n === 2) {
+      const [a, b] = shuffled;
       rawMatches.push({
         id: `rr_${a.participationId}_vs_${b.participationId}`,
-        teamA: a.teamName,
-        teamB: b.teamName,
-        teamAId: a.participationId,
-        teamBId: b.participationId,
+        teamA: a.teamName, teamB: b.teamName,
+        teamAId: a.participationId, teamBId: b.participationId,
         title: `${a.teamName} vs ${b.teamName}`,
         categoryId,
       });
+    } else if (n >= 3) {
+      for (let i = 0; i < n; i++) {
+        const a = shuffled[i];
+        const b = shuffled[(i + 1) % n];
+        rawMatches.push({
+          id: `rr_${a.participationId}_vs_${b.participationId}`,
+          teamA: a.teamName, teamB: b.teamName,
+          teamAId: a.participationId, teamBId: b.participationId,
+          title: `${a.teamName} vs ${b.teamName}`,
+          categoryId,
+        });
+      }
+    }
+  } else {
+    for (let i = 0; i < shuffled.length; i++) {
+      for (let j = i + 1; j < shuffled.length; j++) {
+        const a = shuffled[i];
+        const b = shuffled[j];
+        rawMatches.push({
+          id: `rr_${a.participationId}_vs_${b.participationId}`,
+          teamA: a.teamName,
+          teamB: b.teamName,
+          teamAId: a.participationId,
+          teamBId: b.participationId,
+          title: `${a.teamName} vs ${b.teamName}`,
+          categoryId,
+        });
+      }
     }
   }
   // Greedy reorder so the same team doesn't play back-to-back when avoidable.
