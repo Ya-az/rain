@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Search, CheckCircle2, Clock, XCircle, Camera, Copy, Check } from 'lucide-react';
+import { MapPin, Search, CheckCircle2, Clock, XCircle, Camera, Copy, Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { t } from '../constants/translations';
 import CustomSelect from '../components/ui/CustomSelect';
 import Toggle from '../components/ui/Toggle';
@@ -49,7 +49,7 @@ function CopyIdButton({ id, lang }) {
   );
 }
 
-function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participations, categories, lang, highlight }) {
+function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participations, categories, lang, highlight, isAdmin = false, onEditRequest }) {
   const [draftCoachPresent, setDraftCoachPresent] = useState(team.coach.present);
   const [draftMembers, setDraftMembers] = useState(team.members.map(m => ({ ...m })));
   const [collapsed, setCollapsed] = useState(true);
@@ -101,6 +101,18 @@ function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participat
 
   return (
     <div ref={cardRef} className={`rounded-2xl border-2 transition-all overflow-hidden shadow-card ${ss.border} ${ss.bg} ${highlight ? 'ring-4 ring-brand-400 ring-offset-2 animate-pulse' : ''}`}>
+      <div className="relative">
+        {isAdmin && onEditRequest && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onEditRequest(team); }}
+            title={lang === 'ar' ? 'تعديل بيانات الفريق' : 'Edit team info'}
+            className="absolute top-3 end-3 z-10 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/90 border border-ink-200 text-ink-600 hover:text-brand-700 hover:border-brand-400 hover:bg-brand-50 text-xs font-bold shadow-sm transition"
+          >
+            <Pencil size={12} />
+            {lang === 'ar' ? 'تعديل' : 'Edit'}
+          </button>
+        )}
       <button
         className="w-full flex items-center gap-3 p-4 text-start hover:bg-black/3 transition-colors"
         onClick={() => setCollapsed(c => !c)}
@@ -186,11 +198,93 @@ function TeamAttendanceCard({ team, getTeamStatus, confirmAttendance, participat
           </button>
         </div>
       </div>
+      </div>
     </div>
   );
 }
 
-export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance, participations, categories, lang }) {
+// ─── EditTeamModal (admin) ────────────────────────────────────────────────
+function EditTeamModal({ team, lang, onSave, onClose }) {
+  const [name, setName] = useState(team.name || '');
+  const [coachName, setCoachName] = useState(team.coach?.name || '');
+  const [members, setMembers] = useState((team.members || []).map(m => ({ id: m.id, name: m.name, present: !!m.present })));
+  const tx = (en, ar) => lang === 'ar' ? ar : en;
+
+  const submit = () => {
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), coachName: coachName.trim(), members });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-ink-100">
+          <div>
+            <h3 className="text-lg font-black text-ink-800">{tx('Edit Team', 'تعديل الفريق')}</h3>
+            <p className="text-xs text-ink-400 font-mono mt-0.5">{team.id}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-ink-100 text-ink-500"><X size={18} /></button>
+        </div>
+
+        <div className="p-5 space-y-4 overflow-y-auto">
+          <div>
+            <label className="block text-xs font-black text-ink-500 uppercase tracking-wide mb-1.5">{tx('Team name', 'اسم الفريق')}</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)}
+              className="w-full px-4 py-2.5 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm font-semibold" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black text-ink-500 uppercase tracking-wide mb-1.5">{tx('Coach name', 'اسم المدرب')}</label>
+            <input type="text" value={coachName} onChange={e => setCoachName(e.target.value)}
+              className="w-full px-4 py-2.5 border-2 border-ink-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-black text-ink-500 uppercase tracking-wide">{tx('Members', 'الأعضاء')} ({members.length})</label>
+              <button type="button" onClick={() => setMembers(prev => [...prev, { id: `${team.id}_m${Date.now()}`, name: '', present: false }])}
+                className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100">
+                <Plus size={12} /> {tx('Add member', 'إضافة عضو')}
+              </button>
+            </div>
+            <div className="space-y-2">
+              {members.map((m, idx) => (
+                <div key={m.id} className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono px-2 py-1 rounded bg-ink-100 text-ink-500 shrink-0">{idx + 1}</span>
+                  <input type="text" value={m.name} onChange={e => setMembers(prev => prev.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
+                    placeholder={tx('Member name', 'اسم العضو')}
+                    className="flex-1 px-3 py-2 border-2 border-ink-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm" />
+                  <button type="button" onClick={() => setMembers(prev => prev.filter((_, i) => i !== idx))}
+                    className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 border border-rose-200">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+              {members.length === 0 && (
+                <p className="text-xs text-ink-400 italic">{tx('No members yet.', 'لا يوجد أعضاء بعد.')}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-ink-100 bg-ink-50/50">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl border border-ink-200 bg-white text-sm font-bold text-ink-600 hover:bg-ink-100">
+            {tx('Cancel', 'إلغاء')}
+          </button>
+          <button onClick={submit} disabled={!name.trim()}
+            className="px-5 py-2 rounded-xl btn-primary text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+            {tx('Save changes', 'حفظ التغييرات')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance, participations, categories, lang, currentUser, updateTeamInfo }) {
+  const isAdmin = currentUser?.role === 'admin';
+  const [editingTeam, setEditingTeam] = useState(null);
   const [activeTab, setActiveTab] = useState('No-Show');
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
@@ -381,9 +475,20 @@ export default function CheckInSystem({ teams, getTeamStatus, confirmAttendance,
               categories={categories}
               lang={lang}
               highlight={highlightTeamId === team.id}
+              isAdmin={isAdmin}
+              onEditRequest={updateTeamInfo ? setEditingTeam : undefined}
             />
           ))}
         </div>
+      )}
+
+      {editingTeam && updateTeamInfo && (
+        <EditTeamModal
+          team={editingTeam}
+          lang={lang}
+          onSave={(patch) => updateTeamInfo(editingTeam.id, patch)}
+          onClose={() => setEditingTeam(null)}
+        />
       )}
 
       {scanError && (

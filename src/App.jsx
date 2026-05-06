@@ -491,6 +491,31 @@ export default function App() {
     showToast(t(lang, 'toastCheckIn'));
   };
 
+  // ─── Edit team profile (admin) ─────────────────────────────────────────
+  // Updates team display name, coach name, and members (rename/add/remove).
+  // Preserves each existing member's `present` flag where the id matches.
+  const updateTeamInfo = (teamId, patch) => {
+    if (!teamId || !patch) return false;
+    const existing = teams.find(t => t.id === teamId);
+    if (!existing) return false;
+    const next = {
+      ...existing,
+      ...(patch.name != null ? { name: String(patch.name).trim() || existing.name } : {}),
+      ...(patch.coachName != null ? { coach: { ...existing.coach, name: String(patch.coachName).trim() } } : {}),
+      ...(Array.isArray(patch.members) ? { members: patch.members.map((m, i) => ({
+        id: m.id || `${teamId}_m${i + 1}`,
+        name: String(m.name || '').trim(),
+        present: !!m.present,
+      })).filter(m => m.name) } : {}),
+    };
+    setTeams(prev => prev.map(t => t.id === teamId ? next : t));
+    setDoc(doc(db, 'teams', teamId), next)
+      .then(() => logAudit({ user: currentUser, action: 'team.edit', target: `teams/${teamId}`, payload: { name: next.name, members: next.members.length } }))
+      .catch(err => reportError(lang === 'ar' ? 'تعديل الفريق' : 'edit team', err));
+    showToast(lang === 'ar' ? `تم تحديث "${next.name}" ✓` : `Updated "${next.name}" ✓`);
+    return true;
+  };
+
   // ─── Import teams from Excel ──────────────────────────────────────────────
   // Opens a destructive type-to-confirm dialog; the actual write happens in
   // `runImport`. Returns Promise<boolean> (true on success, false on cancel).
@@ -1017,6 +1042,8 @@ export default function App() {
             participations={participations}
             categories={categories}
             lang={lang}
+            currentUser={currentUser}
+            updateTeamInfo={updateTeamInfo}
           />
         )}
         {currentView === 'competing' && allowedViews.includes('competing') && (
