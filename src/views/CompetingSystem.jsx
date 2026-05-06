@@ -2238,6 +2238,27 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
   const teamName = selectedP ? teams.find(tm => tm.id === activeParticipations.find(p => p.id === selectedP)?.teamId)?.name : '';
   const existingScores = scores.filter(s => s.pId === selectedP);
 
+  // For AI Innovation, present two grouped cards: US, then ES/MS.
+  const isAi = category.id === 'c3_ai';
+  const aiBuckets = isAi ? [
+    {
+      key: 'US',
+      title: lang === 'ar' ? 'الجامعي (US)' : 'University (US)',
+      rows: filteredParticipations.filter(p => {
+        const tm = teams.find(t => t.id === p.teamId);
+        return tm && tm.division === 'US';
+      }),
+    },
+    {
+      key: 'ES_MS',
+      title: lang === 'ar' ? 'الابتدائي / المتوسط (ES / MS)' : 'Elementary / Middle (ES / MS)',
+      rows: filteredParticipations.filter(p => {
+        const tm = teams.find(t => t.id === p.teamId);
+        return tm && (tm.division === 'ES' || tm.division === 'MS');
+      }),
+    },
+  ] : null;
+
   return (
     <div className="space-y-5">
       <div className="bg-brand-50 text-brand-800 p-4 rounded-xl border border-brand-200 flex items-center gap-2 text-sm font-semibold">
@@ -2254,13 +2275,46 @@ function Group3Workflow({ category, participations, teams, scores, setScores, la
           {category.levels.map(l => <option key={l} value={l}>{l}</option>)}
         </CustomSelect>
       </div>
-      <CustomSelect value={selectedP} onChange={e => setSelectedP(e.target.value)}>
-        <option value="">{t(lang, 'selectTeam')}</option>
-        {filteredParticipations.map(p => {
-          const tm = teams.find(tm => tm.id === p.teamId);
-          return <option key={p.id} value={p.id}>[{p.id}] — {tm?.name} ({tm?.division})</option>;
-        })}
-      </CustomSelect>
+      {isAi ? (
+        <div className="space-y-4">
+          {aiBuckets.map(({ key, title, rows }) => (
+            <CollapsibleCard key={key} title={title} badge={rows.length} badgeColor="bg-brand-500">
+              {rows.length === 0 ? (
+                <p className="text-center text-ink-400 text-sm py-6">{t(lang, 'noTeamsCheckedIn')}</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {rows.map(p => {
+                    const tm = teams.find(t => t.id === p.teamId);
+                    const isSelected = selectedP === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedP(isSelected ? '' : p.id)}
+                        className={`text-left px-3 py-2.5 rounded-lg border-2 transition-all text-sm font-medium ${
+                          isSelected
+                            ? 'bg-brand-500 text-white border-brand-600 shadow-md'
+                            : 'bg-white border-ink-200 hover:border-brand-400 text-ink-700'
+                        }`}
+                      >
+                        <div className="font-bold">{tm?.name}</div>
+                        <div className={`text-xs ${isSelected ? 'text-brand-100' : 'text-ink-500'}`}>[{p.id}] · {tm?.division}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </CollapsibleCard>
+          ))}
+        </div>
+      ) : (
+        <CustomSelect value={selectedP} onChange={e => setSelectedP(e.target.value)}>
+          <option value="">{t(lang, 'selectTeam')}</option>
+          {filteredParticipations.map(p => {
+            const tm = teams.find(tm => tm.id === p.teamId);
+            return <option key={p.id} value={p.id}>[{p.id}] — {tm?.name} ({tm?.division})</option>;
+          })}
+        </CustomSelect>
+      )}
 
       {selectedP && (
         <div key={`grp3_${selectedP}`} className="space-y-4 pt-4 border-t border-ink-200">
