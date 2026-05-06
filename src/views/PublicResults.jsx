@@ -10,9 +10,22 @@ const REGION_COLORS = {
   FN:      { dot: 'bg-teal-500',   chip: 'bg-teal-500/15 text-teal-200 border-teal-400/40' },
 };
 
-export default function PublicResults({ teams, getTeamStatus, scores, lang, participations = [], categories = [], group2Matches = [] }) {
+export default function PublicResults({ teams: rawTeams, getTeamStatus, scores: rawScores, lang, participations: rawParticipations = [], categories = [], group2Matches = [] }) {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
   const tx = (en, ar) => (lang === 'ar' ? ar : en);
+
+  // ─── World Finals lock ─────────────────────────────────────────────────
+  // Live Results is currently scoped to the World Finals roster only — every
+  // downstream computation (stats, leaderboards, ticker, medals) sees just
+  // FN-region teams and their scores.
+  const teams = useMemo(() => rawTeams.filter(t => t.region === 'FN'), [rawTeams]);
+  const fnTeamIds = useMemo(() => new Set(teams.map(t => t.id)), [teams]);
+  const participations = useMemo(
+    () => rawParticipations.filter(p => fnTeamIds.has(p.teamId)),
+    [rawParticipations, fnTeamIds]
+  );
+  const fnPartIds = useMemo(() => new Set(participations.map(p => p.id)), [participations]);
+  const scores = useMemo(() => rawScores.filter(s => fnPartIds.has(s.pId)), [rawScores, fnPartIds]);
 
   // ─── Live clock ────────────────────────────────────────────────────────
   const [now, setNow] = useState(() => new Date());
@@ -135,7 +148,17 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
     return () => clearTimeout(tid);
   }, [scores]);
 
-  // ─── Region medal counts (from #1 finishes) ─────────────────────────────
+  // ─── Division medal counts (from #1 finishes) — World Finals view ──────
+  const divisionMedals = useMemo(() => {
+    const tally = { ES: 0, MS: 0, HS: 0, US: 0 };
+    populatedCats.forEach(({ rows }) => {
+      const winner = rows[0];
+      if (winner?.division && tally[winner.division] != null) tally[winner.division]++;
+    });
+    return tally;
+  }, [populatedCats]);
+
+  // ─── Region medal counts (from #1 finishes) — kept for legacy callers ─
   const regionMedals = useMemo(() => {
     const tally = { Eastern: 0, Western: 0, Central: 0 };
     populatedCats.forEach(({ rows }) => {
@@ -165,7 +188,6 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
   }, [populatedCats]);
 
   // ─── Filters for grid ──────────────────────────────────────
-  const [filterRegion, setFilterRegion] = useState('All');
   const [filterDivision, setFilterDivision] = useState('All');
   const allDivisions = useMemo(() => {
     const set = new Set();
@@ -173,17 +195,14 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
     return [...set];
   }, [teams]);
   const filteredGrid = useMemo(() => {
-    if (filterRegion === 'All' && filterDivision === 'All') return populatedCats;
+    if (filterDivision === 'All') return populatedCats;
     return populatedCats
       .map(({ cat, isFastBot, rows }) => {
-        const filtered = rows.filter(r =>
-          (filterRegion === 'All' || r.region === filterRegion) &&
-          (filterDivision === 'All' || r.division === filterDivision)
-        );
+        const filtered = rows.filter(r => r.division === filterDivision);
         return { cat, isFastBot, rows: filtered, top5: filtered.slice(0, 5) };
       })
       .filter(c => c.top5.length > 0);
-  }, [populatedCats, filterRegion, filterDivision]);
+  }, [populatedCats, filterDivision]);
 
   // ─── Flash animation on new score arrival ────────────────────────────
   const [flashKey, setFlashKey] = useState(0);
@@ -251,8 +270,13 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
                 <Activity size={20} className="text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-2xl font-black leading-none truncate">{tx('Live Results', 'النتائج المباشرة')}</h1>
-                <p className="text-white/60 text-[11px] sm:text-sm font-medium mt-1 truncate">{tx('RoboRAVE Saudi Arabia 2026', 'روبوريف 2026 المملكة العربية السعودية')}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-2xl font-black leading-none truncate">{tx('Live Results', 'النتائج المباشرة')}</h1>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border" style={{ backgroundColor: 'rgba(20,184,166,0.18)', borderColor: 'rgba(45,212,191,0.5)', color: '#5eead4' }}>
+                    <Trophy size={11} /> {tx('World Finals', 'النهائيات العالمية')}
+                  </span>
+                </div>
+                <p className="text-white/60 text-[11px] sm:text-sm font-medium mt-1 truncate">{tx('FN Region · RoboRAVE Saudi Arabia 2026', 'منطقة النهائيات · روبوريف 2026 المملكة العربية السعودية')}</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
@@ -280,7 +304,7 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
             <HeroStat label={tx('Verified Scores', 'النتائج المعتمدة')} value={stats.valid} icon={<Zap size={18} />} gradient="linear-gradient(135deg, #63C132, #0B7A43)" />
             <HeroStat label={tx('Teams Checked In', 'الفرق الحاضرة')} value={`${stats.checkedIn}/${stats.total}`} icon={<Users size={18} />} gradient="linear-gradient(135deg, #4FA3A5, #0B7A43)" />
             <HeroStat label={tx('Categories Active', 'تصنيفات نشطة')} value={populatedCats.length} icon={<Trophy size={18} />} gradient="linear-gradient(135deg, #1DA1C9, #4FA3A5)" />
-            <HeroStat label={tx('Regions', 'المناطق')} value={stats.regions} icon={<MapPin size={18} />} gradient="linear-gradient(135deg, #1DA1C9, #0A2A3A)" />
+            <HeroStat label={tx('Finals Teams', 'فرق النهائيات')} value={stats.total} icon={<Medal size={18} />} gradient="linear-gradient(135deg, #14b8a6, #0A2A3A)" />
           </div>
         </div>
       </section>
@@ -314,7 +338,6 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
             <div className="flex items-end justify-between gap-3 mb-4 flex-wrap">
               <SectionHeader inline title={tx('All Category Standings', 'الترتيب لجميع التصنيفات')} subtitle={tx('Top performers across every event', 'أفضل المتنافسين في كل تصنيف')} />
               <Filters
-                filterRegion={filterRegion} setFilterRegion={setFilterRegion}
                 filterDivision={filterDivision} setFilterDivision={setFilterDivision}
                 divisions={allDivisions} tx={tx}
               />
@@ -333,9 +356,9 @@ export default function PublicResults({ teams, getTeamStatus, scores, lang, part
           </section>
         )}
 
-        {/* Region medal board + Recent results */}
+        {/* Division medal board + Recent results */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <RegionBoard tally={regionMedals} tx={tx} />
+          <DivisionBoard tally={divisionMedals} tx={tx} />
           <RecentResults recent={recent} tx={tx} lang={lang} pulseIds={pulseIds} />
         </div>
       </main>
@@ -560,6 +583,42 @@ function RegionBoard({ tally, tx }) {
   );
 }
 
+// ─── Division medal board (World Finals) ───────────────────────────────────
+function DivisionBoard({ tally, tx }) {
+  const total = Object.values(tally).reduce((a, b) => a + b, 0);
+  const DIV_META = {
+    ES: { label: tx('Elementary (ES)', 'الابتدائي (ES)'),  bar: 'bg-gradient-to-r from-emerald-400 to-emerald-600', dot: 'bg-emerald-400' },
+    MS: { label: tx('Middle (MS)',     'المتوسط (MS)'),    bar: 'bg-gradient-to-r from-sky-400 to-sky-600',         dot: 'bg-sky-400' },
+    HS: { label: tx('High (HS)',       'الثانوي (HS)'),    bar: 'bg-gradient-to-r from-amber-400 to-orange-500',    dot: 'bg-amber-400' },
+    US: { label: tx('University (US)', 'الجامعي (US)'),    bar: 'bg-gradient-to-r from-fuchsia-400 to-purple-600',  dot: 'bg-fuchsia-400' },
+  };
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5">
+      <SectionHeader inline title={tx('Divisions Leading', 'تصدر الفئات')} subtitle={tx('Categories where each division holds #1', 'عدد التصنيفات المتصدرة لكل فئة')} />
+      <div className="space-y-3 mt-4">
+        {Object.entries(tally).map(([div, count]) => {
+          const meta = DIV_META[div];
+          const pct = total > 0 ? (count / total) * 100 : 0;
+          return (
+            <div key={div}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${meta.dot}`} />
+                  <span className="font-black text-sm">{meta.label}</span>
+                </div>
+                <span className="font-black tabular-nums">🏆 {count}</span>
+              </div>
+              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                <div className={`h-full ${meta.bar} transition-all duration-700`} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Recent results feed ───────────────────────────────────────────────────
 function formatAgo(ts, lang) {
   if (!ts) return '';
@@ -657,34 +716,21 @@ function EmptyState({ tx }) {
 }
 
 // ─── Filters bar ───────────────────────────────────────────────────────────
-function Filters({ filterRegion, setFilterRegion, filterDivision, setFilterDivision, divisions, tx }) {
-  const REGIONS = [
-    { val: 'All', label: tx('All Regions', 'كل المناطق') },
-    { val: 'Eastern', label: tx('Eastern', 'الشرقية') },
-    { val: 'Western', label: tx('Western', 'الغربية') },
-    { val: 'Central', label: tx('Central', 'الوسطى') },
-    { val: 'FN',      label: tx('Finals', 'النهائيات العالمية') },
-  ];
+// Region filter is hidden in World Finals mode — only one region exists.
+function Filters({ filterDivision, setFilterDivision, divisions, tx }) {
   const baseBtn = 'px-3 py-1.5 rounded-lg text-[11px] font-black border transition whitespace-nowrap';
   const active = 'bg-white text-[#03101b] border-white';
   const idle = 'bg-white/5 text-white/70 border-white/15 hover:bg-white/10';
+  if (divisions.length <= 1) return null;
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Filter size={14} className="text-white/40" />
       <div className="flex items-center gap-1 flex-wrap">
-        {REGIONS.map(r => (
-          <button key={r.val} onClick={() => setFilterRegion(r.val)} className={`${baseBtn} ${filterRegion === r.val ? active : idle}`}>{r.label}</button>
+        <button onClick={() => setFilterDivision('All')} className={`${baseBtn} ${filterDivision === 'All' ? active : idle}`}>{tx('All Divisions', 'كل الفئات')}</button>
+        {divisions.map(d => (
+          <button key={d} onClick={() => setFilterDivision(d)} className={`${baseBtn} ${filterDivision === d ? active : idle}`}>{d}</button>
         ))}
       </div>
-      {divisions.length > 1 && (
-        <div className="flex items-center gap-1 flex-wrap">
-          <span className="w-px h-5 bg-white/15 mx-1" />
-          <button onClick={() => setFilterDivision('All')} className={`${baseBtn} ${filterDivision === 'All' ? active : idle}`}>{tx('All Divisions', 'كل الفئات')}</button>
-          {divisions.map(d => (
-            <button key={d} onClick={() => setFilterDivision(d)} className={`${baseBtn} ${filterDivision === d ? active : idle}`}>{d}</button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
