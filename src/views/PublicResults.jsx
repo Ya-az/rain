@@ -3,11 +3,21 @@ import { Trophy, Activity, Users, MapPin, Zap, ChevronLeft, ChevronRight, Maximi
 import { CATEGORY_STYLES } from '../constants/mockData';
 import Footer from '../components/layout/Footer';
 
+// Region accents — only FN matters in World Finals view; others kept for fallback.
 const REGION_COLORS = {
-  Western: { dot: 'bg-brand-500', chip: 'bg-brand-500/15 text-brand-200 border-brand-400/40' },
-  Central: { dot: 'bg-saudi-500', chip: 'bg-saudi-500/15 text-saudi-200 border-saudi-400/40' },
-  Eastern: { dot: 'bg-orange-500', chip: 'bg-orange-500/15 text-orange-200 border-orange-400/40' },
-  FN:      { dot: 'bg-teal-500',   chip: 'bg-teal-500/15 text-teal-200 border-teal-400/40' },
+  Western: { dot: 'bg-cyan-500',     chip: 'bg-cyan-500/15 text-cyan-200 border-cyan-400/40' },
+  Central: { dot: 'bg-emerald-500',  chip: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/40' },
+  Eastern: { dot: 'bg-lime-500',     chip: 'bg-lime-500/15 text-lime-200 border-lime-400/40' },
+  FN:      { dot: 'bg-teal-500',     chip: 'bg-teal-500/15 text-teal-200 border-teal-400/40' },
+};
+
+// Palette tokens — single source of truth so the page stays on-brand.
+const PALETTE = {
+  emerald: '#0B7A43',  // deep emerald
+  lime:    '#63C132',  // bright lime
+  teal:    '#4FA3A5',  // teal
+  navy:    '#0A2A3A',  // dark navy
+  cyan:    '#1DA1C9',  // cyan blue
 };
 
 export default function PublicResults({ teams: rawTeams, getTeamStatus, scores: rawScores, lang, participations: rawParticipations = [], categories = [], group2Matches = [] }) {
@@ -443,10 +453,10 @@ function FeaturedCategory({ featured, populatedCats, featuredIdx, setFeaturedIdx
 
         {/* Big winner spotlight */}
         {winner && (
-          <div className="mb-5 rounded-2xl bg-gradient-to-r from-saudi-300/20 via-saudi-200/10 to-transparent border border-saudi-300/30 p-4 sm:p-5 flex items-center gap-4">
+          <div className="mb-5 rounded-2xl bg-gradient-to-r from-lime-500/20 via-lime-400/10 to-transparent border border-lime-400/40 p-4 sm:p-5 flex items-center gap-4">
             <div className="text-5xl sm:text-6xl">🥇</div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-saudi-200">{tx('Current Leader', 'المتصدر الحالي')}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-lime-200">{tx('Current Leader', 'المتصدر الحالي')}</p>
               <p className="text-xl sm:text-3xl font-black truncate">{winner.teamName}</p>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {winner.region && <RegionChip region={winner.region} tx={tx} />}
@@ -454,7 +464,7 @@ function FeaturedCategory({ featured, populatedCats, featuredIdx, setFeaturedIdx
               </div>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-3xl sm:text-5xl font-black text-saudi-300 tabular-nums">
+              <p className="text-3xl sm:text-5xl font-black tabular-nums" style={{ color: '#aae854' }}>
                 {isFastBot ? `${winner.score.toFixed(2)}` : winner.rawScore}
               </p>
               <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
@@ -531,12 +541,13 @@ function CategoryCard({ cat, top5, isFastBot, tx }) {
           return (
             <div key={entry.scoreId}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
-                isWinner ? 'bg-saudi-300/15 border-saudi-300/30' : 'bg-white/5 border-white/10'
+                isWinner ? 'bg-lime-500/15 border-lime-400/40' : 'bg-white/5 border-white/10'
               }`}>
               <span className="text-base w-6 text-center shrink-0">{medal}</span>
               <span className={`flex-1 truncate text-sm ${isWinner ? 'font-black' : 'font-bold'}`}>{entry.teamName}</span>
               {entry.region && <span className={`w-2 h-2 rounded-full shrink-0 ${REGION_COLORS[entry.region]?.dot || 'bg-white/30'}`} />}
-              <span className={`tabular-nums shrink-0 text-sm ${isWinner ? 'font-black text-saudi-300' : 'font-bold text-white/85'}`}>
+              <span className={`tabular-nums shrink-0 text-sm ${isWinner ? 'font-black' : 'font-bold text-white/85'}`}
+                style={isWinner ? { color: '#aae854' } : undefined}>
                 {isFastBot ? `${entry.score.toFixed(2)}s` : entry.rawScore}
               </span>
             </div>
@@ -587,10 +598,10 @@ function RegionBoard({ tally, tx }) {
 function DivisionBoard({ tally, tx }) {
   const total = Object.values(tally).reduce((a, b) => a + b, 0);
   const DIV_META = {
-    ES: { label: tx('Elementary (ES)', 'الابتدائي (ES)'),  bar: 'bg-gradient-to-r from-emerald-400 to-emerald-600', dot: 'bg-emerald-400' },
-    MS: { label: tx('Middle (MS)',     'المتوسط (MS)'),    bar: 'bg-gradient-to-r from-sky-400 to-sky-600',         dot: 'bg-sky-400' },
-    HS: { label: tx('High (HS)',       'الثانوي (HS)'),    bar: 'bg-gradient-to-r from-amber-400 to-orange-500',    dot: 'bg-amber-400' },
-    US: { label: tx('University (US)', 'الجامعي (US)'),    bar: 'bg-gradient-to-r from-fuchsia-400 to-purple-600',  dot: 'bg-fuchsia-400' },
+    ES: { label: tx('Elementary (ES)', 'الابتدائي (ES)'),  bar: 'bg-gradient-to-r from-lime-400 to-emerald-600',    dot: 'bg-lime-400' },
+    MS: { label: tx('Middle (MS)',     'المتوسط (MS)'),    bar: 'bg-gradient-to-r from-cyan-400 to-cyan-600',        dot: 'bg-cyan-400' },
+    HS: { label: tx('High (HS)',       'الثانوي (HS)'),    bar: 'bg-gradient-to-r from-teal-400 to-teal-600',        dot: 'bg-teal-400' },
+    US: { label: tx('University (US)', 'الجامعي (US)'),    bar: 'bg-gradient-to-r from-emerald-500 to-emerald-800',  dot: 'bg-emerald-500' },
   };
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5">
@@ -649,7 +660,7 @@ function RecentResults({ recent, tx, lang, pulseIds }) {
                 key={r.id}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
                   isFresh
-                    ? 'bg-saudi-500/20 border-saudi-400/60 ring-2 ring-saudi-400/40 animate-pulse shadow-lg shadow-saudi-500/30'
+                    ? 'bg-lime-500/20 border-lime-400/60 ring-2 ring-lime-400/40 animate-pulse shadow-lg shadow-lime-500/30'
                     : 'bg-white/5 border-white/10'
                 }`}
               >
@@ -665,7 +676,7 @@ function RecentResults({ recent, tx, lang, pulseIds }) {
                   </p>
                 </div>
                 {r.region && <span className={`w-2 h-2 rounded-full shrink-0 ${REGION_COLORS[r.region]?.dot || 'bg-white/30'}`} />}
-                <span className="font-black tabular-nums text-saudi-300 shrink-0">{r.score}</span>
+                <span className="font-black tabular-nums shrink-0" style={{ color: '#aae854' }}>{r.score}</span>
               </div>
             );
           })}
@@ -740,7 +751,7 @@ function TopTeams({ topTeams, tx }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-saudi-300 to-saudi-600 flex items-center justify-center shadow">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow" style={{ background: 'linear-gradient(135deg, #1DA1C9, #0B7A43)' }}>
           <Medal size={20} className="text-white" />
         </div>
         <div>
@@ -763,7 +774,7 @@ function TopTeams({ topTeams, tx }) {
           <tbody>
             {topTeams.map((row, i) => {
               const isPodium = i < 3;
-              const rowAccent = i === 0 ? 'bg-saudi-300/10 border-saudi-300/30' : i === 1 ? 'bg-white/8 border-white/15' : i === 2 ? 'bg-saudi-400/10 border-saudi-400/20' : 'bg-white/[0.03] border-white/10';
+              const rowAccent = i === 0 ? 'bg-lime-400/15 border-lime-400/40' : i === 1 ? 'bg-cyan-400/10 border-cyan-400/25' : i === 2 ? 'bg-teal-400/10 border-teal-400/25' : 'bg-white/[0.03] border-white/10';
               return (
                 <tr key={row.team} className={`border ${rowAccent} rounded-xl`}>
                   <td className="px-3 py-2.5 font-black text-white/60">{i + 1}</td>
@@ -771,9 +782,9 @@ function TopTeams({ topTeams, tx }) {
                     <div className={`font-black ${isPodium ? 'text-base' : 'text-sm'} truncate`}>{row.team}</div>
                     {row.division && <div className="text-[10px] font-bold text-white/40 mt-0.5">{row.division}</div>}
                   </td>
-                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-saudi-300">{row.gold || '·'}</td>
+                  <td className="px-2 py-2.5 text-center font-black tabular-nums" style={{ color: '#aae854' }}>{row.gold || '·'}</td>
                   <td className="px-2 py-2.5 text-center font-black tabular-nums text-white/80">{row.silver || '·'}</td>
-                  <td className="px-2 py-2.5 text-center font-black tabular-nums text-saudi-300">{row.bronze || '·'}</td>
+                  <td className="px-2 py-2.5 text-center font-black tabular-nums" style={{ color: '#5eead4' }}>{row.bronze || '·'}</td>
                   <td className="px-3 py-2.5 text-end">
                     {row.region && (
                       <span className={`inline-flex items-center gap-1.5 text-[10px] font-black px-2 py-0.5 rounded-full border ${REGION_COLORS[row.region]?.chip || 'bg-white/10 text-white/70 border-white/20'}`}>
@@ -804,8 +815,9 @@ function FlashOverlay({ active, tx }) {
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-[60] pointer-events-none">
-      <div className="absolute inset-0 bg-saudi-400/15 animate-fadein-out" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 rounded-2xl bg-saudi-500 text-white font-black text-lg sm:text-2xl shadow-2xl border-4 border-white/30 animate-pop">
+      <div className="absolute inset-0 animate-fadein-out" style={{ backgroundColor: 'rgba(99, 193, 50, 0.18)' }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-3 rounded-2xl text-white font-black text-lg sm:text-2xl shadow-2xl border-4 border-white/30 animate-pop"
+        style={{ background: 'linear-gradient(135deg, #63C132, #0B7A43)' }}>
         ✨ {tx('NEW SCORE!', 'نتيجة جديدة!')}
       </div>
     </div>
