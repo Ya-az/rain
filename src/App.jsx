@@ -627,7 +627,7 @@ export default function App() {
     logAudit({ user: currentUser, action: 'matches.regenerate', target: 'group2Matches' });
     const SOCCER_BUCKETS = [
       { key: 'ES / MS', divs: ['ES', 'MS'] },
-      { key: 'HS / US', divs: ['HS', 'US'] },
+      { key: 'HS',      divs: ['HS'] },
     ];
     // Sumo runs each division as its own standalone bracket (ES, MS, HS, US).
     const SUMO_BUCKETS = [

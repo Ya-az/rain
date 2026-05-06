@@ -17,8 +17,8 @@ export const RR_BUCKETS_DEFAULT = [
 ];
 export const RR_BUCKETS_BY_CATEGORY = {
   c2_soccer: [
-    { key: 'ES',      divs: ['ES'] },
-    { key: 'MS / HS', divs: ['MS', 'HS'] },
+    { key: 'ES / MS', divs: ['ES', 'MS'] },
+    { key: 'HS',      divs: ['HS'] },
   ],
   c2_sumo: [
     { key: 'ES',      divs: ['ES'] },
