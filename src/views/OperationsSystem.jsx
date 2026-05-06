@@ -1675,6 +1675,7 @@ function UsersModal({ users, addUser, deleteUser, categories, currentUser, lang,
                 <option value="Western">{tx('Western', 'الغربية')}</option>
                 <option value="Central">{tx('Central', 'الوسطى')}</option>
                 <option value="Eastern">{tx('Eastern', 'الشرقية')}</option>
+                <option value="FN">{tx('World Finals (FN)', 'النهائيات العالمية (FN)')}</option>
               </CustomSelect>
             </div>
             {role === 'ref' && (
