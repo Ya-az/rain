@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
-import { MOCK_USERS, MOCK_CATEGORIES, INITIAL_TEAMS, INITIAL_PARTICIPATIONS, DEFAULT_SYSTEM_CONFIG } from './constants/mockData';
+import { MOCK_USERS, MOCK_CATEGORIES, INITIAL_TEAMS, INITIAL_PARTICIPATIONS, DEFAULT_SYSTEM_CONFIG, STALE_FN_TEAM_IDS, STALE_FN_PARTICIPATION_IDS } from './constants/mockData';
 import { t } from './constants/translations';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -119,6 +119,16 @@ export default function App() {
             missingParts.forEach(p => batch.set(doc(db, 'participations', p.id), p));
             missingCats.forEach(c => batch.set(doc(db, 'categories', c.id), c));
             await batch.commit();
+          }
+          // Cleanup: delete stale duplicate FN team/participation docs that may
+          // have been seeded by an earlier deploy before dedup was applied.
+          const staleTeamIds = STALE_FN_TEAM_IDS.filter(id => existingTeamIds.has(id));
+          const stalePartIds = STALE_FN_PARTICIPATION_IDS.filter(id => existingPartIds.has(id));
+          if (staleTeamIds.length || stalePartIds.length) {
+            const cleanupBatch = writeBatch(db);
+            staleTeamIds.forEach(id => cleanupBatch.delete(doc(db, 'teams', id)));
+            stalePartIds.forEach(id => cleanupBatch.delete(doc(db, 'participations', id)));
+            await cleanupBatch.commit();
           }
         }
         const usersSnap = await getDocs(collection(db, 'users'));

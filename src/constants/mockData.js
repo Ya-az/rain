@@ -371,7 +371,17 @@ const FN_ROSTER = [
     ['محمد ثامر فهد الحارثي', 'ياسر منيف المطيري', 'كرم مهند العطار']],
 ];
 
-const __fnTeams = FN_ROSTER.map(([name, division, , coachName, members], i) => ({
+// Dedupe FN_ROSTER by (name|division|categoryId) — keeps the first occurrence,
+// drops later duplicates while preserving the original index → stable IDs.
+const __fnSeen = new Set();
+const __fnKept = FN_ROSTER.map((row, i) => ({ row, i })).filter(({ row }) => {
+  const key = `${row[0]}|${row[1]}|${row[2]}`;
+  if (__fnSeen.has(key)) return false;
+  __fnSeen.add(key);
+  return true;
+});
+
+const __fnTeams = __fnKept.map(({ row: [name, division, , coachName, members], i }) => ({
   id:         `t_fn_${String(i + 1).padStart(3, '0')}`,
   teamNumber: `FN${String(i + 1).padStart(3, '0')}`,
   name,
@@ -385,11 +395,23 @@ const __fnTeams = FN_ROSTER.map(([name, division, , coachName, members], i) => (
   })),
 }));
 
-const __fnParticipations = FN_ROSTER.map(([, , categoryId], i) => ({
+const __fnParticipations = __fnKept.map(({ row: [, , categoryId], i }) => ({
   id:         `26${String(i + 1).padStart(3, '0')}F`,
   teamId:     `t_fn_${String(i + 1).padStart(3, '0')}`,
   categoryId,
 }));
+
+// IDs of FN rows that were dropped as duplicates — used to clean up any old
+// docs that may already exist in Firestore from earlier seeds.
+const __fnKeptIndices = new Set(__fnKept.map(({ i }) => i));
+export const STALE_FN_TEAM_IDS = FN_ROSTER
+  .map((_, i) => i)
+  .filter(i => !__fnKeptIndices.has(i))
+  .map(i => `t_fn_${String(i + 1).padStart(3, '0')}`);
+export const STALE_FN_PARTICIPATION_IDS = FN_ROSTER
+  .map((_, i) => i)
+  .filter(i => !__fnKeptIndices.has(i))
+  .map(i => `26${String(i + 1).padStart(3, '0')}F`);
 
 export const INITIAL_TEAMS = [...__centralTeams, ...__fnTeams];
 export const INITIAL_PARTICIPATIONS = [...__centralParticipations, ...__fnParticipations];
