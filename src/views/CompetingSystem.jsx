@@ -629,8 +629,16 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
       if (aVal !== bVal) return aVal - bVal;
       return (a.teamName || '').localeCompare(b.teamName || '');
     });
-    const esMsRows = sortFastBotRows(visibleFastBotRows.filter(row => ['ES', 'MS'].includes(row.division)));
-    const hsUsRows = sortFastBotRows(visibleFastBotRows.filter(row => ['HS', 'US'].includes(row.division)));
+    const esRows = sortFastBotRows(visibleFastBotRows.filter(row => row.division === 'ES'));
+    const msRows = sortFastBotRows(visibleFastBotRows.filter(row => row.division === 'MS'));
+    const hsRows = sortFastBotRows(visibleFastBotRows.filter(row => row.division === 'HS'));
+    const usRows = sortFastBotRows(visibleFastBotRows.filter(row => row.division === 'US'));
+    const fastBotBuckets = [
+      { key: 'ES', rows: esRows, slotKeys: esMsSlotKeys, addPool: esMsAddPool.filter(tm => tm.division === 'ES') },
+      { key: 'MS', rows: msRows, slotKeys: esMsSlotKeys, addPool: esMsAddPool.filter(tm => tm.division === 'MS') },
+      { key: 'HS', rows: hsRows, slotKeys: hsUsSlotKeys, addPool: hsUsAddPool.filter(tm => tm.division === 'HS') },
+      { key: 'US', rows: usRows, slotKeys: hsUsSlotKeys, addPool: hsUsAddPool.filter(tm => tm.division === 'US') },
+    ];
     const customGroupCards = customGroups.map(g => {
       const rows = sortFastBotRows(visibleFastBotRows.filter(row => g.teamIds.includes(row.teamId)));
       // Decide which slot keys to use — if all rows are HS/US use that schedule.
@@ -685,12 +693,14 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
           />
         ) : (
           <div className="space-y-4">
-            <CollapsibleCard title={t(lang, 'fastbotEsMsTable')} badge={esMsRows.length} badgeColor="bg-brand-500">
-              <FastBotScheduleTable title={t(lang, 'fastbotEsMsTable')} rows={esMsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={esMsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} addPool={isAdmin && addParticipation ? esMsAddPool : null} onAddTeam={(teamId) => addParticipation?.({ teamId, categoryId: category.id })} />
-            </CollapsibleCard>
-            <CollapsibleCard title={t(lang, 'fastbotHsUsTable')} badge={hsUsRows.length} badgeColor="bg-brand-500">
-              <FastBotScheduleTable title={t(lang, 'fastbotHsUsTable')} rows={hsUsRows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={hsUsSlotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} addPool={isAdmin && addParticipation ? hsUsAddPool : null} onAddTeam={(teamId) => addParticipation?.({ teamId, categoryId: category.id })} />
-            </CollapsibleCard>
+            {fastBotBuckets.map(({ key, rows, slotKeys, addPool }) => {
+              const title = `${lang === 'ar' ? 'جدول FastBot — ' : 'FastBot Schedule — '}${key}`;
+              return (
+                <CollapsibleCard key={key} title={title} badge={rows.length} badgeColor="bg-brand-500">
+                  <FastBotScheduleTable title={title} rows={rows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={slotKeys} editable={isAdmin && !!removeParticipation} onRemoveRow={(row) => removeParticipation?.(row.participationId)} addPool={isAdmin && addParticipation ? addPool : null} onAddTeam={(teamId) => addParticipation?.({ teamId, categoryId: category.id })} />
+                </CollapsibleCard>
+              );
+            })}
             {customGroupCards.map(({ id, name, rows, slotKeys }) => (
               <CollapsibleCard key={id} title={`${category.name} — ${name}`} badge={rows.length} badgeColor="bg-saudi-500">
                 <FastBotScheduleTable title={name} rows={rows} onSelectRow={handleOpenFastBotRow} lang={lang} showHeader={false} activeSlotKeys={slotKeys} editable={isAdmin && !!updateCustomGroup} onRemoveRow={(row) => {
@@ -722,11 +732,20 @@ function Group1Workflow({ category, participations, teams, allTeams, getTeamStat
   const esMsGroup1Rows = sortGroup1Rows(visibleGroup1Rows.filter(row => ['ES', 'MS'].includes(row.division)));
   const hsUsGroup1Rows = sortGroup1Rows(visibleGroup1Rows.filter(row => ['HS', 'US'].includes(row.division)));
 
-  // Per-category bucket override (e.g. a-Maze-ing: ES alone + MS alone).
+  // Per-category bucket override:
+  //  - a-Maze-ing: ES alone + MS alone
+  //  - FastBot: ES, MS, HS, US each on its own
   const group1Buckets = (category.id === 'c1_amazeing')
     ? [
         { key: 'ES', divs: ['ES'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'ES')), slotKeys: esMsSlotKeys },
         { key: 'MS', divs: ['MS'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'MS')), slotKeys: esMsSlotKeys },
+      ]
+    : (category.id === 'c1_fastbot')
+    ? [
+        { key: 'ES', divs: ['ES'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'ES')), slotKeys: esMsSlotKeys },
+        { key: 'MS', divs: ['MS'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'MS')), slotKeys: esMsSlotKeys },
+        { key: 'HS', divs: ['HS'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'HS')), slotKeys: hsUsSlotKeys },
+        { key: 'US', divs: ['US'], rows: sortGroup1Rows(visibleGroup1Rows.filter(r => r.division === 'US')), slotKeys: hsUsSlotKeys },
       ]
     : [
         { key: 'ES / MS', divs: ['ES', 'MS'], rows: esMsGroup1Rows, slotKeys: esMsSlotKeys },

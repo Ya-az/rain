@@ -20,6 +20,11 @@ export const RR_BUCKETS_BY_CATEGORY = {
     { key: 'ES',      divs: ['ES'] },
     { key: 'MS / HS', divs: ['MS', 'HS'] },
   ],
+  c2_sumo: [
+    { key: 'ES',      divs: ['ES'] },
+    { key: 'MS',      divs: ['MS'] },
+    { key: 'HS / US', divs: ['HS', 'US'] },
+  ],
 };
 export function getRrBuckets(categoryId) {
   return RR_BUCKETS_BY_CATEGORY[categoryId] || RR_BUCKETS_DEFAULT;
